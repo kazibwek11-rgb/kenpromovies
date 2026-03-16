@@ -467,18 +467,27 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkM
 .see-all-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:16px}
 @media(min-width:768px){.see-all-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
 
-/* COMING SOON */
-.coming-soon-wrap{padding:14px 0 6px;border-bottom:1px solid var(--brd);margin-bottom:8px}
-.cs-header{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:10px}
-.cs-title{font-size:15px;font-weight:800;color:var(--txt)}
-.cs-edit-btn{display:flex;align-items:center;gap:4px;background:var(--teal);color:#000;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer;margin-left:auto}
-.cs-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 6px;-webkit-overflow-scrolling:touch}
-.cs-scroll::-webkit-scrollbar{height:3px}
-.cs-scroll::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
-.cs-card{flex-shrink:0;width:120px;display:flex;flex-direction:column;gap:5px}
-.cs-poster{width:120px;height:170px;border-radius:10px;overflow:hidden;background:var(--s2);position:relative;border:1px solid var(--brd)}
-.cs-poster img{width:100%;height:100%;object-fit:cover;display:block}
-.cs-no-poster{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px}
-.cs-del{position:absolute;top:4px;right:4px;background:rgba(255,68,68,.85);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.cs-card-title{font-size:10px;font-weight:700;color:var(--txt);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cs-card-date{font-size:9px;color:var(--teal);font-weight:700}
+/* FEATURED CAROUSEL */
+.carousel-wrap{position:relative;width:100%;overflow:hidden;margin-bottom:16px;background:var(--s1)}
+.carousel-track{display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
+.carousel-slide{flex-shrink:0;width:100%;height:220px;position:relative;overflow:hidden}
+.carousel-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}
+.carousel-wrap:hover .carousel-bg{transform:scale(1.03)}
+.carousel-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.75) 100%)}
+.carousel-content{position:absolute;bottom:0;left:0;right:0;padding:16px 20px;display:flex;flex-direction:column;gap:4px}
+.carousel-badge{font-size:10px;font-weight:800;color:var(--teal);letter-spacing:.06em;text-transform:uppercase}
+.carousel-title{font-size:22px;font-weight:900;color:#fff;line-height:1.1;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.carousel-date{font-size:11px;color:rgba(255,255,255,.75);font-weight:600}
+.carousel-del{background:rgba(255,68,68,.8);border:none;color:#fff;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;margin-top:4px;width:fit-content}
+.carousel-prev,.carousel-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px);transition:background .15s}
+.carousel-prev{left:10px}
+.carousel-next{right:10px}
+.carousel-prev:hover,.carousel-next:hover{background:rgba(0,0,0,.8)}
+.carousel-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10}
+.carousel-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;transition:all .2s}
+.carousel-dot.active{background:#fff;width:18px;border-radius:3px}
+.carousel-add-btn{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:4px;background:var(--teal);color:#000;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer;z-index:10}
+@media(min-width:768px){
+  .carousel-slide{height:300px}
+  .carousel-title{font-size:28px}
+}

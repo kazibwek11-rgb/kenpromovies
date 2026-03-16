@@ -1337,31 +1337,60 @@ function previewDlLink(val) {
   }
 }
 
-// ── COMING SOON ──────────────────────────────────────────────
+// ── FEATURED CAROUSEL ────────────────────────────────────────
 const CS_KEY = 'kp_coming_soon';
-
-function loadCS() { try { comingSoon = JSON.parse(localStorage.getItem(CS_KEY)||'[]'); } catch(e){ comingSoon=[]; } }
-function saveCS() { try { localStorage.setItem(CS_KEY, JSON.stringify(comingSoon)); } catch(e){} }
+let carouselIdx = 0;
+let carouselTimer = null;
 
 function renderComingSoon() {
-  const wrap = document.getElementById('coming-soon-wrap');
-  const row  = document.getElementById('cs-scroll');
-  if (!wrap || !row) return;
-  // Show edit button only for admin
-  const editBtn = wrap.querySelector('.cs-edit-btn');
-  if (editBtn) editBtn.style.display = adminUnlocked ? 'flex' : 'none';
-  if (!comingSoon.length) { wrap.style.display = 'none'; return; }
+  const wrap  = document.getElementById('carousel-wrap');
+  const track = document.getElementById('carousel-track');
+  const dots  = document.getElementById('carousel-dots');
+  const addBtn = document.getElementById('carousel-add-btn');
+  if (!wrap || !track) return;
+  if (addBtn) addBtn.style.display = adminUnlocked ? 'flex' : 'none';
+  if (!comingSoon.length) { wrap.style.display = 'none'; stopCarousel(); return; }
   wrap.style.display = 'block';
-  row.innerHTML = comingSoon.map((c,i) => `
-    <div class="cs-card">
-      <div class="cs-poster">
-        ${c.thumb ? `<img src="${c.thumb}" onerror="this.style.display='none'"/>` : '<div class="cs-no-poster">🎬</div>'}
-        ${adminUnlocked ? `<button class="cs-del" onclick="removeCS(${i})">✕</button>` : ''}
+  track.innerHTML = comingSoon.map((c,i) => `
+    <div class="carousel-slide">
+      <div class="carousel-bg" ${c.thumb ? `style="background-image:url('${c.thumb}')"` : ''}></div>
+      <div class="carousel-overlay"></div>
+      <div class="carousel-content">
+        <div class="carousel-badge">🎬 Coming Soon</div>
+        <div class="carousel-title">${c.title}</div>
+        ${c.date ? `<div class="carousel-date">${c.date}</div>` : ''}
+        ${adminUnlocked ? `<button class="carousel-del" onclick="removeCS(${i})">✕ Remove</button>` : ''}
       </div>
-      <div class="cs-card-title">${c.title}</div>
-      ${c.date ? `<div class="cs-card-date">${c.date}</div>` : ''}
     </div>`).join('');
+  if (dots) dots.innerHTML = comingSoon.map((_,i) =>
+    '<span class="carousel-dot ' + (i===carouselIdx?'active':'') + '" onclick="goCarousel(' + i + ')"></span>'
+  ).join('');
+  goCarousel(Math.min(carouselIdx, comingSoon.length-1));
+  startCarousel();
 }
+
+function goCarousel(idx) {
+  const track = document.getElementById('carousel-track');
+  if (!track) return;
+  carouselIdx = idx;
+  track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+  document.querySelectorAll('.carousel-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+}
+
+function carouselMove(dir) {
+  if (!comingSoon.length) return;
+  goCarousel((carouselIdx + dir + comingSoon.length) % comingSoon.length);
+  restartCarousel();
+}
+
+function startCarousel() {
+  stopCarousel();
+  if (comingSoon.length <= 1) return;
+  carouselTimer = setInterval(() => goCarousel((carouselIdx + 1) % comingSoon.length), 5000);
+}
+
+function stopCarousel()   { if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; } }
+function restartCarousel(){ stopCarousel(); startCarousel(); }
 
 function openCSAdmin() { openModal('cs-modal'); }
 
@@ -1376,11 +1405,12 @@ function addComingSoon() {
   document.getElementById('cs-title-inp').value = '';
   document.getElementById('cs-thumb-inp').value = '';
   document.getElementById('cs-date-inp').value  = '';
-  showToast('Coming Soon added!');
+  showToast('Added to carousel!');
 }
 
 function removeCS(i) {
   comingSoon.splice(i, 1);
+  if (carouselIdx >= comingSoon.length) carouselIdx = 0;
   saveCS(); renderComingSoon();
 }
 

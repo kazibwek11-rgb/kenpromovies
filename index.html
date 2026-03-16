@@ -121,13 +121,15 @@
 
       <!-- HOME: VJ rows -->
       <div class="page active" id="page-home">
-        <!-- COMING SOON BANNER -->
-        <div class="coming-soon-wrap" id="coming-soon-wrap" style="display:none">
-          <div class="cs-header">
-            <span class="cs-title">🎬 Coming Soon</span>
-            <button class="cs-edit-btn admin-only" style="display:none" onclick="openCSAdmin()">+ Add</button>
-          </div>
-          <div class="cs-scroll" id="cs-scroll"></div>
+        <!-- FEATURED CAROUSEL -->
+        <div class="carousel-wrap" id="carousel-wrap" style="display:none">
+          <div class="carousel-track" id="carousel-track"></div>
+          <div class="carousel-dots" id="carousel-dots"></div>
+          <button class="carousel-prev" onclick="carouselMove(-1)">&#8249;</button>
+          <button class="carousel-next" onclick="carouselMove(1)">&#8250;</button>
+          <button class="carousel-add-btn admin-only" id="carousel-add-btn" style="display:none" onclick="openCSAdmin()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add
+          </button>
         </div>
         <div class="vj-rows" id="vj-rows-home"></div>
       </div>
