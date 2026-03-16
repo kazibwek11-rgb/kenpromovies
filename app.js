@@ -15,6 +15,11 @@ const ADMIN_KEY  = 'kp_admin';
 
 const VJS = ['VJ Junior','VJ Emmy','VJ Ice P','VJ Sammy','VJ Little T','VJ Jingo','VJ ULIO','VJ HD','VJ SMK'];
 
+let comingSoon = [];
+let dlHistory  = [];
+let subscribers = [];
+let payments   = [];
+
 let allContent   = [];
 let favs         = [];
 let curPlay      = null;
@@ -576,7 +581,6 @@ function closePlayer() {
 }
 // ── DOWNLOAD TRACKING ────────────────────────────────────────
 const DL_KEY = 'kp_downloads';
-let dlHistory = [];
 function loadDlHistory() { try { dlHistory = JSON.parse(localStorage.getItem(DL_KEY)||'[]'); } catch(e){ dlHistory=[]; } }
 function saveDlHistory() { try { localStorage.setItem(DL_KEY, JSON.stringify(dlHistory)); } catch(e){} }
 
@@ -1180,7 +1184,6 @@ showSection('home');
 
 // ── SUBSCRIBER MANAGEMENT ────────────────────────────────────
 const SUB_KEY = 'kp_subscribers';
-let subscribers = [];
 
 function loadSubs() {
   try { subscribers = JSON.parse(localStorage.getItem(SUB_KEY) || '[]'); } catch(e) { subscribers = []; }
@@ -1243,7 +1246,6 @@ loadSubs();
 
 // ── MOBILE MONEY PAYMENTS ────────────────────────────────────
 const PAY_KEY = 'kp_payments';
-let payments = [];
 
 function loadPayments() {
   try { payments = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e) { payments = []; }
@@ -1337,7 +1339,6 @@ function previewDlLink(val) {
 
 // ── COMING SOON ──────────────────────────────────────────────
 const CS_KEY = 'kp_coming_soon';
-let comingSoon = [];
 
 function loadCS() { try { comingSoon = JSON.parse(localStorage.getItem(CS_KEY)||'[]'); } catch(e){ comingSoon=[]; } }
 function saveCS() { try { localStorage.setItem(CS_KEY, JSON.stringify(comingSoon)); } catch(e){} }
