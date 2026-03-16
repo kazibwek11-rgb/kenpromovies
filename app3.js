@@ -1413,4 +1413,6 @@ function removeCS(i) {
   saveCS(); renderComingSoon();
 }
 
+function loadCS() { try { comingSoon = JSON.parse(localStorage.getItem(CS_KEY)||'[]'); } catch(e){ comingSoon=[]; } }
+function saveCS() { try { localStorage.setItem(CS_KEY, JSON.stringify(comingSoon)); } catch(e){} }
 loadCS();
