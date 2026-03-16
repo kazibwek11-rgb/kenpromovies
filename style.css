@@ -378,16 +378,54 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkM
 .sub-del-btn:hover{background:rgba(255,68,68,.1)}
 
 /* MORE LIKE THESE */
-.more-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--brd)}
+.more-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--brd)}
 .more-title{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:12px}
-.more-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.more-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
 .more-row::-webkit-scrollbar{height:3px}
 .more-row::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
-.more-card{flex-shrink:0;width:120px;cursor:pointer;display:flex;flex-direction:column;gap:5px}
+.more-card{flex-shrink:0;width:130px;cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:transform .15s}
+.more-card:hover{transform:translateY(-2px)}
 .more-card:hover .more-thumb{border-color:var(--teal)}
-.more-thumb{width:120px;height:72px;border-radius:8px;background:var(--s2);overflow:hidden;border:1px solid var(--brd);transition:border-color .15s;position:relative}
+.more-thumb{width:130px;height:78px;border-radius:8px;background:var(--s2);overflow:hidden;border:1px solid var(--brd);transition:border-color .15s;position:relative}
 .more-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .more-thumb-play{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .2s}
 .more-card:hover .more-thumb-play{background:rgba(0,0,0,.5)}
-.more-card-title{font-size:10px;font-weight:700;color:var(--txt);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.more-card-vj{font-size:9px;color:var(--teal);font-weight:700}
+.more-card-title{font-size:10px;font-weight:700;color:var(--txt);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.more-card-vj{font-size:9px;color:var(--teal);font-weight:700;padding:0 2px}
+@media(min-width:768px){
+  .more-card{width:150px}
+  .more-thumb{width:150px;height:90px}
+}
+
+/* MOBILE MONEY PAYMENT */
+.momo-box{background:var(--s2);border:1px solid var(--brd);border-radius:10px;padding:14px;width:100%;text-align:center;margin:4px 0}
+.momo-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.momo-number{font-size:26px;font-weight:900;color:var(--teal);letter-spacing:.04em}
+.momo-name{font-size:12px;color:var(--muted2);margin-top:2px;margin-bottom:10px}
+.momo-plans{display:flex;flex-direction:column;gap:4px}
+.momo-plan{font-size:11px;color:var(--txt);background:var(--s3);border-radius:6px;padding:5px 10px;font-weight:600}
+.momo-confirm-wrap{display:flex;flex-direction:column;gap:7px;width:100%}
+.momo-inp{background:var(--s2);border:1px solid var(--brd);border-radius:8px;color:var(--txt);font-size:13px;padding:9px 11px;font-family:inherit;outline:none;width:100%}
+.momo-inp:focus{border-color:var(--teal)}
+.momo-inp::placeholder{color:var(--muted)}
+.momo-inp option{background:#1c1c1c}
+
+/* PAYMENT LIST IN ADMIN */
+.pay-list{display:flex;flex-direction:column;gap:6px}
+.pay-item{background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.pay-item.pending{border-color:rgba(255,152,0,.4)}
+.pay-item.approved{border-color:rgba(0,229,195,.3)}
+.pay-item.rejected{border-color:rgba(255,68,68,.3);opacity:.6}
+.pay-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pay-name{font-size:13px;font-weight:700;color:var(--txt)}
+.pay-plan{font-size:10px;color:var(--teal);font-weight:700;background:var(--tdim);border-radius:99px;padding:2px 8px}
+.pay-phone{font-size:11px;color:var(--muted)}
+.pay-txn{font-size:11px;color:var(--muted2)}
+.pay-time{font-size:10px;color:var(--muted)}
+.pay-status-row{display:flex;gap:6px;margin-top:4px}
+.pay-approve{background:var(--teal);color:#000;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.pay-reject{background:none;border:1px solid rgba(255,68,68,.3);color:var(--red);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.pay-badge{font-size:10px;font-weight:700;border-radius:99px;padding:3px 10px}
+.pay-badge.pending{background:rgba(255,152,0,.15);color:#ff9800}
+.pay-badge.approved{background:var(--tdim);color:var(--teal)}
+.pay-badge.rejected{background:rgba(255,68,68,.1);color:var(--red)}

@@ -94,7 +94,7 @@ function showSection(sec) {
   curSection = sec;
   if (sec==='favs')     renderFavs();
   if (sec==='settings') updateStats();
-  if (sec==='admin') { renderLib(); renderSubs(); }
+  if (sec==='admin') { renderLib(); renderSubs(); renderPayments(); }
   document.getElementById('content').scrollTop = 0;
 }
 
@@ -436,17 +436,32 @@ function buildTags(vj,cat,genre,year) {
 
 function buildPlayer(url) {
   const box = document.getElementById('player-video');
-  const isVid = /\.(mp4|webm|mkv|avi|mov)(\?|$)/i.test(url);
+  if (!url) { box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;font-size:13px">No play link set</div>'; return; }
+  const isVid = /\.(mp4|webm|mov|m3u8)(\?|$)/i.test(url);
   if (isVid) {
-    box.innerHTML = `<video controls autoplay playsinline style="width:100%;height:100%;background:#000"><source src="${url}"/>Your browser does not support this video.</video>`;
-  } else {
-    let embed = url;
-    if (url.includes('archive.org') && !url.includes('/embed/')) {
-      const m = url.match(/archive\.org\/(?:details|download)\/([^/?#]+)/);
-      if (m) embed = 'https://archive.org/embed/'+m[1];
-    }
-    box.innerHTML = `<iframe src="${embed}" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;background:#000"></iframe>`;
+    box.innerHTML = `<video controls autoplay playsinline webkit-playsinline x5-playsinline style="width:100%;height:100%;background:#000;max-width:100%"><source src="${url}" type="video/mp4"/><source src="${url}"/></video>`;
+    return;
   }
+  // archive.org — convert to embed
+  if (url.includes('archive.org')) {
+    let embed = url;
+    if (!url.includes('/embed/')) {
+      const m = url.match(/archive\.org\/(?:details|download)\/([^/?#]+)/);
+      if (m) embed = 'https://archive.org/embed/'+m[1]+'?autoplay=1';
+    }
+    box.innerHTML = `<iframe src="${embed}" allowfullscreen allow="autoplay;fullscreen;picture-in-picture" referrerpolicy="no-referrer" style="width:100%;height:100%;border:none;background:#000"></iframe>`;
+    return;
+  }
+  // youtube
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    let vid = '';
+    const m1 = url.match(/[?&]v=([^&]+)/);
+    const m2 = url.match(/youtu\.be\/([^?]+)/);
+    if (m1) vid = m1[1]; else if (m2) vid = m2[1];
+    if (vid) { box.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;background:#000"></iframe>`; return; }
+  }
+  // any other URL — try as iframe
+  box.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;background:#000"></iframe>`;
 }
 
 function renderMoreLike(currentId, cat, vj) {
@@ -470,12 +485,12 @@ function renderMoreLike(currentId, cat, vj) {
   if (!similar.length) { row.parentElement.style.display = 'none'; return; }
   row.parentElement.style.display = 'block';
   row.innerHTML = similar.map(m => {
-    const sname = m.cat === 'series' ? (m.seriesName || m.title) : null;
-    const onclick = sname ? `openSeriesDetail('${sname.replace(/'/g,"\'")}');closePlayer()` : `playItem('${m.id}')`;
+    // Always play directly — click any card and it plays
+    const onclick = `playItem('${m.id}')`;
     return `<div class="more-card" onclick="${onclick}">
       <div class="more-thumb">
-        ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
-        <div class="more-thumb-play"><svg width="20" height="20" fill="var(--teal)"><polygon points="5,3 19,12 5,21"/></svg></div>
+        ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : '<div style="width:100%;height:100%;background:var(--s3);border-radius:6px"></div>'}
+        <div class="more-thumb-play"><svg width="22" height="22" fill="var(--teal)"><polygon points="5,3 19,12 5,21"/></svg></div>
       </div>
       <div class="more-card-title">${m.seriesName || m.title}</div>
       <div class="more-card-vj">${m.vj || ''}</div>
@@ -900,3 +915,81 @@ function renderSubs() {
 
 // Load subscribers on init
 loadSubs();
+
+// ── MOBILE MONEY PAYMENTS ────────────────────────────────────
+const PAY_KEY = 'kp_payments';
+let payments = [];
+
+function loadPayments() {
+  try { payments = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e) { payments = []; }
+}
+function savePayments() { try { localStorage.setItem(PAY_KEY, JSON.stringify(payments)); } catch(e){} }
+
+function submitPayment() {
+  const name  = document.getElementById('momo-name-inp').value.trim();
+  const phone = document.getElementById('momo-phone-inp').value.trim();
+  const txn   = document.getElementById('momo-txn-inp').value.trim();
+  const plan  = document.getElementById('momo-plan-sel').value;
+  if (!name)  { alert('Enter your name'); return; }
+  if (!phone) { alert('Enter your phone number'); return; }
+  if (!txn)   { alert('Enter your transaction ID'); return; }
+  payments.push({ id: Date.now(), name, phone, txn, plan, status: 'pending', time: Date.now() });
+  savePayments();
+  closeModal('dl-modal');
+  document.getElementById('momo-name-inp').value  = '';
+  document.getElementById('momo-phone-inp').value = '';
+  document.getElementById('momo-txn-inp').value   = '';
+  showToast('Payment submitted! Admin will confirm shortly.');
+}
+
+function approvePayment(id) {
+  const p = payments.find(p => p.id === id);
+  if (!p) return;
+  p.status = 'approved';
+  savePayments();
+  // Also add as subscriber
+  const months = p.plan === 'yearly' ? 12 : p.plan === '3months' ? 3 : 1;
+  subscribers.push({ id: Date.now(), name: p.name, phone: p.phone, plan: p.plan, joined: Date.now(), expires: Date.now() + months*30*24*60*60*1000 });
+  saveSubs();
+  renderPayments();
+  renderSubs();
+  showToast(p.name + ' approved!');
+}
+
+function rejectPayment(id) {
+  const p = payments.find(p => p.id === id);
+  if (!p) return;
+  p.status = 'rejected';
+  savePayments();
+  renderPayments();
+  showToast('Payment rejected.');
+}
+
+function renderPayments() {
+  const el = document.getElementById('pay-list');
+  if (!el) return;
+  document.getElementById('pay-count').textContent = payments.filter(p => p.status === 'pending').length;
+  if (!payments.length) { el.innerHTML = '<div class="empty-msg">No payment requests yet.</div>'; return; }
+  const sorted = [...payments].sort((a,b) => b.time - a.time);
+  el.innerHTML = sorted.map(p => {
+    const planLabel = p.plan === 'yearly' ? 'Yearly' : p.plan === '3months' ? '3 Months' : 'Monthly';
+    const timeStr = new Date(p.time).toLocaleString();
+    return `<div class="pay-item ${p.status}">
+      <div class="pay-row">
+        <div class="pay-name">${p.name}</div>
+        <span class="pay-plan">${planLabel}</span>
+      </div>
+      <div class="pay-phone">${p.phone}</div>
+      <div class="pay-txn">TXN: ${p.txn}</div>
+      <div class="pay-time">${timeStr}</div>
+      ${p.status === 'pending' ? `
+      <div class="pay-status-row">
+        <button class="pay-approve" onclick="approvePayment(${p.id})">✓ Approve</button>
+        <button class="pay-reject"  onclick="rejectPayment(${p.id})">✗ Reject</button>
+      </div>` : `<span class="pay-badge ${p.status}">${p.status}</span>`}
+    </div>`;
+  }).join('');
+}
+
+// Load on init
+loadPayments();
