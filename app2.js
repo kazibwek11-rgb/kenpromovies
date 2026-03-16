@@ -19,6 +19,8 @@ let comingSoon = [];
 let dlHistory  = [];
 let subscribers = [];
 let payments   = [];
+let carouselIdx = 0;
+let carouselTimer = null;
 
 let allContent   = [];
 let favs         = [];
@@ -1339,9 +1341,6 @@ function previewDlLink(val) {
 
 // ── FEATURED CAROUSEL ────────────────────────────────────────
 const CS_KEY = 'kp_coming_soon';
-let carouselIdx = 0;
-let carouselTimer = null;
-
 function renderComingSoon() {
   const wrap  = document.getElementById('carousel-wrap');
   const track = document.getElementById('carousel-track');
