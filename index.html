@@ -84,15 +84,31 @@
     <!-- SIDEBAR -->
     <nav class="sidebar">
       <div class="sb-logo">KENPRO</div>
-      <button class="snav active" id="snav-home"      onclick="showSection('home')">      <svg width="18" height="18"><use href="#i-home"/></svg><span>Home</span></button>
-      <button class="snav"        id="snav-movies"    onclick="showSection('movies')">    <svg width="18" height="18"><use href="#i-film"/></svg><span>Movies</span></button>
-      <button class="snav"        id="snav-series"    onclick="showSection('series')">    <svg width="18" height="18"><use href="#i-tv"/></svg><span>Series</span></button>
-      <button class="snav"        id="snav-animation" onclick="showSection('animation')"> <svg width="18" height="18"><use href="#i-star"/></svg><span>Animation</span></button>
-      <button class="snav"        id="snav-favs"      onclick="showSection('favs')">      <svg width="18" height="18"><use href="#i-heart"/></svg><span>Favourites</span></button>
+      <button class="snav active" id="snav-home" onclick="showSection('home')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span>
+      </button>
+      <button class="snav" id="snav-movies" onclick="showSection('movies')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span>Movies</span>
+      </button>
+      <button class="snav" id="snav-series" onclick="showSection('series')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg><span>Series</span>
+      </button>
+      <button class="snav" id="snav-animation" onclick="showSection('animation')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Animation</span>
+      </button>
+      <button class="snav" id="snav-favs" onclick="showSection('favs')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Favourites</span>
+      </button>
       <div class="sb-div"></div>
-      <button class="snav"        id="snav-settings"  onclick="showSection('settings')">  <svg width="18" height="18"><use href="#i-settings"/></svg><span>Settings</span></button>
-      <button class="snav"                            onclick="openModal('contact-modal')"><svg width="18" height="18"><use href="#i-phone"/></svg><span>Contact</span></button>
-      <button class="snav" id="snav-admin" style="display:none" onclick="goAdmin()">      <svg width="18" height="18"><use href="#i-lock"/></svg><span>Admin</span></button>
+      <button class="snav" id="snav-settings" onclick="showSection('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span>
+      </button>
+      <button class="snav" onclick="openModal('contact-modal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.5a16 16 0 0 0 5.55 5.55l.96-.96a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Contact</span>
+      </button>
+      <button class="snav" id="snav-admin" style="display:none" onclick="goAdmin()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Admin</span>
+      </button>
     </nav>
 
     <main class="content" id="content">
@@ -176,7 +192,7 @@
           <div class="scard">
             <div class="scard-hd"><svg width="14" height="14"><use href="#i-globe"/></svg> App Info</div>
             <div class="srow"><div class="srow-ic"><svg width="14" height="14"><use href="#i-film"/></svg></div><div class="srow-b"><div class="sl">App Name</div><div class="sv">Kenpro Movies</div></div></div>
-            <div class="srow"><div class="srow-ic"><svg width="14" height="14"><use href="#i-globe"/></svg></div><div class="srow-b"><div class="sl">Live Link</div><div class="sv teal">kazibwek11-rgb.github.io/kenpromovies</div></div></div>
+            <div class="srow"><div class="srow-ic"><svg width="14" height="14"><use href="#i-globe"/></svg></div><div class="srow-b"><div class="sl">Live Link</div><div class="sv teal">kenpromovies.is-a.dev</div></div></div>
           </div>
           <div class="scard">
             <div class="scard-hd"><svg width="14" height="14"><use href="#i-crown"/></svg> Subscription</div>
@@ -254,7 +270,30 @@
             </div>
             <div class="lib-list" id="lib-list"><div class="empty-msg">Loading...</div></div>
           </div>
-          <button class="back-btn-full" onclick="showSection('home')"><svg width="14" height="14"><use href="#i-back"/></svg> Back to App</button>
+          <!-- SUBSCRIBER MANAGEMENT -->
+          <div class="acard">
+            <div class="acard-hd">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Subscribers (<span id="sub-count">0</span>)
+            </div>
+            <div class="sub-add-row">
+              <input type="text" id="sub-name" placeholder="Name e.g. John" class="sub-inp"/>
+              <input type="text" id="sub-phone" placeholder="Phone e.g. +256700..." class="sub-inp"/>
+              <select id="sub-plan" class="sub-inp">
+                <option value="monthly">Monthly</option>
+                <option value="3months">3 Months</option>
+                <option value="yearly">Yearly</option>
+              </select>
+              <button class="add-btn" style="padding:9px" onclick="addSubscriber()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add
+              </button>
+            </div>
+            <div class="sub-list" id="sub-list"><div class="empty-msg">No subscribers yet.</div></div>
+          </div>
+
+          <button class="back-btn-full" onclick="showSection('home')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Back to App
+          </button>
         </div>
       </div>
 
@@ -263,11 +302,26 @@
 
   <!-- BOTTOM NAV -->
   <nav class="botnav">
-    <button class="bnav active" id="bnav-home"      onclick="showSection('home')">      <svg width="20" height="20"><use href="#i-home"/></svg><span>Home</span></button>
-    <button class="bnav"        id="bnav-movies"    onclick="showSection('movies')">    <svg width="20" height="20"><use href="#i-film"/></svg><span>Movies</span></button>
-    <button class="bnav"        id="bnav-series"    onclick="showSection('series')">    <svg width="20" height="20"><use href="#i-tv"/></svg><span>Series</span></button>
-    <button class="bnav"        id="bnav-animation" onclick="showSection('animation')"> <svg width="20" height="20"><use href="#i-star"/></svg><span>Anime</span></button>
-    <button class="bnav"        id="bnav-settings"  onclick="showSection('settings')">  <svg width="20" height="20"><use href="#i-settings"/></svg><span>Settings</span></button>
+    <button class="bnav active" id="bnav-home" onclick="showSection('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="bnav" id="bnav-movies" onclick="showSection('movies')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+      <span>Movies</span>
+    </button>
+    <button class="bnav" id="bnav-series" onclick="showSection('series')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+      <span>Series</span>
+    </button>
+    <button class="bnav" id="bnav-animation" onclick="showSection('animation')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Anime</span>
+    </button>
+    <button class="bnav" id="bnav-settings" onclick="showSection('settings')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
   </nav>
 </div>
 
@@ -338,7 +392,7 @@
     <div class="modal-title">Contact Kenpro</div>
     <div class="modal-sub">Subscriptions, requests and support.</div>
     <a class="modal-primary wa-btn" href="https://wa.me/256702381857" target="_blank"><svg width="14" height="14"><use href="#i-whatsapp"/></svg> Chat on WhatsApp</a>
-    <div class="contact-info"><div class="ci-row"><svg width="13" height="13"><use href="#i-phone"/></svg> +256 702 381 857</div><div class="ci-row"><svg width="13" height="13"><use href="#i-globe"/></svg> kazibwek11-rgb.github.io/kenpromovies</div></div>
+    <div class="contact-info"><div class="ci-row"><svg width="13" height="13"><use href="#i-phone"/></svg> +256 702 381 857</div><div class="ci-row"><svg width="13" height="13"><use href="#i-globe"/></svg> kenpromovies.is-a.dev</div></div>
     <button class="modal-secondary" onclick="closeModal('contact-modal')">Close</button>
   </div>
 </div>
