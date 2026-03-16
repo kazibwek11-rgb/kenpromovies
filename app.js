@@ -391,6 +391,7 @@ function playItem(id) {
   document.getElementById('ep-nav').style.display = 'none';
   setFavUI('item-'+id);
   buildPlayer(m.play);
+  renderMoreLike(id, m.cat, m.vj);
   document.getElementById('player-overlay').classList.add('open');
 }
 
@@ -414,6 +415,7 @@ function playEpisode(id) {
   document.getElementById('ep-next').disabled = idx>=allEps.length-1;
   setFavUI('item-'+id);
   buildPlayer(ep.play);
+  renderMoreLike(id, 'series', ep.vj);
   document.getElementById('player-overlay').classList.add('open');
 }
 
@@ -445,6 +447,40 @@ function buildPlayer(url) {
     }
     box.innerHTML = `<iframe src="${embed}" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;background:#000"></iframe>`;
   }
+}
+
+function renderMoreLike(currentId, cat, vj) {
+  const row = document.getElementById('more-row');
+  if (!row) return;
+  // Get similar content - same category, exclude current
+  let similar = allContent.filter(m => m.id !== currentId && m.cat === cat);
+  // Prioritize same VJ
+  const sameVJ = similar.filter(m => m.vj === vj);
+  const others = similar.filter(m => m.vj !== vj);
+  similar = [...sameVJ, ...others].slice(0, 15);
+  // For series, deduplicate by series name
+  if (cat === 'series') {
+    const seen = {};
+    similar = similar.filter(m => {
+      const name = m.seriesName || m.title;
+      if (seen[name]) return false;
+      seen[name] = true; return true;
+    });
+  }
+  if (!similar.length) { row.parentElement.style.display = 'none'; return; }
+  row.parentElement.style.display = 'block';
+  row.innerHTML = similar.map(m => {
+    const sname = m.cat === 'series' ? (m.seriesName || m.title) : null;
+    const onclick = sname ? `openSeriesDetail('${sname.replace(/'/g,"\'")}');closePlayer()` : `playItem('${m.id}')`;
+    return `<div class="more-card" onclick="${onclick}">
+      <div class="more-thumb">
+        ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+        <div class="more-thumb-play"><svg width="20" height="20" fill="var(--teal)"><polygon points="5,3 19,12 5,21"/></svg></div>
+      </div>
+      <div class="more-card-title">${m.seriesName || m.title}</div>
+      <div class="more-card-vj">${m.vj || ''}</div>
+    </div>`;
+  }).join('');
 }
 
 function closePlayer() {
