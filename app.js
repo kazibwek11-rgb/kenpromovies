@@ -2,6 +2,13 @@
 //  KENPRO MOVIES — app.js v3.3
 //  VJ rows • Horizontal scroll • Search overlay • Admin edit only
 // ============================================================
+window.onerror = function(msg, src, line, col, err) {
+  document.body.style.background = '#0a0a0a';
+  document.body.style.color = '#ff4444';
+  document.body.style.fontFamily = 'monospace';
+  document.body.style.padding = '20px';
+  document.body.innerHTML = '<h2>App Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p><p>' + (err ? err.stack : '') + '</p>';
+};
 const ADMIN_PASS = 'kenpro123';
 const FAVS_KEY   = 'kp_favs';
 const ADMIN_KEY  = 'kp_admin';
