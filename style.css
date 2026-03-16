@@ -188,9 +188,11 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkM
 .search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 
 /* BOTTOM NAV */
-.botnav{height:60px;background:var(--s1);border-top:1px solid var(--brd);display:flex;justify-content:space-around;align-items:center;flex-shrink:0;z-index:100}
-.bnav{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;padding:6px 12px;transition:color .15s}
+.botnav{height:64px;background:var(--s1);border-top:1px solid var(--brd);display:flex;justify-content:space-around;align-items:center;flex-shrink:0;z-index:100;padding-bottom:4px}
+.bnav{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;padding:6px 10px;transition:all .15s;min-width:56px}
 .bnav:hover,.bnav.active{color:var(--teal)}
+.bnav-ico{font-size:22px;line-height:1;display:block;filter:grayscale(1);transition:filter .15s}
+.bnav.active .bnav-ico,.bnav:hover .bnav-ico{filter:grayscale(0)}
 
 /* PLAYER */
 .player-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column}
