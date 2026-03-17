@@ -443,17 +443,62 @@
 
 <!-- PLAYER -->
 <div class="player-overlay" id="player-overlay">
-  <div class="player-video" id="player-video"></div>
-  <div class="player-bar">
-    <button class="pl-back" onclick="closePlayer()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <span class="pl-title" id="pl-title">Now Playing</span>
-    <button class="pl-dl" onclick="downloadGate()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download
-    </button>
+  <!-- VIDEO AREA -->
+  <div class="kp-player-wrap" id="kp-player-wrap" onclick="kpShowControls()">
+    <div class="player-video" id="player-video"></div>
+    <!-- CUSTOM CONTROLS OVERLAY -->
+    <div class="kp-controls" id="kp-controls">
+      <!-- TOP BAR -->
+      <div class="kp-top-bar">
+        <button class="kp-back-btn" onclick="closePlayer()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="kp-top-info">
+          <div class="kp-top-title" id="kp-top-title"></div>
+          <div class="kp-top-ep" id="kp-top-ep"></div>
+        </div>
+        <div class="kp-top-right">
+          <button class="kp-icon-btn" id="kp-quality-btn" onclick="toggleQualityMenu()" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span id="kp-quality-label">HD</span>
+          </button>
+        </div>
+      </div>
+      <!-- CENTER CONTROLS -->
+      <div class="kp-center-row">
+        <button class="kp-skip-btn" onclick="kpSeek(-10)">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5V2L8 6l4 4V7a7 7 0 1 1-7 7H3a9 9 0 1 0 9-9z"/><text x="7.5" y="16.5" font-size="5" fill="currentColor" stroke="none" font-weight="700">10</text></svg>
+        </button>
+        <button class="kp-play-pause-btn" id="kp-play-pause" onclick="kpTogglePlay()">
+          <svg id="kp-play-ico" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="kp-skip-btn" onclick="kpSeek(10)">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5V2l4 4-4 4V7a7 7 0 1 0 7 7h2a9 9 0 1 1-9-9z"/><text x="7.5" y="16.5" font-size="5" fill="currentColor" stroke="none" font-weight="700">10</text></svg>
+        </button>
+      </div>
+      <!-- BOTTOM CONTROLS -->
+      <div class="kp-bottom-bar">
+        <div class="kp-progress-wrap" id="kp-progress-wrap" onclick="kpSeekClick(event)">
+          <div class="kp-progress-bg"></div>
+          <div class="kp-progress-fill" id="kp-progress-fill" style="width:0%"></div>
+          <div class="kp-progress-thumb" id="kp-progress-thumb" style="left:0%"></div>
+        </div>
+        <div class="kp-bottom-row">
+          <span class="kp-time" id="kp-time">0:00 / 0:00</span>
+          <div class="kp-bottom-right">
+            <button class="kp-icon-btn" onclick="downloadGate()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="kp-icon-btn" onclick="kpToggleFullscreen()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- INFO SECTION BELOW VIDEO -->
   <div class="player-info">
     <div class="pi-title" id="pi-title"></div>
     <div class="pi-ep"    id="pi-ep"></div>
@@ -464,7 +509,6 @@
         <svg width="15" height="15" id="fav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <span id="fav-txt">Add to Favourites</span>
       </button>
-
     </div>
     <div class="ep-nav" id="ep-nav" style="display:none">
       <button class="epnav-btn" id="ep-prev" onclick="playAdjacentEp(-1)"><svg width="16" height="16"><use href="#i-back"/></svg> Prev</button>

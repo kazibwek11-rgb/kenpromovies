@@ -422,7 +422,9 @@ function playItem(id) {
   if (!m) return;
   if (m.cat==='series') { playEpisode(id); return; }
   curPlay = { type:'movie', id };
-  document.getElementById('pl-title').textContent = m.title;
+  document.getElementById('pl-title') && (document.getElementById('pl-title').textContent = m.title);
+  document.getElementById('kp-top-title') && (document.getElementById('kp-top-title').textContent = m.title);
+  document.getElementById('kp-top-ep') && (document.getElementById('kp-top-ep').textContent = '');
   document.getElementById('pi-title').textContent = m.title;
   document.getElementById('pi-ep').textContent    = '';
   document.getElementById('pi-meta').textContent  = [m.vj,m.year,m.genre].filter(Boolean).join(' · ');
@@ -442,7 +444,9 @@ function playEpisode(id) {
   const idx = allEps.findIndex(e=>e.id===id);
   curPlay = { type:'episode', id, sname, allEps, idx };
   const lbl = `Season ${ep.season||1} · Episode ${ep.epNum||1}`;
-  document.getElementById('pl-title').textContent = `${sname} — ${lbl}`;
+  document.getElementById('pl-title') && (document.getElementById('pl-title').textContent = `${sname} — ${lbl}`);
+  document.getElementById('kp-top-title') && (document.getElementById('kp-top-title').textContent = sname);
+  document.getElementById('kp-top-ep') && (document.getElementById('kp-top-ep').textContent = lbl);
   document.getElementById('pi-title').textContent = sname;
   document.getElementById('pi-ep').textContent    = lbl+(ep.epTitle?` — ${ep.epTitle}`:'');
   document.getElementById('pi-meta').textContent  = [ep.vj,ep.year,ep.genre].filter(Boolean).join(' · ');
@@ -539,21 +543,108 @@ function buildPlayer(url) {
 }
 
 function playNativeVideo(box, url) {
-  box.innerHTML = `<video id="kp-video" controls autoplay playsinline webkit-playsinline x5-playsinline
-    style="width:100%;height:100%;background:#000;display:block;max-height:100%">
+  box.innerHTML = `<video id="kp-video" autoplay playsinline webkit-playsinline x5-playsinline
+    style="width:100%;height:100%;background:#000;display:block;object-fit:contain">
     <source src="${url}" type="video/mp4"/>
     <source src="${url}"/>
-    Your browser does not support video playback.
   </video>`;
   const v = box.querySelector('video');
   if (v) {
     v.addEventListener('error', () => {
-      // If native fails, try embed
       const itemId = url.match(/archive\.org\/download\/([^/]+)/)?.[1];
-      if (itemId) playEmbed(box, `https://archive.org/embed/${itemId}?autoplay=1`);
+      if (itemId) { playEmbed(box, `https://archive.org/embed/${itemId}?autoplay=1`); kpHideControls(); }
     });
+    v.addEventListener('loadedmetadata', () => kpUpdateTime());
+    v.addEventListener('timeupdate', () => kpUpdateTime());
+    v.addEventListener('play',  () => kpSetPlayIcon(false));
+    v.addEventListener('pause', () => kpSetPlayIcon(true));
+    v.addEventListener('ended', () => kpSetPlayIcon(true));
+    // Show controls on tap
+    kpShowControls();
   }
 }
+
+// ── CUSTOM PLAYER CONTROLS ───────────────────────────────────
+let kpControlsTimer = null;
+
+function kpGetVideo() { return document.getElementById('kp-video'); }
+
+function kpShowControls() {
+  const c = document.getElementById('kp-controls');
+  if (!c) return;
+  c.classList.add('visible');
+  clearTimeout(kpControlsTimer);
+  kpControlsTimer = setTimeout(() => {
+    const v = kpGetVideo();
+    if (v && !v.paused) c.classList.remove('visible');
+  }, 3000);
+}
+
+function kpHideControls() {
+  const c = document.getElementById('kp-controls');
+  if (c) c.classList.remove('visible');
+}
+
+function kpTogglePlay() {
+  const v = kpGetVideo(); if (!v) return;
+  if (v.paused) { v.play(); kpShowControls(); }
+  else { v.pause(); kpShowControls(); }
+}
+
+function kpSeek(secs) {
+  const v = kpGetVideo(); if (!v) return;
+  v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + secs));
+  kpShowControls();
+}
+
+function kpSeekClick(e) {
+  const v = kpGetVideo(); if (!v || !v.duration) return;
+  const wrap = document.getElementById('kp-progress-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  v.currentTime = pct * v.duration;
+  kpShowControls();
+}
+
+function kpUpdateTime() {
+  const v = kpGetVideo(); if (!v) return;
+  const cur = v.currentTime || 0;
+  const dur = v.duration   || 0;
+  const pct = dur > 0 ? (cur / dur) * 100 : 0;
+  const fill = document.getElementById('kp-progress-fill');
+  const thumb = document.getElementById('kp-progress-thumb');
+  const time  = document.getElementById('kp-time');
+  if (fill)  fill.style.width = pct + '%';
+  if (thumb) thumb.style.left = pct + '%';
+  if (time)  time.textContent = fmtTime(cur) + ' / ' + fmtTime(dur);
+}
+
+function fmtTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function kpSetPlayIcon(isPaused) {
+  const ico = document.getElementById('kp-play-ico');
+  if (!ico) return;
+  ico.innerHTML = isPaused
+    ? '<polygon points="5,3 19,12 5,21"/>'
+    : '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+}
+
+function kpToggleFullscreen() {
+  const wrap = document.getElementById('kp-player-wrap');
+  if (!wrap) return;
+  if (!document.fullscreenElement) {
+    (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen).call(wrap);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+  }
+}
+
+function toggleQualityMenu() { /* future: quality selection */ }
 
 function playEmbed(box, embedUrl) {
   box.innerHTML = `<iframe src="${embedUrl}"
@@ -596,8 +687,10 @@ function renderMoreLike(currentId, cat, vj) {
 }
 
 function closePlayer() {
+  const v = kpGetVideo(); if (v) v.pause();
   document.getElementById('player-video').innerHTML = '';
   document.getElementById('player-overlay').classList.remove('open');
+  kpHideControls();
   curPlay = null;
 }
 // ── DOWNLOAD TRACKING ────────────────────────────────────────
