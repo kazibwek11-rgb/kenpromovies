@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Kenmovies</title>
+<link rel="stylesheet" href="style.css?v=99"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="description" content="Kenmovies – Watch Free"/>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",
+    authDomain: "kenpro-movies.firebaseapp.com",
+    projectId: "kenpro-movies",
+    storageBucket: "kenpro-movies.firebasestorage.app",
+    messagingSenderId: "861464698680",
+    appId: "1:861464698680:web:b32b386afb748662282bcd",
+    measurementId: "G-XX2K9N2SSE"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window._db  = db;
+  window._fb  = { collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query };
+  window._fbReady = true;
+  document.dispatchEvent(new Event('fb-ready'));
+</script>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-home"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="i-heart"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="i-heart-f"  viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-lock"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-search"   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-play"     viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-back"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-film"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></symbol>
+  <symbol id="i-tv"       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></symbol>
+  <symbol id="i-star"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-plus"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-edit"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="i-trash"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-image"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+  <symbol id="i-tag"      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-user"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-phone"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.5a16 16 0 0 0 5.55 5.55l.96-.96a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+  <symbol id="i-globe"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-crown"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M5 20l-2-12 7 5 2-8 2 8 7-5-2 12"/></symbol>
+  <symbol id="i-whatsapp" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></symbol>
+  <symbol id="i-x"        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-eye"      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-save"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="i-install"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+  <symbol id="i-chevron"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-filter"   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+</svg>
+
+<div id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-logo">KENMOVIES</span>
+    <div class="topbar-center">
+      <div class="searchbar" id="searchbar" onclick="openSearch()">
+        <svg class="s-ico"><use href="#i-search"/></svg>
+        <span class="s-placeholder" id="s-placeholder">Search movies, series, VJ...</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn" id="install-btn" onclick="triggerInstall()" style="display:none"><svg width="18" height="18"><use href="#i-install"/></svg></button>
+      <button class="tb-btn" onclick="openModal('contact-modal')"><svg width="18" height="18"><use href="#i-phone"/></svg></button>
+      <button class="tb-btn" id="admin-btn" onclick="goAdmin()" style="display:none"><svg width="18" height="18"><use href="#i-lock"/></svg></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sb-logo">KENMOVIES</div>
+      <button class="snav active" id="snav-home" onclick="showSection('home')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span>
+      </button>
+      <button class="snav" id="snav-movies" onclick="showSection('movies')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span>Movies</span>
+      </button>
+      <button class="snav" id="snav-series" onclick="showSection('series')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg><span>Series</span>
+      </button>
+      <button class="snav" id="snav-indian" onclick="showSection('indian')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg><span>Indian</span></button>
+      <button class="snav" id="snav-animation" onclick="showSection('animation')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Animation</span>
+      </button>
+      <button class="snav" id="snav-favs" onclick="showSection('favs')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Favourites</span>
+      </button>
+      <div class="sb-div"></div>
+      <button class="snav" id="snav-downloads" onclick="showSection('downloads')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Downloads</span>
+      </button>
+      <button class="snav" id="snav-settings" onclick="showSection('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span>
+      </button>
+      <button class="snav" onclick="openModal('contact-modal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.5a16 16 0 0 0 5.55 5.55l.96-.96a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Contact</span>
+      </button>
+      <button class="snav" id="snav-admin" style="display:none" onclick="goAdmin()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Admin</span>
+      </button>
+    </nav>
+
+    <main class="content" id="content">
+
+      <!-- HOME: VJ rows -->
+      <div class="page active" id="page-home">
+        <!-- FEATURED CAROUSEL -->
+        <div class="carousel-wrap" id="carousel-wrap" style="display:none">
+          <div class="carousel-track" id="carousel-track"></div>
+          <div class="carousel-dots" id="carousel-dots"></div>
+          <button class="carousel-prev" onclick="carouselMove(-1)">&#8249;</button>
+          <button class="carousel-next" onclick="carouselMove(1)">&#8250;</button>
+          <button class="carousel-add-btn admin-only" id="carousel-add-btn" style="display:none" onclick="openCSAdmin()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add
+          </button>
+        </div>
+        <!-- UPCOMING MOVIES TICKER -->
+        <div class="upcoming-ticker" id="upcoming-ticker" style="display:none">
+          <span class="ticker-label">🎬 UPCOMING</span>
+          <div class="ticker-track-wrap">
+            <div class="ticker-track" id="ticker-track"></div>
+          </div>
+        </div>
+        <div class="vj-rows" id="vj-rows-home"></div>
+      </div>
+
+      <!-- MOVIES -->
+      <div class="page" id="page-movies">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20"><use href="#i-film"/></svg>Movies</h1></div>
+        <div class="vj-rows" id="vj-rows-movies"></div>
+      </div>
+
+      <!-- SERIES -->
+      <div class="page" id="page-series">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20"><use href="#i-tv"/></svg>Series</h1></div>
+        <div class="vj-rows" id="vj-rows-series"></div>
+      </div>
+
+      <!-- INDIAN PLACEHOLDER -->
+      <!-- INDIAN -->
+      <div class="page" id="page-indian">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>Indian</h1></div>
+        <div class="vj-rows" id="vj-rows-indian"></div>
+      </div>
+
+      <!-- ANIMATION -->
+      <div class="page" id="page-animation">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20"><use href="#i-star"/></svg>Animation</h1></div>
+        <div class="vj-rows" id="vj-rows-animation"></div>
+      </div>
+
+      <!-- FAVOURITES -->
+      <div class="page" id="page-favs">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20"><use href="#i-heart"/></svg>Favourites</h1></div>
+        <div class="hscroll-row" id="grid-favs"></div>
+      </div>
+
+      <!-- SERIES DETAIL — full screen cinematic -->
+      <div class="page" id="page-detail">
+        <div class="sd-container" id="sd-container">
+          <!-- hero backdrop -->
+          <div class="sd-backdrop" id="sd-backdrop"></div>
+          <!-- top bar over image -->
+          <div class="sd-topbar">
+            <button class="sd-back" onclick="showSection('series')">
+              <svg width="22" height="22"><use href="#i-back"/></svg>
+            </button>
+            <div class="sd-topbar-actions">
+              <button class="sd-action-btn" id="sd-fav-btn" onclick="toggleSeriesFav()">
+                <svg width="20" height="20" id="sd-fav-ico"><use href="#i-heart"/></svg>
+              </button>
+              <button class="sd-action-btn" onclick="downloadGate()">
+                <svg width="20" height="20"><use href="#i-download"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- info section -->
+          <div class="sd-info">
+            <h1 class="sd-title" id="sd-title"></h1>
+            <div class="sd-meta-row">
+              <span class="sd-vj-badge" id="sd-vj"></span>
+              <span class="sd-genres" id="sd-genres"></span>
+            </div>
+            <p class="sd-desc" id="sd-desc"></p>
+          </div>
+          <!-- season selector -->
+          <div class="sd-season-wrap">
+            <div class="sd-season-selector" id="sd-season-selector" onclick="toggleSeasonMenu()">
+              <span id="sd-season-label">Select Season</span>
+              <svg width="18" height="18" id="sd-season-chevron" style="transition:transform .2s"><use href="#i-chevron"/></svg>
+            </div>
+            <div class="sd-season-menu" id="sd-season-menu"></div>
+          </div>
+          <!-- episodes horizontal scroll -->
+          <div class="sd-episodes-wrap">
+            <div class="sd-ep-row" id="sd-ep-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOWNLOADS -->
+      <div class="page" id="page-downloads">
+        <div class="ph"><h1 class="ptitle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Downloads
+        </h1></div>
+        <div class="dl-page-body">
+          <div class="ph" style="margin-bottom:0"><span style="font-size:13px;color:var(--muted)">Files downloaded on this device</span><span style="font-size:11px;color:var(--muted);margin-left:auto" id="dl-page-count"></span></div>
+          <div class="dl-movie-list" id="dl-movie-list"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="ph"><h1 class="ptitle"><svg width="20" height="20"><use href="#i-settings"/></svg>Settings</h1></div>
+        <div class="settings-body">
+          <div class="scard">
+            <div class="scard-hd"><svg width="14" height="14"><use href="#i-globe"/></svg> App Info</div>
+            <div class="srow"><div class="srow-ic"><svg width="14" height="14"><use href="#i-film"/></svg></div><div class="srow-b"><div class="sl">App Name</div><div class="sv">Kenmovies</div></div></div>
+            <div class="srow"><div class="srow-ic"><svg width="14" height="14"><use href="#i-globe"/></svg></div><div class="srow-b"><div class="sl">Live Link</div><div class="sv teal">kenmovies.is-a.dev</div></div></div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd"><svg width="14" height="14"><use href="#i-crown"/></svg> Subscription</div>
+            <div class="sub-box">
+              <div class="sub-ico"><svg width="26" height="26"><use href="#i-crown"/></svg></div>
+              <div class="sub-title">Free Downloads</div>
+              <div class="sub-desc">All movies and series are free to watch and download!</div>
+              <button class="sub-btn" onclick="openModal('contact-modal')"><svg width="14" height="14"><use href="#i-whatsapp"/></svg> Contact Us</button>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd"><svg width="14" height="14"><use href="#i-star"/></svg> Stats</div>
+            <div class="stats-row">
+              <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total</div></div>
+              <div class="stat"><div class="stat-n" id="st-movies">0</div><div class="stat-l">Movies</div></div>
+              <div class="stat"><div class="stat-n" id="st-series">0</div><div class="stat-l">Series</div></div>
+              <div class="stat"><div class="stat-n" id="st-anim">0</div><div class="stat-l">Animation</div></div>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd"><svg width="14" height="14"><use href="#i-install"/></svg> App</div>
+            <div class="srow srow-tap" onclick="triggerInstall()"><div class="srow-ic"><svg width="14" height="14"><use href="#i-install"/></svg></div><div class="srow-b"><div class="sl">Install App</div><div class="sv">Add to Home Screen</div></div></div>
+            <div class="srow srow-tap" id="secret-row" onclick="secretTap()"><div class="srow-ic"><svg width="14" height="14"><use href="#i-star"/></svg></div><div class="srow-b"><div class="sl">About</div><div class="sv">Kenmovies v3.2</div></div><span id="secret-count" style="font-size:10px;color:transparent;min-width:14px">0</span></div>
+          </div>
+          <div class="app-ver">Kenmovies v3.2 · Made in Uganda</div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="ph">
+          <h1 class="ptitle"><svg width="20" height="20"><use href="#i-lock"/></svg>Admin</h1>
+          <button class="back-inline-btn" onclick="showSection('home')"><svg width="14" height="14"><use href="#i-back"/></svg> Exit</button>
+        </div>
+        <div class="admin-body">
+          <div class="acard">
+            <div class="acard-hd"><svg width="14" height="14"><use href="#i-plus"/></svg> <span id="form-mode-label">Add Content</span>
+              <button id="cancel-edit-btn" class="cancel-edit-btn" onclick="cancelEdit()" style="display:none">Cancel Edit</button>
+            </div>
+            <div class="cat-tabs">
+              <button class="cat-tab active" data-cat="movie"     onclick="setCat(this,'movie')">    <svg width="13" height="13"><use href="#i-film"/></svg> Movie</button>
+              <button class="cat-tab"        data-cat="series"    onclick="setCat(this,'series')">   <svg width="13" height="13"><use href="#i-tv"/></svg> Series</button>
+              <button class="cat-tab"        data-cat="animation" onclick="setCat(this,'animation')"><svg width="13" height="13"><use href="#i-star"/></svg> Animation</button>
+              <button class="cat-tab"        data-cat="indian"    onclick="setCat(this,'indian')">   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg> Indian</button>
+            </div>
+            <input type="hidden" id="edit-id" value=""/>
+            <input type="hidden" id="f-cat" value="movie"/>
+            <div class="field series-only" style="display:none"><label><svg width="11" height="11"><use href="#i-tv"/></svg> Series Name</label><input type="text" id="f-series-name" placeholder="e.g. Prison Break"/></div>
+            <div class="two series-only" style="display:none">
+              <div class="field"><label>Season #</label><input type="number" id="f-season" placeholder="1" min="1" value="1"/></div>
+              <div class="field"><label>Episode #</label><input type="number" id="f-epnum" placeholder="1" min="1" value="1"/></div>
+            </div>
+            <div class="field"><label><svg width="11" height="11"><use href="#i-film"/></svg> <span id="title-label">Title</span></label><input type="text" id="f-title" placeholder="e.g. Black Panther"/></div>
+            <div class="field"><label><svg width="11" height="11"><use href="#i-tag"/></svg> Description</label><textarea id="f-desc" placeholder="Short description..."></textarea></div>
+            <div class="two">
+              <div class="field"><label><svg width="11" height="11"><use href="#i-user"/></svg> VJ</label>
+                <select id="f-vj"><option value="">Select VJ</option><option>VJ Junior</option><option>VJ Emmy</option><option>VJ Ice P</option><option>VJ Sammy</option><option>VJ Little T</option><option>VJ Jingo</option><option>VJ ULIO</option><option>VJ HD</option><option>VJ SMK</option><option>VJ KEVO</option><option>VJ UNCLE T</option><option>VJ KISULE</option><option>VJ SHIELD</option><option>VJ MARK</option><option>VJ MOON</option><option>VJ KEVIN</option><option>VJ HEAVY Q</option><option>VJ KRISS SWEET</option><option>VJ SHAO KHAN</option><option>VJ MOSCO</option><option>VJ MUBA</option><option>VJ RONNIE</option><option>VJ IVO</option><option>VJ TONNY</option><option>VJ KS</option><option>VJ TOM</option><option>VJ SOUL</option><option>VJ NELLY</option><option>VJ BANKS</option><option>VJ RYAN</option><option>VJ KIMULI</option><option>VJ MOX</option></select>
+              </div>
+              <div class="field"><label><svg width="11" height="11"><use href="#i-calendar"/></svg> Year</label><input type="text" id="f-year" placeholder="2024"/></div>
+            </div>
+            <div class="field"><label><svg width="11" height="11"><use href="#i-tag"/></svg> Genre</label><input type="text" id="f-genre" placeholder="Action, Drama..."/></div>
+            <div class="field"><label><svg width="11" height="11"><use href="#i-image"/></svg> Thumbnail URL</label><input type="text" id="f-thumb-url" placeholder="https://... paste image link" oninput="previewThumbUrl(this.value)"/></div>
+            <div class="thumb-prev" id="thumb-prev" style="display:none"></div>
+            <div class="field"><label><svg width="11" height="11"><use href="#i-play"/></svg> Play Link</label><input type="text" id="f-play" placeholder="https://archive.org/details/... or .mp4 URL"/></div>
+            <div class="field">
+              <label><svg width="11" height="11"><use href="#i-download"/></svg> Download Link (direct .mp4 URL)</label>
+              <input type="text" id="f-dl" placeholder="https://ia600808.us.archive.org/.../MOVIE.mp4" oninput="previewDlLink(this.value)"/>
+              <div id="dl-link-hint" style="font-size:10px;color:var(--muted);margin-top:3px">Paste the direct .mp4 URL from archive.org — not the details page link</div>
+            </div>
+            <button class="add-btn" id="submit-btn" onclick="submitContent()"><svg width="14" height="14"><use href="#i-plus"/></svg> <span id="submit-label">Add to Library</span></button>
+            <div class="ok-msg" id="ok-msg"></div>
+          </div>
+          <div class="acard">
+            <div class="acard-hd"><svg width="14" height="14"><use href="#i-film"/></svg> Library (<span id="lib-count">0</span>)</div>
+            <div class="lib-filter">
+              <button class="lib-tab active" data-f="all"       onclick="setLibFilter(this,'all')">All</button>
+              <button class="lib-tab"        data-f="movie"     onclick="setLibFilter(this,'movie')">Movies</button>
+              <button class="lib-tab"        data-f="series"    onclick="setLibFilter(this,'series')">Series</button>
+              <button class="lib-tab"        data-f="animation" onclick="setLibFilter(this,'animation')">Animation</button>
+              <button class="lib-tab"        data-f="indian"    onclick="setLibFilter(this,'indian')">Indian</button>
+            </div>
+            <div class="lib-list" id="lib-list"><div class="empty-msg">Loading...</div></div>
+          </div>
+          <!-- SUBSCRIBER MANAGEMENT -->
+          <div class="acard">
+            <div class="acard-hd">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Subscribers (<span id="sub-count">0</span>)
+            </div>
+            <div class="sub-add-row">
+              <input type="text" id="sub-name" placeholder="Name e.g. John" class="sub-inp"/>
+              <input type="text" id="sub-phone" placeholder="Phone e.g. +256700..." class="sub-inp"/>
+              <select id="sub-plan" class="sub-inp">
+                <option value="monthly">Monthly</option>
+                <option value="3months">3 Months</option>
+                <option value="yearly">Yearly</option>
+              </select>
+              <button class="add-btn" style="padding:9px" onclick="addSubscriber()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add
+              </button>
+            </div>
+            <div class="sub-list" id="sub-list"><div class="empty-msg">No subscribers yet.</div></div>
+          </div>
+
+          <!-- PAYMENT CONFIRMATIONS -->
+          <div class="acard">
+            <div class="acard-hd">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Payment Requests (<span id="pay-count">0</span>)
+            </div>
+            <div class="pay-list" id="pay-list"><div class="empty-msg">No payment requests yet.</div></div>
+          </div>
+
+          <button class="back-btn-full" onclick="showSection('home')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Back to App
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- PWA INSTALL BANNER -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <div class="install-banner-left">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span>Install Kenmovies App</span>
+    </div>
+    <div class="install-banner-right">
+      <button class="install-banner-btn" onclick="triggerInstall()">Install</button>
+      <button class="install-banner-close" onclick="dismissInstallBanner()">✕</button>
+    </div>
+  </div>
+  <!-- BOTTOM NAV -->
+  <nav class="botnav">
+    <button class="bnav active" id="bnav-home" onclick="showSection('home')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="bnav" id="bnav-movies" onclick="showSection('movies')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+      <span>Movies</span>
+    </button>
+    <button class="bnav" id="bnav-series" onclick="showSection('series')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+      <span>Series</span>
+    </button>
+    <button class="bnav" id="bnav-indian" onclick="showSection('indian')"><svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg><span>Indian</span></button>
+    <button class="bnav" id="bnav-animation" onclick="showSection('animation')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Anime</span>
+    </button>
+    <button class="bnav" id="bnav-downloads" onclick="showSection('downloads')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Downloads</span>
+    </button>
+    <button class="bnav" id="bnav-settings" onclick="showSection('settings')">
+      <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="search-overlay">
+  <div class="search-top">
+    <button class="search-back" onclick="closeSearch()"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+    <input type="text" id="search-input" class="search-inp" placeholder="Search..." oninput="doSearch(this.value)" autofocus/>
+    <button class="s-clear-btn" id="s-clear-btn" onclick="clearSearch()" style="display:none"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="search-filters">
+    <button class="sf-tab active" data-f="all"       onclick="setSF(this,'all')">All</button>
+    <button class="sf-tab"        data-f="movie"     onclick="setSF(this,'movie')">Movies</button>
+    <button class="sf-tab"        data-f="series"    onclick="setSF(this,'series')">Series</button>
+    <button class="sf-tab"        data-f="animation" onclick="setSF(this,'animation')">Animation</button>
+    <button class="sf-tab"        data-f="indian"    onclick="setSF(this,'indian')">Indian</button>
+    <select class="sf-vj" id="sf-vj" onchange="doSearch(document.getElementById('search-input').value)">
+      <option value="">All VJs</option>
+      <option>VJ Junior</option><option>VJ Emmy</option><option>VJ Ice P</option>
+      <option>VJ Sammy</option><option>VJ Little T</option><option>VJ Jingo</option>
+      <option>VJ ULIO</option><option>VJ HD</option><option>VJ SMK</option>
+    </select>
+  </div>
+  <div class="search-results" id="search-results">
+    <div class="search-empty">Start typing to search...</div>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div class="player-overlay" id="player-overlay">
+  <div class="player-video" id="player-video"></div>
+  <div class="player-bar">
+    <button class="pl-back" onclick="closePlayer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="pl-title" id="pl-title">Now Playing</span>
+    <button class="pl-dl" onclick="downloadGate()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download
+    </button>
+  </div>
+  <div class="player-info">
+    <div class="pi-title" id="pi-title"></div>
+    <div class="pi-ep"    id="pi-ep"></div>
+    <div class="pi-meta"  id="pi-meta"></div>
+    <div class="pi-tags"  id="pi-tags"></div>
+    <div class="pi-actions">
+      <button class="pi-fav" id="pi-fav" onclick="toggleFav()">
+        <svg width="15" height="15" id="fav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span id="fav-txt">Add to Favourites</span>
+      </button>
+
+    </div>
+    <div class="ep-nav" id="ep-nav" style="display:none">
+      <button class="epnav-btn" id="ep-prev" onclick="playAdjacentEp(-1)"><svg width="16" height="16"><use href="#i-back"/></svg> Prev</button>
+      <span class="ep-nav-label" id="ep-nav-label"></span>
+      <button class="epnav-btn" id="ep-next" onclick="playAdjacentEp(1)">Next <svg width="16" height="16" style="transform:rotate(180deg)"><use href="#i-back"/></svg></button>
+    </div>
+    <div class="more-section">
+      <div class="more-title">More like these</div>
+      <div class="more-row" id="more-row"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="dl-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('dl-modal')"><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    <div class="modal-icon" style="background:rgba(255,68,68,.1);color:#ff4444;border:1px solid rgba(255,68,68,.2)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+    <div class="modal-title">No Download Link</div>
+    <div class="modal-sub">Download link not added yet for this movie. Contact us on WhatsApp to request it.</div>
+    <a class="modal-primary wa-btn" href="https://wa.me/256702381857" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+      Request on WhatsApp
+    </a>
+    <button class="modal-secondary" onclick="closeModal('dl-modal')">Close</button>
+  </div>
+</div>
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('contact-modal')"><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    <div class="modal-icon green-bg"><svg width="26" height="26"><use href="#i-whatsapp"/></svg></div>
+    <div class="modal-title">Contact Kenmovies</div>
+    <div class="modal-sub">Subscriptions, requests and support.</div>
+    <a class="modal-primary wa-btn" href="https://wa.me/256702381857" target="_blank"><svg width="14" height="14"><use href="#i-whatsapp"/></svg> Chat on WhatsApp</a>
+    <div class="contact-info"><div class="ci-row"><svg width="13" height="13"><use href="#i-phone"/></svg> +256 702 381 857</div><div class="ci-row"><svg width="13" height="13"><use href="#i-globe"/></svg> kenmovies.is-a.dev</div></div>
+    <button class="modal-secondary" onclick="closeModal('contact-modal')">Close</button>
+  </div>
+</div>
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('pin-modal')"><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    <div class="modal-icon lock-bg"><svg width="26" height="26"><use href="#i-lock"/></svg></div>
+    <div class="modal-title">Admin Access</div>
+    <div class="modal-sub">Enter the admin password</div>
+    <div class="pw-wrap"><input type="password" id="pin-inp" class="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="16" height="16" id="eye-ico"><use href="#i-eye"/></svg></button></div>
+    <div class="pin-err" id="pin-err"></div>
+    <button class="modal-primary" onclick="checkPin()"><svg width="14" height="14"><use href="#i-lock"/></svg> Enter</button>
+    <button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button>
+  </div>
+</div>
+<div class="modal-overlay" id="del-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('del-modal')"><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    <div class="modal-icon" style="background:rgba(255,68,68,.12);color:#ff4444;border:1px solid rgba(255,68,68,.2)"><svg width="26" height="26"><use href="#i-trash"/></svg></div>
+    <div class="modal-title">Delete?</div>
+    <div class="modal-sub" id="del-modal-sub">This cannot be undone.</div>
+    <button class="modal-primary" style="background:#ff4444" onclick="confirmDelete()"><svg width="14" height="14"><use href="#i-trash"/></svg> Delete</button>
+    <button class="modal-secondary" onclick="closeModal('del-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- COMING SOON ADMIN MODAL -->
+<div class="modal-overlay" id="cs-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('cs-modal')"><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    <div class="modal-title">Add Coming Soon</div>
+    <div class="modal-sub">Add a poster for an upcoming movie</div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <input type="text" id="cs-title-inp" class="momo-inp" placeholder="Movie title e.g. Black Panther 3"/>
+      <input type="text" id="cs-thumb-inp" class="momo-inp" placeholder="Poster URL (image link)"/>
+      <input type="text" id="cs-date-inp" class="momo-inp" placeholder="Release e.g. Coming April 2026"/>
+    </div>
+    <button class="modal-primary" onclick="addComingSoon()">Add Poster</button>
+    <button class="modal-secondary" onclick="closeModal('cs-modal')">Cancel</button>
+  </div>
+</div>
+<script src="app3.js"></script>
+</body>
+</html>
