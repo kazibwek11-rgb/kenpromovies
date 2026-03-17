@@ -511,3 +511,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkM
 .install-banner-btn:hover{background:var(--teal2)}
 .install-banner-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 6px;line-height:1}
 .install-banner-close:hover{color:var(--txt)}
+
+/* UPCOMING CARD BADGE */
+.upcoming-card .mcard-thumb { position: relative; }
+.upcoming-badge{position:absolute;top:5px;left:5px;background:var(--teal);color:#000;font-size:8px;font-weight:900;padding:2px 7px;border-radius:99px;letter-spacing:.06em}

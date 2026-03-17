@@ -9,7 +9,10 @@ window.onerror = function(msg, src, line, col, err) {
   document.body.style.padding = '20px';
   document.body.innerHTML = '<h2>App Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p><p>' + (err ? err.stack : '') + '</p>';
 };
-const ADMIN_PASS = 'kenmovies123';
+const DEFAULT_PASS = 'kenpro123';
+const PASS_KEY = 'kp_admin_pass';
+function getAdminPass() { return localStorage.getItem(PASS_KEY) || DEFAULT_PASS; }
+function setAdminPass(p) { localStorage.setItem(PASS_KEY, p); }
 const FAVS_KEY   = 'kp_favs';
 const ADMIN_KEY  = 'kp_admin';
 
@@ -852,7 +855,7 @@ function goAdmin() {
   setTimeout(()=>document.getElementById('pin-inp').focus(),150);
 }
 function checkPin() {
-  if (document.getElementById('pin-inp').value===ADMIN_PASS) {
+  if (document.getElementById('pin-inp').value===getAdminPass()) {
     closeModal('pin-modal');
     adminUnlocked=true;
     localStorage.setItem(ADMIN_KEY,'1');
@@ -1196,21 +1199,71 @@ function closeSeeAll() {
 }
 
 
-// ── UPCOMING MOVIES TICKER ───────────────────────────────────
+// ── UPCOMING MOVIES TICKER + ROW ────────────────────────────
 function renderUpcomingTicker() {
-  const ticker = document.getElementById('upcoming-ticker');
-  const track  = document.getElementById('ticker-track');
-  if (!ticker || !track) return;
-  if (!comingSoon.length) { ticker.style.display = 'none'; return; }
-  ticker.style.display = 'flex';
-  // Double the items for seamless looping
-  const items = [...comingSoon, ...comingSoon];
-  track.innerHTML = items.map(c =>
-    `<span class="ticker-item">${c.title}${c.date ? ' — ' + c.date : ''}</span>`
-  ).join('');
-  // Adjust animation speed based on content
-  const speed = Math.max(15, comingSoon.length * 6);
-  track.style.animationDuration = speed + 's';
+  const ticker  = document.getElementById('upcoming-ticker');
+  const track   = document.getElementById('ticker-track');
+  const rowBlock = document.getElementById('upcoming-row-block');
+  const cardsRow = document.getElementById('upcoming-cards-row');
+  const addBtn  = document.getElementById('upcoming-add-btn');
+
+  if (addBtn) addBtn.style.display = adminUnlocked ? 'flex' : 'none';
+
+  if (!comingSoon.length) {
+    if (ticker) ticker.style.display = 'none';
+    if (rowBlock) rowBlock.style.display = 'none';
+    return;
+  }
+
+  // Scrolling ticker banner
+  if (ticker && track) {
+    ticker.style.display = 'flex';
+    const items = [...comingSoon, ...comingSoon];
+    track.innerHTML = items.map(c =>
+      `<span class="ticker-item">${c.title}${c.date ? ' — ' + c.date : ''}</span>`
+    ).join('');
+    const speed = Math.max(15, comingSoon.length * 6);
+    track.style.animationDuration = speed + 's';
+  }
+
+  // Upcoming cards row
+  if (rowBlock && cardsRow) {
+    rowBlock.style.display = 'block';
+    cardsRow.innerHTML = comingSoon.map((c, i) => `
+      <div class="mcard upcoming-card">
+        <div class="mcard-thumb">
+          ${c.thumb ? `<img src="${c.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : `<div style="width:100%;height:100%;background:var(--s3);display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>`}
+          <div class="upcoming-badge">Soon</div>
+        </div>
+        <div class="mcard-body">
+          <div class="mcard-title">${c.title}</div>
+          ${c.date ? `<div class="mcard-vj">${c.date}</div>` : ''}
+        </div>
+        ${adminUnlocked ? `<div class="mcard-btns"><button class="mc-btn mc-dl" style="flex:1" onclick="removeCS(${i})">✕ Remove</button></div>` : ''}
+      </div>`).join('');
+  }
+}
+
+
+// ── CHANGE PASSWORD ───────────────────────────────────────────
+function openChangePass() {
+  openModal('change-pass-modal');
+  document.getElementById('cp-current').value = '';
+  document.getElementById('cp-new').value = '';
+  document.getElementById('cp-confirm').value = '';
+  document.getElementById('cp-err').textContent = '';
+}
+function submitChangePass() {
+  const current = document.getElementById('cp-current').value;
+  const newPass  = document.getElementById('cp-new').value.trim();
+  const confirm  = document.getElementById('cp-confirm').value.trim();
+  const err      = document.getElementById('cp-err');
+  if (current !== getAdminPass()) { err.textContent = 'Current password is wrong.'; return; }
+  if (!newPass || newPass.length < 4) { err.textContent = 'New password must be at least 4 characters.'; return; }
+  if (newPass !== confirm) { err.textContent = 'Passwords do not match.'; return; }
+  setAdminPass(newPass);
+  closeModal('change-pass-modal');
+  showToast('Password changed successfully!');
 }
 
 // ── Init ──────────────────────────────────────────────────────
