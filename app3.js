@@ -636,11 +636,21 @@ function kpSetPlayIcon(isPaused) {
 
 function kpToggleFullscreen() {
   const wrap = document.getElementById('kp-player-wrap');
+  const iframe = wrap ? wrap.querySelector('iframe') : null;
   if (!wrap) return;
-  if (!document.fullscreenElement) {
-    (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen).call(wrap);
+
+  const el = iframe || wrap;
+  const fsRequest = el.requestFullscreen || el.webkitRequestFullscreen 
+    || el.mozRequestFullScreen || el.msRequestFullscreen;
+  const fsExit = document.exitFullscreen || document.webkitExitFullscreen 
+    || document.mozCancelFullScreen || document.msExitFullscreen;
+  const fsElement = document.fullscreenElement || document.webkitFullscreenElement 
+    || document.mozFullScreenElement || document.msFullscreenElement;
+
+  if (!fsElement) {
+    if (fsRequest) fsRequest.call(el);
   } else {
-    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+    if (fsExit) fsExit.call(document);
   }
 }
 
