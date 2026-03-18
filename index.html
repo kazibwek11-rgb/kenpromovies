@@ -602,6 +602,10 @@
     <button class="modal-secondary" onclick="closeModal('change-pass-modal')">Cancel</button>
   </div>
 </div>
-<script src="app3.js"></script>
+<script src="app3.js"></script> <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/kenpromovies/service-worker.js');
+  }
+</script>
 </body>
 </html>
