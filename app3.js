@@ -519,12 +519,12 @@ function buildPlayer(url) {
             playNativeVideo(box, directUrl);
           } else {
             // Fallback to embed
-            playEmbed(box, `https://archive.org/embed/${itemId}?autoplay=1`);
+           playNativeVideo(box, `https://archive.org/download/${itemId}/${itemId}.mp4`);
           }
         })
         .catch(() => {
           // If fetch fails, fallback to embed
-          playEmbed(box, `https://archive.org/embed/${itemId}?autoplay=1`);
+         playNativeVideo(box, `https://archive.org/download/${itemId}/${itemId}.mp4`);
         });
       return;
     }
