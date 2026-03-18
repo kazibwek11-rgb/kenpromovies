@@ -682,10 +682,9 @@ video{-webkit-appearance:none!important}
 #kp-video::-webkit-media-controls-enclosure{display:none!important}
 /* ============================================================
    KENMOVIES PATCH — paste at bottom of style.css
-   Fixes: movie info card, PC layout, player scrolling
    ============================================================ */
 
-/* ── Fix 4: Kawogo-style Movie Info Card ── */
+/* ── Movie Info Card ── */
 .pi-movie-card {
   display: flex;
   gap: 14px;
@@ -701,156 +700,31 @@ video{-webkit-appearance:none!important}
   overflow: hidden;
   background: var(--s3);
   border: 1px solid var(--brd);
-  position: relative;
 }
-.pi-card-poster {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.pi-card-poster-fallback {
-  display: none;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-}
-.pi-card-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 2px;
-}
-.pi-card-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--txt);
-  line-height: 1.3;
-}
-.pi-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-.pi-card-genre {
-  font-size: 10px;
-  color: var(--teal);
-  background: var(--tdim);
-  border: 1px solid rgba(0,229,195,.2);
-  border-radius: 4px;
-  padding: 2px 7px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .4px;
-}
-.pi-card-year {
-  font-size: 11px;
-  color: var(--muted2);
-}
-.pi-card-vj {
-  font-size: 11px;
-  color: var(--teal);
-  font-weight: 600;
-}
-.pi-card-desc {
-  font-size: 11px;
-  color: var(--muted2);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-top: 2px;
-}
+.pi-card-poster { width:100%;height:100%;object-fit:cover;display:block; }
+.pi-card-poster-fallback { display:none;width:100%;height:100%;align-items:center;justify-content:center;color:var(--muted); }
+.pi-card-body { flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;padding-top:2px; }
+.pi-card-title { font-size:15px;font-weight:800;color:var(--txt);line-height:1.3; }
+.pi-card-meta { display:flex;flex-wrap:wrap;gap:6px;align-items:center; }
+.pi-card-genre { font-size:10px;color:var(--teal);background:var(--tdim);border:1px solid rgba(0,229,195,.2);border-radius:4px;padding:2px 7px;font-weight:700;text-transform:uppercase; }
+.pi-card-year  { font-size:11px;color:var(--muted2); }
+.pi-card-vj    { font-size:11px;color:var(--teal);font-weight:600; }
+.pi-card-desc  { font-size:11px;color:var(--muted2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
 
-/* ── Fix 3: Top-bar icon buttons (rotate/zoom/fullscreen) ── */
-.kp-top-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
+/* ── Top-bar action buttons ── */
+.kp-top-right { display:flex;align-items:center;gap:4px;flex-shrink:0; }
 .kp-top-right .kp-icon-btn {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(0,0,0,.4);
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background .15s, color .15s;
-  -webkit-tap-highlight-color: transparent;
+  width:38px;height:38px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;background:rgba(0,0,0,.4);border:none;
+  color:#fff;cursor:pointer;backdrop-filter:blur(4px);
+  transition:background .15s;
+  -webkit-tap-highlight-color:transparent;
 }
 .kp-top-right .kp-icon-btn:hover,
-.kp-top-right .kp-icon-btn:active {
-  background: rgba(255,255,255,.18);
-}
+.kp-top-right .kp-icon-btn:active { background:rgba(255,255,255,.18); }
 
-/* ── Fix 5: PC layout fixes ── */
-
-/* 1) Remove bottom padding on desktop (no bottom nav) */
+/* ── PC: just remove the extra bottom padding ── */
 @media (min-width: 768px) {
-  .content {
-    padding-bottom: 20px !important;
-  }
-}
-
-/* 2) Player overlay: proper flex column so info scrolls */
-@media (min-width: 768px) {
-  .player-overlay {
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .kp-player-wrap {
-    flex-shrink: 0;
-    max-height: 65vh;
-  }
-  .player-info {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-    padding-bottom: 24px;
-  }
-  .pi-movie-card {
-    padding: 16px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  .pi-card-poster-wrap {
-    width: 108px;
-    height: 155px;
-  }
-  .pi-card-title {
-    font-size: 18px;
-  }
-  .pi-card-desc {
-    -webkit-line-clamp: 5;
-  }
-}
-
-/* 3) Player overlay covers full screen including sidebar */
-.player-overlay {
-  left: 0 !important;
-}
-
-/* 4) Scrollbar styling for player info */
-.player-info::-webkit-scrollbar { width: 4px; }
-.player-info::-webkit-scrollbar-thumb { background: var(--s4); border-radius: 2px; }
-
-/* 5) Fix the aspect-ratio video wrap on PC — max height cap */
-@media (min-width: 768px) {
-  .kp-player-wrap {
-    aspect-ratio: unset !important;
-  }
+  .content { padding-bottom: 20px !important; }
 }
