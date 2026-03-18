@@ -521,11 +521,11 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkM
 ═══════════════════════════════════════════════ */
 .kp-player-wrap{position:relative;width:100%;background:#000;aspect-ratio:16/9;max-height:56vw}
 .kp-player-wrap .player-video{position:absolute;inset:0;width:100%;height:100%}
-.kp-player-wrap .player-video video{width:100%;height:100%;object-fit:contain;display:block}
+.kp-player-wrap .player-video video{width:100%;height:100%;object-fit:cover;display:block}
 .kp-player-wrap .player-video iframe{width:100%;height:100%;border:none;display:block}
 
 /* Controls overlay */
-.kp-controls{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 30%,transparent 60%,rgba(0,0,0,.85) 100%);opacity:0;transition:opacity .25s;pointer-events:none;z-index:10}
+.kp-controls{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(to bot
 .kp-controls.visible{opacity:1;pointer-events:all}
 
 /* Top bar */
