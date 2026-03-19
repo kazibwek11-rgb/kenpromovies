@@ -716,6 +716,6 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
 <div class="modal-ov" id="pin-modal" onclick="if(event.target===this)closeModal('pin-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('pin-modal')">✕</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Admin Access</div><div class="modal-sub">Enter admin password</div><div class="pw-wrap"><input class="pin-inp" type="password" id="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="14" height="14" id="eye-ico"><use href="#ic-eye"/></svg></button></div><div class="pin-err" id="pin-err"></div><button class="modal-primary" onclick="checkPin()"><svg width="12" height="12"><use href="#ic-lock"/></svg> Enter Admin</button><button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button></div></div>
 
 <div id="toast"></div>
-<script src="app3.js?v=13"></script>
+<script src="app3-2.js?v=14"></script>
 </body>
 </html>
