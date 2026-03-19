@@ -493,6 +493,11 @@ function openPlayer(m) {
 }
 function closePlayer() {
   kpStop();
+  /* reset kp-wrap style */
+  const wrap = $('kp-wrap');
+  wrap.style.flex = '';
+  wrap.style.aspectRatio = '';
+  $('kp-ctrl').style.display = '';
   $('player-ov').style.display = 'none';
   document.body.style.overflow = '';
 }
@@ -513,36 +518,21 @@ function kpLoad(url) {
   if (!url || !url.trim()) { showKpState('error'); return; }
 
   const isYT  = /youtu\.?be|youtube\.com/i.test(url);
-  const isMp4 = /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)
-             || /ia\d+\.us\.archive\.org/i.test(url)
-             || /archive\.org\/download\//i.test(url);
-  const isArchiveDetails = /archive\.org\/details\//i.test(url);
-  const isArchiveEmbed   = /archive\.org\/embed\//i.test(url);
+  const isDirect = /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)
+                || /ia\d+\.us\.archive\.org/i.test(url)
+                || /archive\.org\/download\//i.test(url);
+  const isArchive = /archive\.org\/(details|embed)\//i.test(url);
 
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
-  } else if (isMp4) {
+  } else if (isDirect) {
     kpLoadVideo(url);
-  } else if (isArchiveDetails || isArchiveEmbed) {
-    /* Extract item ID from archive.org URL */
-    const part = url.split(isArchiveDetails ? '/details/' : '/embed/')[1] || '';
-    const itemId = part.split('/')[0].split('?')[0].split('#')[0].trim();
-    if (!itemId) { kpLoadIframe(url); return; }
-    /* Fetch metadata to get direct mp4 */
-    showKpState('loading');
-    fetch('https://archive.org/metadata/' + itemId)
-      .then(r => r.json())
-      .then(meta => {
-        const files = meta.files || [];
-        const vid = files.find(f => /\.mp4$/i.test(f.name))
-                 || files.find(f => /\.(webm|ogv|avi|mov|mkv)$/i.test(f.name));
-        if (vid) {
-          kpLoadVideo('https://archive.org/download/' + itemId + '/' + vid.name);
-        } else {
-          kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
-        }
-      })
-      .catch(() => kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1'));
+  } else if (isArchive) {
+    /* Get item ID and go straight to embed — works on all devices */
+    const part = url.includes('/details/') ? url.split('/details/')[1] : url.split('/embed/')[1];
+    const itemId = (part || '').split('/')[0].split('?')[0].split('#')[0].trim();
+    const embedUrl = 'https://archive.org/embed/' + (itemId || 'unknown') + '?autoplay=1';
+    kpLoadIframe(embedUrl);
   } else {
     kpLoadIframe(url);
   }
@@ -618,25 +608,29 @@ function kpLoadIframe(url) {
   fr.src = url;
   fr.allowFullscreen = true;
   fr.setAttribute('allowfullscreen', '');
-  fr.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope';
-  fr.style.cssText = 'width:100%;height:100%;border:none;display:block;background:#000';
+  fr.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
+  fr.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000';
+  container.style.cssText = 'position:relative;width:100%;height:100%';
   container.appendChild(fr);
   kpIframe = fr;
   kpIsVideo = false;
-  /* Hide custom controls — iframe has its own */
+  /* Hide custom controls — iframe has its own player */
   $('kp-ctrl').style.display = 'none';
-  /* Floating back button */
-  const oldExtra = $('kp-wrap').querySelector('[data-extra]');
+  /* Expand kp-wrap to fill screen on mobile */
+  const wrap = $('kp-wrap');
+  wrap.style.flex = '1';
+  wrap.style.aspectRatio = 'unset';
+  /* Floating back button always on top */
+  const oldExtra = wrap.querySelector('[data-extra]');
   if (oldExtra) oldExtra.remove();
   const backBtn = document.createElement('button');
-  backBtn.setAttribute('data-extra','1');
-  backBtn.style.cssText = 'position:absolute;top:12px;left:12px;z-index:20;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.65);border:1.5px solid rgba(255,255,255,0.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  backBtn.setAttribute('data-extra', '1');
+  backBtn.style.cssText = 'position:absolute;top:12px;left:12px;z-index:100;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px';
   backBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
   backBtn.onclick = closePlayer;
-  $('kp-wrap').appendChild(backBtn);
-  /* Hide loading after iframe loads or after timeout */
+  wrap.appendChild(backBtn);
   fr.onload = () => showKpState('');
-  setTimeout(() => showKpState(''), 3000);
+  setTimeout(() => showKpState(''), 2500);
 }
 
 function kpPlay() {
