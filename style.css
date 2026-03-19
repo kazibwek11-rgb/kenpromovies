@@ -41,7 +41,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .snav.active .snav-dot{opacity:1}
 
 /* ── CONTENT ── */
-.content{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-bottom:64px;-webkit-overflow-scrolling:touch}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-bottom:68px;-webkit-overflow-scrolling:touch}
 .page{display:none;padding:14px 0}
 .page.active{display:block}
 .ph{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:0 16px}
@@ -182,11 +182,11 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .sd-ep-edit{background:var(--s3);border:1px solid rgba(0,229,195,.2);color:var(--teal);border-radius:6px;padding:5px 7px;font-size:10px;cursor:pointer;display:flex;align-items:center}
 
 /* ── BOTTOM NAV ── */
-.botnav{position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(10,10,14,.97);border-top:1px solid var(--brd);display:flex;justify-content:space-around;align-items:center;z-index:200}
+.botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:rgba(10,10,14,.97);border-top:1px solid var(--brd);display:flex;justify-content:space-around;align-items:center;z-index:200}
 .botnav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,195,.15),transparent)}
-.bnav{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-size:8px;font-weight:700;cursor:pointer;padding:5px 6px;transition:color .15s;min-width:44px;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif;letter-spacing:.04em}
+.bnav{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:9px;font-weight:700;cursor:pointer;padding:5px 4px;transition:color .15s;min-width:44px;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif;letter-spacing:.02em}
 .bnav.active{color:var(--teal)}
-.bnav-lbl{font-size:8px;font-weight:700}
+.bnav-lbl{font-size:10px;font-weight:800;letter-spacing:.02em}
 .bnav-dot{width:3px;height:3px;border-radius:50%;background:var(--teal);opacity:0;transition:opacity .15s;box-shadow:0 0 4px var(--teal);margin-top:2px}
 .bnav.active .bnav-dot{opacity:1}
 
