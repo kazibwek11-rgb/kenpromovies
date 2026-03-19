@@ -910,10 +910,10 @@
 }
 .row-label {
   font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 400;
   color: var(--txt);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
 }
 
 /* ===== POSTER CARDS ===== */
@@ -929,10 +929,11 @@
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg3);
-  margin-bottom: 7px;
   transition: transform 0.2s;
 }
 .pcard:hover .pcard-poster { transform: scale(1.03); }
+/* Hide text labels — poster only style */
+.pcard-label { display: none; }
 .pcard-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pcard-noimg {
   width: 100%;
@@ -988,7 +989,7 @@
   align-items: center;
   justify-content: center;
 }
-.pcard-label { padding: 0 2px; }
+.pcard-label { display: none !important; }
 .pcard-title {
   font-family: var(--font-display);
   font-size: 11px;
@@ -1284,7 +1285,10 @@
 .ph { padding: 16px 16px 8px; }
 .ptitle { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--txt); letter-spacing: -0.01em; }
 .vj-rows { padding: 0 0 20px; }
-.hrow { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 8px; -webkit-overflow-scrolling: touch; }
+.vj-row-block { margin-bottom: 8px; }
+.row-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; margin-bottom: 0; }
+.hrow { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.hrow::-webkit-scrollbar { display: none; }
 
 /* ===== UPCOMING TICKER ===== */
 .upcoming-ticker {
@@ -2171,7 +2175,7 @@ onMessage(messaging, (payload) => {
   </div>
 </div>
 
-<script src="app3.js?v=5"></script>
+<script src="app3.js?v=6"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/kenpromovies/service-worker.js');
