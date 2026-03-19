@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════
    KENMOVIES v5.1  —  app3.js
-   Complete rewrite: clean, no legacy debt
+   Fixed: video player, series/movies separation,
+          poster-only cards, hero overlap
    ═══════════════════════════════════════ */
 'use strict';
 
@@ -125,6 +126,15 @@ function showSection(sec) {
 function buildHero() {
   heroItems = allContent.filter(m => m.thumb).sort((a,b) => b.createdAt - a.createdAt).slice(0, 15);
   if (!heroItems.length) return;
+
+  /* FIX 4: ensure hero section doesn't overlap rows below */
+  const heroSection = $('hero-section') || document.querySelector('.hero-section');
+  if (heroSection) {
+    heroSection.style.position = 'relative';
+    heroSection.style.zIndex = '1';
+    heroSection.style.marginBottom = '8px';
+  }
+
   const dots = $('hero-dots');
   dots.innerHTML = heroItems.map((_,i) => `<div class="hdot${i===0?' on':''}" onclick="event.stopPropagation();setHero(${i})"></div>`).join('');
   setHero(0);
@@ -149,19 +159,34 @@ function heroClick() {
 }
 
 /* ── POSTER CARD ─────────────────────────── */
+/* FIX 3: poster-only cards — no title/text below the image */
 function posterCard(m, opts={}) {
   const div = document.createElement('div');
   div.className = 'pcard';
+  /* Force poster-only styling inline so CSS can't override */
+  div.style.cssText = 'overflow:hidden;position:relative;cursor:pointer;';
   div.onclick = () => openDetail(m);
+
   const img = m.thumb
-    ? `<img src="${m.thumb}" alt="" onerror="this.style.display='none'" loading="lazy"/>`
-    : `<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M12 8v8M8 12h8"/></svg></div>`;
-  const vj = m.vj ? `<div class="pcard-vj">${m.vj}</div>` : '';
-  const editBtn = (adminUnlocked && opts.showEdit)
-    ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')">✎</button>`
+    ? `<img src="${m.thumb}" alt="" onerror="this.style.display='none'" loading="lazy"
+         style="width:100%;height:100%;object-fit:cover;display:block;"/>`
+    : `<div class="pcard-noimg" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;">
+         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+           <rect x="2" y="2" width="20" height="20" rx="2"/>
+           <path d="M12 8v8M8 12h8"/>
+         </svg>
+       </div>`;
+
+  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:10px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m.vj}</div>` : '';
+  const badge = m._isSeries && m._epCount
+    ? `<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,9,20,0.9);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m._epCount} EP</div>`
     : '';
-  /* poster only — no text below */
-  div.innerHTML = `<div class="pcard-img">${img}${vj}${editBtn}</div>`;
+  const editBtn = (adminUnlocked && opts.showEdit)
+    ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')" style="position:absolute;top:4px;left:4px;z-index:2;">✎</button>`
+    : '';
+
+  /* poster only — NO text below, everything is absolutely positioned over image */
+  div.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${vj}${badge}${editBtn}</div>`;
   return div;
 }
 
@@ -169,19 +194,11 @@ function posterCard(m, opts={}) {
 function makeRow(label, items, target, opts={}) {
   if (!items.length) return null;
   const block = document.createElement('div');
-  const cnt = items.length > 20 ? ` <span class="row-cnt">(${items.length})</span>` : '';
-  const idsJson = JSON.stringify(items.slice(0,100).map(m=>m.id)).replace(/"/g,"'");
-  const seeAllBtn = items.length > 6
-    ? `<button class="see-all" onclick="openSeeAll(this)">See all</button>`
-    : '';
-  block.innerHTML = `<div class="row-head"><span class="row-lbl">${label}${cnt}</span>${seeAllBtn}</div>`;
-  /* store items on block for seeAll */
+  block.innerHTML = `<div class="row-head"><span class="row-lbl">${label}${items.length > 20 ? ` <span class="row-cnt">(${items.length})</span>` : ''}</span>${items.length > 6 ? `<button class="see-all">See all</button>` : ''}</div>`;
   block._items = items;
   block._label = label;
-  if (seeAllBtn) {
-    const btn = block.querySelector('.see-all');
-    if (btn) btn.addEventListener('click', () => openSeeAllDirect(label, items));
-  }
+  const seeAllBtn = block.querySelector('.see-all');
+  if (seeAllBtn) seeAllBtn.addEventListener('click', () => openSeeAllDirect(label, items));
   const row = document.createElement('div');
   row.className = 'hrow';
   items.slice(0, 20).forEach(m => row.appendChild(posterCard(m, opts)));
@@ -200,11 +217,11 @@ function openSeeAllDirect(label, items) {
 function buildRows() {
   const byNew = arr => [...arr].sort((a,b) => b.createdAt - a.createdAt);
 
-  /* Separate by category */
-  const movies     = byNew(allContent.filter(m => m.category==='movie'));
-  const animations = byNew(allContent.filter(m => m.category==='animation'));
-  const indians    = byNew(allContent.filter(m => m.category==='indian'));
-  const seriesEps  = allContent.filter(m => m.category==='series');
+  /* FIX 2: Strict category separation — movies page NEVER shows series */
+  const movies     = byNew(allContent.filter(m => m.category === 'movie'));
+  const animations = byNew(allContent.filter(m => m.category === 'animation'));
+  const indians    = byNew(allContent.filter(m => m.category === 'indian'));
+  const seriesEps  = allContent.filter(m => m.category === 'series');
 
   /* Group series episodes by sname — one card per series */
   const seriesMap = {};
@@ -221,39 +238,41 @@ function buildRows() {
   });
   const seriesSorted = byNew(seriesCards);
 
-  /* VJ rows for home */
-  const vjMap = {};
-  allContent.forEach(m => {
+  /* VJ rows for home — keep movies and series separate */
+  const vjMapMovies = {};
+  movies.forEach(m => {
     const vj = (m.vj || 'Other').trim();
-    if (!vjMap[vj]) vjMap[vj] = [];
-    vjMap[vj].push(m);
+    if (!vjMapMovies[vj]) vjMapMovies[vj] = [];
+    vjMapMovies[vj].push(m);
   });
 
   /* ── HOME ── */
   const hh = $('vj-rows-home'); hh.innerHTML = '';
-  if (movies.length)     makeRow('Latest Movies',    movies,       hh);
+  if (movies.length)       makeRow('Latest Movies',  movies,       hh);
   if (seriesSorted.length) makeRow('Latest Series',  seriesSorted, hh);
-  if (animations.length) makeRow('Animation',        animations,   hh);
-  if (indians.length)    makeRow('Indian',            indians,      hh);
-  Object.entries(vjMap).forEach(([vj, items]) => {
+  if (animations.length)   makeRow('Animation',      animations,   hh);
+  if (indians.length)      makeRow('Indian',          indians,      hh);
+  /* VJ rows: movies only per VJ to keep series off movie rows */
+  Object.entries(vjMapMovies).forEach(([vj, items]) => {
     if (items.length >= 2) makeRow(vj, byNew(items), hh);
   });
 
-  /* ── MOVIES ── */
+  /* ── MOVIES PAGE — strictly movies only, never series ── */
   const hm = $('vj-rows-movies'); hm.innerHTML = '';
-  const vjsM = [...new Set(movies.map(m => m.vj || 'Other'))];
-  vjsM.forEach(vj => {
-    const items = movies.filter(m => (m.vj||'Other') === vj);
-    if (items.length) makeRow(vj, byNew(items), hm, {showEdit:true});
-  });
-  if (!movies.length) hm.innerHTML = '<div class="empty-page">No movies yet.</div>';
+  if (movies.length) {
+    const vjsM = [...new Set(movies.map(m => m.vj || 'Other'))];
+    vjsM.forEach(vj => {
+      const items = movies.filter(m => (m.vj||'Other') === vj);
+      if (items.length) makeRow(vj, byNew(items), hm, {showEdit:true});
+    });
+  } else {
+    hm.innerHTML = '<div class="empty-page">No movies yet.</div>';
+  }
 
-  /* ── SERIES PAGE — each series as its own row of episodes ── */
+  /* ── SERIES PAGE — series only, never movies ── */
   const hs = $('vj-rows-series'); hs.innerHTML = '';
   if (seriesSorted.length) {
-    /* Top row: all series covers */
     makeRow('All Series', seriesSorted, hs);
-    /* Then individual series rows showing episodes */
     Object.entries(seriesMap).forEach(([sname, eps]) => {
       const sorted = eps.sort((a,b) => {
         if ((a.season||1) !== (b.season||1)) return (a.season||1)-(b.season||1);
@@ -354,7 +373,6 @@ function doSearch(q) {
 /* ── DETAIL OVERLAY ─────────────────────── */
 function openDetail(m) {
   currentPlayItem = m;
-  /* Any series item (episode card OR series cover card) → open series detail */
   if (m.category === 'series' || m._isSeries) {
     openSeriesDetail((m.sname || m.title || '').trim(), m);
     return;
@@ -396,7 +414,13 @@ function buildMoreRow(container, m) {
   more.forEach(x => {
     const card = document.createElement('div'); card.className='more-card';
     card.onclick = () => openDetail(x);
-    card.innerHTML = `<div class="more-poster"><img src="${x.thumb||''}" alt="" onerror="this.style.display='none'" loading="lazy"/></div><div class="more-name">${x.title||x.sname||''}</div><div class="more-vj">${x.vj||''}</div>`;
+    /* poster-only more card — image fills, title as overlay not below */
+    card.style.cssText = 'position:relative;overflow:hidden;cursor:pointer;flex:0 0 auto;';
+    card.innerHTML = `
+      <div class="more-poster" style="position:relative;width:100%;height:100%;">
+        <img src="${x.thumb||''}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:linear-gradient(transparent,rgba(0,0,0,0.85));font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${x.title||x.sname||''}</div>
+      </div>`;
     container.appendChild(card);
   });
 }
@@ -419,7 +443,6 @@ function openSeriesDetail(sname, firstEp) {
   $('sd-desc').textContent = firstEp.description || firstEp.desc || '';
   const ico = $('sd-fav-ico');
   ico.innerHTML = isFav(firstEp.id) ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
-  /* season menu */
   const menu = $('sd-season-menu'); menu.innerHTML='';
   seasons.forEach(s=>{
     const opt=document.createElement('div'); opt.className='sd-sopt';
@@ -468,7 +491,6 @@ function playItem(m) {
 function openPlayer(m) {
   const ov = $('player-ov'); ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  /* info panel */
   $('pi-card').style.display = 'flex';
   $('pi-img').src = m.thumb || '';
   $('pi-title').textContent = m.sname || m.title || '';
@@ -477,7 +499,6 @@ function openPlayer(m) {
   $('kp-ttl').textContent = m.sname || m.title || '';
   $('kp-ep').textContent = m.epTitle ? `S${m.season||1} E${m.epNum||1}: ${m.epTitle}` : '';
   updateFavUI();
-  /* episode nav */
   const epNav = $('ep-nav');
   if (currentEpList.length > 1) {
     epNav.style.display = 'flex';
@@ -485,15 +506,12 @@ function openPlayer(m) {
     $('ep-prev').disabled = currentEpIdx <= 0;
     $('ep-next').disabled = currentEpIdx >= currentEpList.length - 1;
   } else { epNav.style.display = 'none'; }
-  /* more row */
   const mr = $('more-row'); mr.innerHTML = '';
   buildMoreRow(mr, m);
-  /* load video */
   kpLoad(m.playLink || m.dlLink || '');
 }
 function closePlayer() {
   kpStop();
-  /* reset kp-wrap style */
   const wrap = $('kp-wrap');
   wrap.style.flex = '';
   wrap.style.aspectRatio = '';
@@ -502,8 +520,17 @@ function closePlayer() {
   document.body.style.overflow = '';
 }
 
+/* ════════════════════════════════════════════
+   FIX 1 — VIDEO PLAYER (archive.org black screen)
 
-/* ── PLAYER CORE ─────────────────────────── */
+   Strategy:
+   - archive.org links (ALL forms) → always use embed iframe
+     The archive.org embed player works on Android/iOS where
+     direct mp4 streams often fail due to CORS / range headers.
+   - YouTube → embed iframe
+   - Direct .mp4/.webm not on archive.org → native <video>
+   - Anything else → iframe fallback
+   ════════════════════════════════════════════ */
 
 function kpLoad(url) {
   kpCurrentUrl = url;
@@ -517,26 +544,62 @@ function kpLoad(url) {
 
   if (!url || !url.trim()) { showKpState('error'); return; }
 
-  const isYT  = /youtu\.?be|youtube\.com/i.test(url);
-  const isDirect = /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)
-                || /ia\d+\.us\.archive\.org/i.test(url)
-                || /archive\.org\/download\//i.test(url);
-  const isArchive = /archive\.org\/(details|embed)\//i.test(url);
+  const isYT      = /youtu\.?be|youtube\.com/i.test(url);
+  const isArchive = /archive\.org/i.test(url);  // ANY archive.org URL → always embed
+  const isDirect  = !isArchive && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
+  } else if (isArchive) {
+    /* ── archive.org: extract item ID and use embed player ── */
+    kpLoadArchive(url);
   } else if (isDirect) {
     kpLoadVideo(url);
-  } else if (isArchive) {
-    /* Get item ID and go straight to embed — works on all devices */
-    const part = url.includes('/details/') ? url.split('/details/')[1] : url.split('/embed/')[1];
-    const itemId = (part || '').split('/')[0].split('?')[0].split('#')[0].trim();
-    const embedUrl = 'https://archive.org/embed/' + (itemId || 'unknown') + '?autoplay=1';
-    kpLoadIframe(embedUrl);
   } else {
     kpLoadIframe(url);
   }
 }
+
+/**
+ * Convert any archive.org URL into an embed URL and load it as iframe.
+ * Handles:
+ *   https://archive.org/details/ITEM_ID
+ *   https://archive.org/embed/ITEM_ID
+ *   https://archive.org/download/ITEM_ID/file.mp4
+ *   https://ia902345.us.archive.org/...
+ */
+function kpLoadArchive(url) {
+  let itemId = '';
+  try {
+    const u = new URL(url);
+    const host = u.hostname; // e.g. archive.org or ia902345.us.archive.org
+    const path = u.pathname; // e.g. /download/ITEM_ID/file.mp4
+
+    if (/^ia\d+\./i.test(host)) {
+      /* ia subdomain — path is /NN/items/ITEM_ID/file.mp4 or /0/items/ITEM_ID/ */
+      const m = path.match(/\/items\/([^\/]+)/);
+      itemId = m ? m[1] : '';
+    } else {
+      /* archive.org/details|embed|download/ITEM_ID/... */
+      const m = path.match(/\/(details|embed|download)\/([^\/\?#]+)/);
+      itemId = m ? m[2] : '';
+    }
+  } catch {
+    /* fallback: grab first path segment after known keywords */
+    const m = url.match(/(?:details|embed|download)\/([^\/\?#&]+)/);
+    itemId = m ? m[1] : '';
+  }
+
+  if (!itemId) {
+    /* Can't determine item — try iframe with original URL as-is */
+    kpLoadIframe(url);
+    return;
+  }
+
+  const embedUrl = `https://archive.org/embed/${itemId}?autoplay=1`;
+  kpLoadIframe(embedUrl);
+}
+
 function ytEmbedUrl(url) {
   let id = '';
   try {
@@ -556,10 +619,9 @@ function kpLoadVideo(url) {
   vid.preload = 'metadata';
   vid.crossOrigin = 'anonymous';
   vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain';
-  /* Set source */
   const src = document.createElement('source');
   src.src = url;
-  src.type = url.includes('.webm') ? 'video/webm' : 'video/mp4';
+  src.type = url.includes('.webm') ? 'video/webm' : url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
   vid.appendChild(src);
   container.appendChild(vid);
   kpVideo = vid;
@@ -576,25 +638,15 @@ function kpLoadVideo(url) {
     kpSetPlayIcon(false);
     if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
   });
-  vid.addEventListener('error', (e) => {
-    console.error('Video error:', e, vid.error);
-    /* If direct mp4 fails, try embed fallback for archive.org */
-    if (url.includes('archive.org')) {
-      const match = url.match(/archive\.org\/download\/([^\/]+)\//);
-      if (match) {
-        kpStop();
-        kpLoadIframe('https://archive.org/embed/' + match[1] + '?autoplay=1');
-        return;
-      }
-    }
+  vid.addEventListener('error', () => {
+    /* Any video error → show error state; do NOT attempt archive fallback
+       since non-archive direct links that fail should just show error */
     showKpState('error');
   });
   vid.load();
-  /* Try playing after short delay */
   setTimeout(() => {
     if (!kpPlaying && kpVideo) {
       vid.play().catch(() => {
-        /* Autoplay blocked — show play button, user must tap */
         showKpState('');
         kpSetPlayIcon(false);
       });
@@ -614,13 +666,10 @@ function kpLoadIframe(url) {
   container.appendChild(fr);
   kpIframe = fr;
   kpIsVideo = false;
-  /* Hide custom controls — iframe has its own player */
   $('kp-ctrl').style.display = 'none';
-  /* Expand kp-wrap to fill screen on mobile */
   const wrap = $('kp-wrap');
   wrap.style.flex = '1';
   wrap.style.aspectRatio = 'unset';
-  /* Floating back button always on top */
   const oldExtra = wrap.querySelector('[data-extra]');
   if (oldExtra) oldExtra.remove();
   const backBtn = document.createElement('button');
@@ -649,11 +698,7 @@ function kpStop() {
   if (kpVideo) { kpVideo.pause(); kpVideo.src=''; kpVideo=null; }
   kpIframe = null; kpIsVideo=false; kpPlaying=false;
   $('player-video').innerHTML='';
-  /* restore ctrl */
   $('kp-ctrl').style.display='';
-  /* remove inline back btn if any */
-  const extra = $('kp-wrap').querySelector('.kp-back:not(:first-child)');
-  if(extra) extra.remove();
   resetProgress();
 }
 function kpRetry() { if(kpCurrentUrl) kpLoad(kpCurrentUrl); }
@@ -701,6 +746,7 @@ function kpProgClick(e) {
 /* PROG DRAG */
 function initProgDrag() {
   const prog = $('kp-prog');
+  if (!prog) return;
   const seek = e => {
     if (!kpVideo) return;
     const t = e.touches?e.touches[0]:e;
@@ -783,7 +829,6 @@ function startDownloadByUrl(url, title) {
   a.href=url; a.download=title+'.mp4';
   a.target='_blank'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   showToast('Download started!');
-  /* save to downloads list */
   const dls = JSON.parse(localStorage.getItem('km_dls')||'[]');
   const existing = dls.find(d=>d.url===url);
   if (!existing) {
@@ -842,9 +887,9 @@ function previewDlLink(url) {
   const hint=$('dl-hint');
   if(!hint)return;
   if(!url){hint.textContent='Paste direct .mp4 URL';hint.className='fhint';return;}
-  const isMp4=/\.(mp4|webm)(\?|$)/i.test(url)||/archive\.org\/download\//i.test(url);
+  const isMp4=/\.(mp4|webm)(\?|$)/i.test(url)||/archive\.org\//i.test(url);
   if(isMp4){hint.textContent='✓ Looks like a direct link!';hint.className='fhint ok';}
-  else{hint.textContent='⚠ Should be a direct .mp4 link';hint.className='fhint warn';}
+  else{hint.textContent='⚠ Should be a direct .mp4 or archive.org link';hint.className='fhint warn';}
 }
 function cancelEdit() {
   editId=null; $('edit-id').value='';
@@ -911,7 +956,6 @@ function renderLibrary() {
 function editItem(id) {
   const m=allContent.find(x=>x.id===id); if(!m)return;
   editId=id; $('edit-id').value=id;
-  /* set cat */
   document.querySelectorAll('.cat-tab').forEach(b=>b.classList.remove('active'));
   const catBtn=document.querySelector(`.cat-tab[data-cat="${m.category||'movie'}"]`);
   if(catBtn){catBtn.classList.add('active');$('f-cat').value=m.category||'movie';}
@@ -932,7 +976,6 @@ function editItem(id) {
   $('form-mode-lbl').textContent='Editing: '+(m.title||m.sname||'');
   $('submit-lbl').textContent='Save Changes';
   $('cancel-edit-btn').style.display='';
-  /* switch to upload tab */
   const uploadTab=document.querySelector('.atab');
   if(uploadTab)setATab(uploadTab,'upload');
   showSection('admin');
@@ -1008,20 +1051,19 @@ async function loadUpcoming() {
     const snap=await window._fb.getDocs(window._fb.collection(window._db,'upcoming'));
     const items=[];snap.forEach(d=>items.push({id:d.id,...d.data()}));
     if(!items.length)return;
-    /* ticker */
     $('upcoming-ticker').style.display='block';
     const track=$('ticker-track');
     const dupe=[...items,...items];
     track.innerHTML=dupe.map(it=>`<span class="ticker-item">🎬 ${it.title||''} ${it.releaseDate?'('+it.releaseDate+')':''}</span>`).join('');
-    /* row */
     $('upcoming-row-block').style.display='block';
     const row=$('upcoming-cards-row');row.innerHTML='';
     items.forEach(it=>{
       const card=document.createElement('div');card.className='pcard';
-      const img=it.thumb?`<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy"/>`:`<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>`;
-      const vj=it.releaseDate?`<div class="pcard-vj">${it.releaseDate}</div>`:'';
-      const del=adminUnlocked?`<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')">✕</button>`:'';
-      card.innerHTML=`<div class="pcard-img">${img}${vj}${del}</div>`;
+      card.style.cssText='overflow:hidden;position:relative;cursor:default;';
+      const img=it.thumb?`<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>`:`<div class="pcard-noimg" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>`;
+      const badge=it.releaseDate?`<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>`:'';
+      const del=adminUnlocked?`<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">✕</button>`:'';
+      card.innerHTML=`<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${badge}${del}</div>`;
       row.appendChild(card);
     });
     if(adminUnlocked)$('upcoming-add-btn').style.display='';
@@ -1062,8 +1104,6 @@ function triggerInstall() {
 }
 function dismissBanner(){$('inst-banner').style.display='none';sessionStorage.setItem('km_banner_dismissed','1');}
 
-/* ── FIRESTORE LOAD ─────────────────────────── */
-
 /* ── INIT ─────────────────────────────── */
 function init() {
   applyAdminUI();
@@ -1103,14 +1143,12 @@ function loadContent() {
 
     let extras = [];
     if (primary.length === 0) {
-      /* Try legacy collections */
       for (const col of ['movies', 'videos', 'media', 'tvshows', 'series']) {
         try {
           const s = await getDocs(collection(window._db, col));
           s.forEach(d => extras.push(normalizeItem(d)));
         } catch {}
       }
-      /* Try settings/movies */
       try {
         const sd = await getDoc(doc(window._db, 'settings', 'movies'));
         if (sd.exists()) {
@@ -1135,7 +1173,7 @@ function loadContent() {
   }, err => { console.error('Firestore:', err); });
 }
 
-/* ── COMPATIBILITY ALIASES (for cached HTML) ── */
+/* ── COMPATIBILITY ALIASES ── */
 window.openDetailOverlay = function(id) {
   const m = allContent.find(x => x.id === id);
   if (m) openDetail(m);
