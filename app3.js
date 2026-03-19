@@ -1,5 +1,5 @@
 // ============================================================
-//  KENMOVIES — app3.js v4.0 (fixed — null-safe playItem)
+//  KENMOVIES — app3.js v4.1 (hero + latest + autocomplete fix)
 // ============================================================
 window.onerror = function(msg, src, line, col, err) {
   document.body.style.background = '#0a0a0a';
@@ -26,7 +26,6 @@ let editingId = null, pendingDelId = null, deferredInstall = null;
 
 // ── ARCHIVE.ORG CACHE ────────────────────────────────────────
 const _archiveCache = {};
-// getArchiveDirectUrl is defined near buildPlayer below
 
 function preFetchArchiveMetadata() {
   allContent.filter(m => m.play && m.play.includes('archive.org')).slice(0, 10).forEach(m => {
@@ -77,7 +76,13 @@ function startFirebase() {
     if (!newDone || !oldDone) return;
     const combined = [...oldC];
     newC.forEach(n => { if (!combined.find(o => o.id === n.id)) combined.push(n); });
-    allContent = combined;
+    // ── FIX: ensure every item has a numeric createdAt for sorting ──
+    allContent = combined.map(m => ({
+      ...m,
+      createdAt: typeof m.createdAt === 'number' ? m.createdAt
+               : typeof m.createdAt === 'string' ? new Date(m.createdAt).getTime() || 0
+               : 0
+    }));
     renderAll();
     setTimeout(preFetchArchiveMetadata, 3000);
   }
@@ -98,7 +103,7 @@ function startFirebase() {
         dl: m.dl || m.dlLink || m.downloadLink || '',
         seriesName: m.seriesName || '', season: m.season || 1,
         epNum: m.epNum || m.episode || 1, epTitle: m.epTitle || '',
-        createdAt: m.createdAt || i,
+        createdAt: typeof m.createdAt === 'number' ? m.createdAt : i,
       }));
     } else oldC = [];
     oldDone = true; merge();
@@ -116,7 +121,7 @@ function showSection(sec) {
   if (sec === 'downloads') renderDownloadsPage();
   if (sec === 'indian')    renderVJRows('indian', 'indian');
   if (sec === 'favs')      renderFavs();
-  if (sec === 'home')      { renderComingSoon(); setTimeout(function(){ if(typeof initHero==='function')initHero(); }, 50); }
+  if (sec === 'home')      { renderComingSoon(); setTimeout(function(){ if(typeof initHero==='function') initHero(); }, 50); }
   if (sec === 'settings')  updateStats();
   if (sec === 'admin') { renderLib(); renderSubs(); renderPayments(); }
   const c = document.getElementById('content'); if (c) c.scrollTop = 0;
@@ -156,7 +161,10 @@ function renderVJRows(pageId, cat) {
   if (!base.length) { container.innerHTML = '<div class="empty-page">No content yet.</div>'; return; }
   let html = '';
   if (pageId === 'home') {
-    const recent = [...allContent].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
+    // ── FIX: sort by createdAt descending so newest appears first in Latest
+    const recent = [...allContent]
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 20);
     html += buildRow('Latest', recent, 'home');
     VJS.forEach(vj => {
       const items = allContent.filter(m => m.vj === vj);
@@ -173,7 +181,9 @@ function renderVJRows(pageId, cat) {
       if (vjItems.length) html += buildRow(vj, vjItems, 'series');
     });
   } else {
-    html += buildRow('Latest', base.slice(0, 20), cat);
+    // ── FIX: Latest within each category also sorted by createdAt
+    const catLatest = [...base].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
+    html += buildRow('Latest', catLatest, cat);
     VJS.forEach(vj => {
       const items = base.filter(m => m.vj === vj);
       if (items.length) html += buildRow(vj, items, cat);
@@ -195,7 +205,7 @@ function buildRow(label, items, rowType) {
   return '<div class="vj-row-block"><div class="row-head"><span class="row-label">' + label + '</span>' + seeAllBtn + '</div><div class="hrow">' + cards + '</div></div>';
 }
 
-// ── POSTER CARD (no buttons, clean poster only) ───────────────
+// ── POSTER CARD ───────────────────────────────────────────────
 function movieCard(m) {
   const sname = m._sname || m.seriesName || m.title;
   const isSeries = m._isSeriesGroup || m.cat === 'series';
@@ -228,9 +238,7 @@ function seriesGroupCard(m) { return movieCard({ ...m, _isSeriesGroup: true }); 
 let _sdEps = [], _sdSeasons = {}, _sdActiveSeason = 1, _sdSname = '';
 
 function openSeriesDetail(sname) {
-  // Redirect to our Kawogo-style overlay
   if (window.openDetailOverlay) { window.openDetailOverlay(sname, 'series'); return; }
-  // Fallback to old page-based detail
   _sdSname = sname;
   _sdEps = allContent.filter(m => m.cat === 'series' && (m.seriesName || m.title) === sname)
     .sort((a, b) => (a.season || 1) - (b.season || 1) || (a.epNum || 1) - (b.epNum || 1));
@@ -243,7 +251,7 @@ function openSeriesDetail(sname) {
   const backdrop = document.getElementById('sd-backdrop');
   if (backdrop) {
     if (first.thumb) backdrop.style.backgroundImage = "url('" + first.thumb + "')";
-    else { backdrop.style.backgroundImage = 'none'; backdrop.style.background = 'var(--s2)'; }
+    else { backdrop.style.backgroundImage = 'none'; backdrop.style.background = 'var(--bg2)'; }
   }
   const cont = document.getElementById('sd-container'); if (cont) cont.dataset.sname = sname;
   const titleEl = document.getElementById('sd-title'); if (titleEl) titleEl.textContent = sname;
@@ -331,7 +339,6 @@ function toggleSeriesFav() {
 }
 
 // ── PLAY ─────────────────────────────────────────────────────
-// NULL-SAFE version — no crash if elements are missing
 function playItem(id) {
   const m = allContent.find(c => c.id === id);
   if (!m) return;
@@ -341,8 +348,7 @@ function playItem(id) {
   function safeSet(elId, val) { const el = document.getElementById(elId); if (el) el.textContent = val || ''; }
   function safeHtml(elId, val) { const el = document.getElementById(elId); if (el) el.innerHTML = val || ''; }
 
-  const el = document.getElementById('pl-title');
-  if (el) el.textContent = m.title;
+  const el = document.getElementById('pl-title'); if (el) el.textContent = m.title;
   safeSet('kp-top-title', m.title);
   safeSet('kp-top-ep', '');
   safeSet('pi-title', m.title);
@@ -370,8 +376,7 @@ function playEpisode(id) {
   function safeHtml(elId, val) { const el = document.getElementById(elId); if (el) el.innerHTML = val || ''; }
 
   const lbl = 'Season ' + (ep.season || 1) + ' · Episode ' + (ep.epNum || 1);
-  const pltEl = document.getElementById('pl-title');
-  if (pltEl) pltEl.textContent = sname + ' — ' + lbl;
+  const pltEl = document.getElementById('pl-title'); if (pltEl) pltEl.textContent = sname + ' — ' + lbl;
   safeSet('kp-top-title', sname);
   safeSet('kp-top-ep', lbl);
   safeSet('pi-title', sname);
@@ -417,37 +422,28 @@ function buildPlayer(url) {
     return;
   }
 
-  // ── 1. Already a direct .mp4 / .webm / .m3u8 link ────────────
+  // 1. Direct .mp4 / .webm / .m3u8
   if (/\.(mp4|webm|m3u8)(\?|$)/i.test(url)) {
     playNativeVideo(box, url);
     return;
   }
 
-  // ── 2. archive.org ───────────────────────────────────────────
+  // 2. archive.org
   if (url.includes('archive.org')) {
-    // a) Direct download URL with filename — play straight away
     if (url.includes('/download/') && /\.(mp4|webm|mkv|avi)(\?|$)/i.test(url)) {
       playNativeVideo(box, url);
       return;
     }
-    // b) /details/ or /embed/ — extract itemId
     const m = url.match(/archive\.org\/(?:details|download|embed)\/([^/?#\s]+)/);
     const itemId = m ? m[1] : null;
     if (itemId) {
-      // Show loading spinner
       box.innerHTML = '<div id="kp-loading" style="width:100%;height:100%;background:#060608;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:200px">'
         + '<div style="width:46px;height:46px;border:3px solid #1a1a1a;border-top-color:#00e5c3;border-radius:50%;animation:spin .8s linear infinite"></div>'
         + '<div style="color:#666;font-size:12px;font-weight:600">Loading video...</div></div>';
-      // Try to get direct mp4 URL
       getArchiveDirectUrl(itemId).then(function(directUrl) {
-        // Make sure player is still open and same video
         if (!document.getElementById('player-overlay') || !document.getElementById('player-overlay').classList.contains('open')) return;
-        const loading = document.getElementById('kp-loading');
-        if (loading) {
-          playNativeVideo(box, directUrl);
-        }
+        if (document.getElementById('kp-loading')) playNativeVideo(box, directUrl);
       }).catch(function() {
-        // Direct URL failed — use embed (works on browser, not GoNative)
         playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
         kpHideControls();
       });
@@ -455,19 +451,18 @@ function buildPlayer(url) {
     }
   }
 
-  // ── 3. YouTube ───────────────────────────────────────────────
+  // 3. YouTube
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const m1 = url.match(/[?&]v=([^&]+)/), m2 = url.match(/youtu\.be\/([^?]+)/);
     const vid = (m1 && m1[1]) || (m2 && m2[1]);
     if (vid) { playEmbed(box, 'https://www.youtube.com/embed/' + vid + '?autoplay=1'); return; }
   }
 
-  // ── 4. Fallback — treat as direct video URL ──────────────────
+  // 4. Fallback
   playNativeVideo(box, url);
 }
 
 function playNativeVideo(box, url) {
-  // Build video element with every compatibility attribute
   box.innerHTML = ''
     + '<video id="kp-video" autoplay playsinline webkit-playsinline'
     + ' x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="true"'
@@ -480,13 +475,10 @@ function playNativeVideo(box, url) {
 
   const v = box.querySelector('video');
   if (!v) return;
-
-  // Remove native controls — we have our own
   v.removeAttribute('controls');
 
   v.addEventListener('error', function() {
     console.warn('Video error:', url);
-    // Try archive embed as fallback
     const itemId = (url.match(/archive\.org\/download\/([^/]+)/) || [])[1];
     if (itemId) {
       playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
@@ -495,7 +487,7 @@ function playNativeVideo(box, url) {
       box.innerHTML = '<div style="width:100%;height:100%;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center">'
         + '<div style="font-size:32px">⚠️</div>'
         + '<div style="color:#ff6060;font-size:14px;font-weight:700">Video failed to load</div>'
-        + '<div style="color:#555;font-size:11px;line-height:1.6">The video link may be expired or unsupported.<br>Try another movie or contact admin.</div>'
+        + '<div style="color:#555;font-size:11px;line-height:1.6">The video link may be expired or unavailable.<br>Try another movie or contact admin.</div>'
         + '<a href="' + url + '" target="_blank" style="color:#00e5c3;font-size:11px;margin-top:4px">Open direct link ↗</a>'
         + '</div>';
     }
@@ -507,14 +499,9 @@ function playNativeVideo(box, url) {
   v.addEventListener('pause', function() { kpSetPlayIcon(true);  kpShowControls(); });
   v.addEventListener('ended', function() { kpSetPlayIcon(true); });
 
-  // Try to play
   var playPromise = v.play();
   if (playPromise !== undefined) {
-    playPromise.catch(function(e) {
-      // Autoplay blocked — show play button prominently
-      kpSetPlayIcon(true);
-      kpShowControls();
-    });
+    playPromise.catch(function() { kpSetPlayIcon(true); kpShowControls(); });
   }
   kpShowControls();
 }
@@ -525,10 +512,9 @@ function playEmbed(box, embedUrl) {
     + ' style="width:100%;height:100%;border:none;background:#000;display:block"></iframe>';
 }
 
-// ── getArchiveDirectUrl with timeout ─────────────────────────
+// ── getArchiveDirectUrl ───────────────────────────────────────
 async function getArchiveDirectUrl(itemId) {
   if (_archiveCache[itemId]) return _archiveCache[itemId];
-  // Race: metadata fetch vs 8s timeout
   const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
   const fetch_p = fetch('https://archive.org/metadata/' + itemId)
     .then(r => r.json())
@@ -552,14 +538,14 @@ function kpGetVideo() { return document.getElementById('kp-video'); }
 
 function kpShowControls() {
   const c = document.getElementById('kp-controls'); if (!c) return;
-  c.classList.add('visible');
+  c.classList.remove('hidden');
   clearTimeout(kpControlsTimer);
   kpControlsTimer = setTimeout(() => {
     const v = kpGetVideo();
-    if (v && !v.paused) c.classList.remove('visible');
+    if (v && !v.paused) c.classList.add('hidden');
   }, 3000);
 }
-function kpHideControls() { const c = document.getElementById('kp-controls'); if (c) c.classList.remove('visible'); }
+function kpHideControls() { const c = document.getElementById('kp-controls'); if (c) c.classList.add('hidden'); }
 
 function kpTogglePlay() {
   const v = kpGetVideo(); if (!v) return;
@@ -575,8 +561,7 @@ function kpSeek(secs) {
 
 function kpSeekClick(e) {
   const v = kpGetVideo(); if (!v || !v.duration) return;
-  const wrap = document.getElementById('kp-progress');
-  if (!wrap) return;
+  const wrap = document.getElementById('kp-progress'); if (!wrap) return;
   const rect = wrap.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
   v.currentTime = pct * v.duration;
@@ -710,8 +695,7 @@ function toggleFav() {
 function renderFavs() {
   const ids = favs.map(k => k.replace('item-', ''));
   const list = allContent.filter(m => ids.includes(m.id));
-  const g = document.getElementById('grid-favs');
-  if (!g) return;
+  const g = document.getElementById('grid-favs'); if (!g) return;
   if (!list.length) { g.innerHTML = '<div class="empty-page" style="padding:30px">No favourites yet.</div>'; return; }
   g.innerHTML = list.map(m => movieCard(m)).join('');
 }
@@ -734,13 +718,11 @@ function doSearch(q) {
   const g = document.getElementById('search-results'); if (!g) return;
   if (!q.trim()) { g.innerHTML = '<div class="search-empty">Start typing to search...</div>'; return; }
   const ql = q.toLowerCase();
-  const vjEl = document.getElementById('sf-vj'), vj = vjEl ? vjEl.value : '';
   let list = allContent.filter(m =>
     (m.title || '').toLowerCase().includes(ql) || (m.vj || '').toLowerCase().includes(ql) ||
     (m.genre || '').toLowerCase().includes(ql) || (m.seriesName || '').toLowerCase().includes(ql) ||
     (m.epTitle || '').toLowerCase().includes(ql) || (m.desc || '').toLowerCase().includes(ql));
   if (searchFilter !== 'all') list = list.filter(m => m.cat === searchFilter);
-  if (vj) list = list.filter(m => m.vj === vj);
   if (!list.length) { g.innerHTML = '<div class="search-empty">No results found.</div>'; return; }
   const seen = {}, deduped = [];
   list.forEach(m => { if (m.cat === 'series') { const sn = m.seriesName || m.title; if (!seen[sn]) { seen[sn] = true; deduped.push({ ...m, _isSeriesGroup: true, _sname: sn }); } } else deduped.push(m); });
@@ -820,6 +802,28 @@ function setCat(el, cat) {
   const tl = document.getElementById('title-label'); if(tl) tl.textContent = cat === 'series' ? 'Episode Title' : cat === 'animation' ? 'Animation Title' : 'Movie Title';
 }
 
+// ── FIX: Turn off autocomplete on admin inputs on page load ──
+function disableAdminAutocomplete() {
+  const ids = ['f-title','f-series-name','f-genre','f-year','f-thumb','f-play','f-dl','f-desc'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute('autocomplete', 'off');
+      el.setAttribute('autocorrect', 'off');
+      el.setAttribute('autocapitalize', 'off');
+      el.setAttribute('spellcheck', 'false');
+      // Clear any browser-prefilled value on focus
+      el.addEventListener('focus', function() {
+        if (this.value && !editingId && this.dataset.userTyped !== '1') this.value = '';
+      });
+      el.addEventListener('input', function() { this.dataset.userTyped = '1'; });
+    }
+  });
+  // Also clear the whole form when switching to Upload tab or after save
+  const form = document.querySelector('.upload-form');
+  if (form) form.setAttribute('autocomplete', 'off');
+}
+
 function previewThumb(url) {
   const wrap = document.getElementById('thumb-preview'), img = document.getElementById('thumb-preview-img');
   if (!wrap || !img) return;
@@ -831,8 +835,8 @@ function previewThumb(url) {
 function previewDlLink(val) {
   const hint = document.getElementById('dl-link-hint'); if (!hint) return;
   if (!val) { hint.style.color = 'var(--muted)'; hint.textContent = 'Paste direct .mp4 URL from archive.org'; return; }
-  if (/\.mp4(\?|$)/i.test(val)) { hint.style.color = 'var(--teal)'; hint.textContent = 'Good — direct .mp4 link detected'; }
-  else if (val.includes('archive.org/details')) { hint.style.color = '#ff9800'; hint.textContent = 'Use archive.org/download/... not /details/'; }
+  if (/\.mp4(\?|$)/i.test(val)) { hint.style.color = 'var(--teal)'; hint.textContent = '✓ Good — direct .mp4 link detected'; }
+  else if (val.includes('archive.org/details')) { hint.style.color = '#ff9800'; hint.textContent = '⚠ Use archive.org/download/... not /details/'; }
   else { hint.style.color = 'var(--muted2)'; hint.textContent = 'Custom URL'; }
 }
 
@@ -871,12 +875,18 @@ async function submitContent() {
       }
       showToast('Updated!'); cancelEdit();
     } else {
+      // ── FIX: always set createdAt to current timestamp so Latest sorts correctly
       data.createdAt = Date.now();
       const { collection, addDoc } = window._fb;
       await addDoc(collection(window._db, 'content'), data);
-      showToast('Added!');
-      if (cat === 'series') { if(fEp) fEp.value = (parseInt(fEp.value) || 1) + 1; if(fTitle) fTitle.value = ''; const fd = document.getElementById('f-desc'); if(fd) fd.value = ''; }
-      else resetUploadForm();
+      showToast('✓ Added: ' + title);
+      if (cat === 'series') {
+        if(fEp) fEp.value = (parseInt(fEp.value) || 1) + 1;
+        if(fTitle) { fTitle.value = ''; fTitle.dataset.userTyped = '0'; }
+        const fd = document.getElementById('f-desc'); if(fd) { fd.value = ''; fd.dataset.userTyped = '0'; }
+      } else {
+        resetUploadForm();
+      }
     }
   } catch(err) { showToast('Error: ' + err.message, true); }
   finally { if(btn) btn.disabled = false; if(lbl) lbl.textContent = editingId ? 'Save Changes' : 'Add to Library'; }
@@ -889,10 +899,10 @@ function startEdit(id) {
   const fc = document.getElementById('f-cat'); if(fc) fc.value = m.cat;
   const sf = document.getElementById('series-only-fields'); if(sf) sf.style.display = m.cat === 'series' ? 'flex' : 'none';
   const ei = document.getElementById('edit-id'); if(ei) ei.value = id;
-  const setV = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+  const setV = (id, v) => { const el = document.getElementById(id); if(el) { el.value = v || ''; el.dataset.userTyped = '1'; } };
   setV('f-title', m.epTitle || m.title || '');
-  setV('f-vj', m.vj);setV('f-year', m.year);setV('f-genre', m.genre);setV('f-desc', m.desc);
-  setV('f-play', m.play);setV('f-dl', m.dl);setV('f-thumb', m.thumb);
+  setV('f-vj', m.vj); setV('f-year', m.year); setV('f-genre', m.genre); setV('f-desc', m.desc);
+  setV('f-play', m.play); setV('f-dl', m.dl); setV('f-thumb', m.thumb);
   if (m.cat === 'series') { setV('f-series-name', m.seriesName); setV('f-season', m.season || 1); setV('f-epnum', m.epNum || 1); }
   if (m.thumb) previewThumb(m.thumb);
   const fml = document.getElementById('form-mode-label'); if(fml) fml.textContent = 'Edit Content';
@@ -909,7 +919,8 @@ function cancelEdit() {
 }
 
 function resetUploadForm() {
-  ['f-title','f-vj','f-year','f-genre','f-desc','f-play','f-dl','f-series-name','f-thumb'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  const ids = ['f-title','f-vj','f-year','f-genre','f-desc','f-play','f-dl','f-series-name','f-thumb'];
+  ids.forEach(id => { const el = document.getElementById(id); if(el) { el.value = ''; el.dataset.userTyped = '0'; } });
   const fs = document.getElementById('f-season'); if(fs) fs.value = '1';
   const fe = document.getElementById('f-epnum'); if(fe) fe.value = '1';
   const fc = document.getElementById('f-cat'); if(fc) fc.value = 'movie';
@@ -917,6 +928,7 @@ function resetUploadForm() {
   const sf = document.getElementById('series-only-fields'); if(sf) sf.style.display = 'none';
   document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === 'movie'));
   const tl = document.getElementById('title-label'); if(tl) tl.textContent = 'Title';
+  const ei = document.getElementById('edit-id'); if(ei) ei.value = '';
 }
 
 function askDelete(id) {
@@ -997,7 +1009,7 @@ function renderDownloadsPage() {
   const active = dlHistory.filter(d => d.status === 'downloading').length, done = dlHistory.filter(d => d.status === 'done').length;
   if (count) count.textContent = active ? active + ' active · ' + done + ' completed' : (done ? done + ' completed' : '');
   if (!dlHistory.length) {
-    list.innerHTML = '<div class="dl-empty"><div class="dl-empty-title">No downloads yet</div><div class="dl-empty-desc">Tap Download on any movie to start downloading</div></div>'; return;
+    list.innerHTML = '<div class="dl-empty"><div class="dl-empty-title">No downloads yet</div><div class="dl-empty-desc">Tap Download on any movie to start</div></div>'; return;
   }
   list.innerHTML = dlHistory.map(d => {
     const isDone = d.status === 'done', pct = d.total > 0 ? Math.round((d.loaded / d.total) * 100) : (isDone ? 100 : 0);
@@ -1025,28 +1037,12 @@ function showSeeAll(label) {
 }
 function closeSeeAll() { const o = document.getElementById('see-all-overlay'); if (o) o.classList.remove('open'); }
 
-// ── UPCOMING / CAROUSEL ──────────────────────────────────────
+// ── UPCOMING / COMING SOON ───────────────────────────────────
 const CS_KEY = 'kp_coming_soon';
 function loadCS() { try { comingSoon = JSON.parse(localStorage.getItem(CS_KEY) || '[]'); } catch(e) { comingSoon = []; } }
 function saveCS() { try { localStorage.setItem(CS_KEY, JSON.stringify(comingSoon)); } catch(e) {} }
 
 function renderComingSoon() {
-  const wrap = document.getElementById('carousel-wrap'), track = document.getElementById('carousel-track');
-  if (wrap && track) {
-    const addBtn = document.getElementById('carousel-add-btn');
-    if (addBtn) addBtn.style.display = adminUnlocked ? 'flex' : 'none';
-    if (!comingSoon.length) { wrap.style.display = 'none'; stopCarousel(); }
-    else {
-      wrap.style.display = 'block';
-      track.innerHTML = comingSoon.map((c, i) =>
-        '<div class="carousel-slide"><div class="carousel-bg"' + (c.thumb ? ' style="background-image:url(\'' + c.thumb + '\')"' : '') + '></div><div class="carousel-overlay"></div><div class="carousel-content"><div class="carousel-badge">Coming Soon</div><div class="carousel-title">' + c.title + '</div>' + (c.date ? '<div class="carousel-date">' + c.date + '</div>' : '') + (adminUnlocked ? '<button class="carousel-del" onclick="removeCS(' + i + ')">✕ Remove</button>' : '') + '</div></div>'
-      ).join('');
-      const dots = document.getElementById('carousel-dots');
-      if (dots) dots.innerHTML = comingSoon.map((_, i) => '<span class="carousel-dot ' + (i === carouselIdx ? 'active' : '') + '" onclick="goCarousel(' + i + ')"></span>').join('');
-      goCarousel(Math.min(carouselIdx, comingSoon.length - 1));
-      startCarousel();
-    }
-  }
   renderUpcomingTicker();
 }
 
@@ -1070,15 +1066,6 @@ function renderUpcomingTicker() {
   }
 }
 
-function goCarousel(idx) {
-  const track = document.getElementById('carousel-track'); if (!track) return;
-  carouselIdx = idx; track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-  document.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-}
-function carouselMove(dir) { if (!comingSoon.length) return; goCarousel((carouselIdx + dir + comingSoon.length) % comingSoon.length); restartCarousel(); }
-function startCarousel() { stopCarousel(); if (comingSoon.length <= 1) return; carouselTimer = setInterval(() => goCarousel((carouselIdx + 1) % comingSoon.length), 5000); }
-function stopCarousel() { if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; } }
-function restartCarousel() { stopCarousel(); startCarousel(); }
 function openCSAdmin() { openModal('cs-modal'); }
 function addComingSoon() {
   const t = document.getElementById('cs-title-inp'), th = document.getElementById('cs-thumb-inp'), d = document.getElementById('cs-date-inp');
@@ -1088,7 +1075,7 @@ function addComingSoon() {
   if(t) t.value = ''; if(th) th.value = ''; if(d) d.value = '';
   showToast('Added!');
 }
-function removeCS(i) { comingSoon.splice(i, 1); if (carouselIdx >= comingSoon.length) carouselIdx = 0; saveCS(); renderComingSoon(); }
+function removeCS(i) { comingSoon.splice(i, 1); saveCS(); renderComingSoon(); }
 
 // ── SUBSCRIBERS ──────────────────────────────────────────────
 const SUB_KEY = 'kp_subscribers';
@@ -1104,7 +1091,6 @@ function addSubscriber() {
 function deleteSubscriber(id) { subscribers = subscribers.filter(s => s.id !== id); saveSubs(); renderSubs(); }
 function renderSubs() {
   const el = document.getElementById('sub-list'); if (!el) return;
-  const cnt = document.getElementById('sub-count'); if(cnt) cnt.textContent = subscribers.length;
   if (!subscribers.length) { el.innerHTML = '<div class="empty-msg">No subscribers yet.</div>'; return; }
   const now = Date.now();
   el.innerHTML = subscribers.map(s => {
@@ -1132,7 +1118,6 @@ function approvePayment(id) {
 function rejectPayment(id) { const p = payments.find(p => p.id === id); if (!p) return; p.status = 'rejected'; savePayments(); renderPayments(); showToast('Payment rejected.'); }
 function renderPayments() {
   const el = document.getElementById('pay-list'); if (!el) return;
-  const cnt = document.getElementById('pay-count'); if(cnt) cnt.textContent = payments.filter(p => p.status === 'pending').length;
   if (!payments.length) { el.innerHTML = '<div class="empty-msg">No payment requests yet.</div>'; return; }
   const sorted = [...payments].sort((a, b) => b.time - a.time);
   el.innerHTML = sorted.map(p => {
@@ -1158,40 +1143,66 @@ function submitChangePass() {
   setAdminPass(np.value); closeModal('change-pass-modal'); showToast('Password changed successfully!');
 }
 
-// ── INSTALL PWA ──────────────────────────────────────────────
-function dismissInstallBanner() { const b = document.getElementById('install-banner'); if(b) b.style.display = 'none'; localStorage.setItem('kp_install_dismissed', '1'); }
-
-// ── INIT ─────────────────────────────────────────────────────
-loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
-startFirebase(); showSection('home');
-
-// ── AUTO-SCROLL POSTER STRIP (Kawogo style) ──────────────────
+// ── HERO / AUTO STRIP ────────────────────────────────────────
 function initAutoStrip() {
   const movies = allContent.filter(m => m.thumb);
   if (!movies.length) return;
-  // Shuffle for variety
   const shuffled = [...movies].sort(() => Math.random() - 0.5);
-  // Double the list so seamless loop works
   const strip1Items = [...shuffled, ...shuffled];
-  const strip2Items = [...shuffled.reverse(), ...shuffled];
+  const strip2Items = [...shuffled].reverse();
+  const strip2Double = [...strip2Items, ...strip2Items];
+
   function buildStrip(items) {
     return items.map(m => {
       const click = m.cat === 'series'
         ? "openDetailOverlay('" + (m.seriesName || m.title).replace(/'/g, "\\'") + "','series')"
         : "openDetailOverlay('" + m.id + "','movie')";
       return '<div class="strip-card" onclick="' + click + '">'
-        + '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>'
+        + (m.thumb ? '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>' : '')
         + '</div>';
     }).join('');
   }
+
   const s1 = document.getElementById('auto-strip-1');
   const s2 = document.getElementById('auto-strip-2');
   if (s1) s1.innerHTML = buildStrip(strip1Items);
-  if (s2) s2.innerHTML = buildStrip(strip2Items);
+  if (s2) s2.innerHTML = buildStrip(strip2Double);
+
+  // Also set hero-bg to a random movie poster for the blurred background
+  const heroBg = document.getElementById('hero-bg');
+  if (heroBg && movies.length) {
+    const pick = movies[Math.floor(Math.random() * Math.min(movies.length, 10))];
+    if (pick.thumb) heroBg.style.backgroundImage = "url('" + pick.thumb + "')";
+  }
+
+  // Update hero text with latest movie
+  const latest = allContent.find(m => m.thumb);
+  if (latest) {
+    const titleEl = document.getElementById('hero-title');
+    const metaEl  = document.getElementById('hero-meta');
+    if (titleEl) titleEl.textContent = latest.seriesName || latest.title || 'KENMOVIES';
+    if (metaEl)  metaEl.textContent  = [latest.vj, latest.genre, latest.year].filter(Boolean).join(' · ') || 'Free Ugandan movies and series';
+  }
 }
 
-// Keep stubs so nothing breaks
 function initHero() { initAutoStrip(); }
 function updateHero() {}
 function heroGoTo() {}
-function heroClick() {}
+function heroClick() {
+  // Click hero → open latest movie detail
+  const latest = allContent.find(m => m.thumb);
+  if (latest && window.openDetailOverlay) {
+    if (latest.cat === 'series') window.openDetailOverlay(latest.seriesName || latest.title, 'series');
+    else window.openDetailOverlay(latest.id, 'movie');
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
+
+// Disable autocomplete on admin inputs after DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  disableAdminAutocomplete();
+});
+
+startFirebase(); showSection('home');
