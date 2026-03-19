@@ -26,27 +26,7 @@ let editingId = null, pendingDelId = null, deferredInstall = null;
 
 // ── ARCHIVE.ORG CACHE ────────────────────────────────────────
 const _archiveCache = {};
-async function getArchiveDirectUrl(itemId) {
-  if (_archiveCache[itemId]) return _archiveCache[itemId];
-  try {
-    const res = await fetch('https://archive.org/metadata/' + itemId);
-    const data = await res.json();
-    const files = data.files || [];
-    const video = files.find(f => /\.mp4$/i.test(f.name) && f.source === 'original') ||
-                  files.find(f => /\.mp4$/i.test(f.name)) ||
-                  files.find(f => /\.mkv$/i.test(f.name)) ||
-                  files.find(f => /\.avi$/i.test(f.name)) ||
-                  files.find(f => f.format && f.format.toLowerCase().includes('mpeg4'));
-    if (video) {
-      const url = 'https://archive.org/download/' + itemId + '/' + video.name;
-      _archiveCache[itemId] = url;
-      return url;
-    }
-  } catch(e) {}
-  const fallback = 'https://archive.org/download/' + itemId + '/' + itemId + '.mp4';
-  _archiveCache[itemId] = fallback;
-  return fallback;
-}
+// getArchiveDirectUrl is defined near buildPlayer below
 
 function preFetchArchiveMetadata() {
   allContent.filter(m => m.play && m.play.includes('archive.org')).slice(0, 10).forEach(m => {
@@ -431,48 +411,139 @@ function buildPlayer(url) {
   const box = document.getElementById('player-video');
   if (!box) return;
   box.innerHTML = '';
+
   if (!url) {
-    box.innerHTML = '<div style="width:100%;height:100%;background:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:200px;color:#444;font-size:13px">No play link added yet</div>';
+    box.innerHTML = '<div style="width:100%;height:100%;background:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:200px;color:#555;font-size:13px;text-align:center;padding:20px">No play link added yet.<br><br>Add an archive.org or .mp4 link in Admin.</div>';
     return;
   }
-  if (/\.(mp4|webm|mov|mkv|avi|m3u8)(\?|$)/i.test(url)) { playNativeVideo(box, url); return; }
+
+  // ── 1. Already a direct .mp4 / .webm / .m3u8 link ────────────
+  if (/\.(mp4|webm|m3u8)(\?|$)/i.test(url)) {
+    playNativeVideo(box, url);
+    return;
+  }
+
+  // ── 2. archive.org ───────────────────────────────────────────
   if (url.includes('archive.org')) {
-    const m1 = url.match(/archive\.org\/(?:details|download|embed)\/([^/?#/]+)/);
-    if (m1) {
-      const itemId = m1[1];
-      if (_archiveCache[itemId]) { playNativeVideo(box, _archiveCache[itemId]); return; }
-      box.innerHTML = '<div style="width:100%;height:100%;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:200px"><div style="width:44px;height:44px;border:3px solid #222;border-top-color:#00e5c3;border-radius:50%;animation:spin .8s linear infinite"></div><div style="color:#888;font-size:12px;font-weight:600">Loading...</div></div>';
-      getArchiveDirectUrl(itemId).then(directUrl => playNativeVideo(box, directUrl));
+    // a) Direct download URL with filename — play straight away
+    if (url.includes('/download/') && /\.(mp4|webm|mkv|avi)(\?|$)/i.test(url)) {
+      playNativeVideo(box, url);
+      return;
+    }
+    // b) /details/ or /embed/ — extract itemId
+    const m = url.match(/archive\.org\/(?:details|download|embed)\/([^/?#\s]+)/);
+    const itemId = m ? m[1] : null;
+    if (itemId) {
+      // Show loading spinner
+      box.innerHTML = '<div id="kp-loading" style="width:100%;height:100%;background:#060608;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:200px">'
+        + '<div style="width:46px;height:46px;border:3px solid #1a1a1a;border-top-color:#00e5c3;border-radius:50%;animation:spin .8s linear infinite"></div>'
+        + '<div style="color:#666;font-size:12px;font-weight:600">Loading video...</div></div>';
+      // Try to get direct mp4 URL
+      getArchiveDirectUrl(itemId).then(function(directUrl) {
+        // Make sure player is still open and same video
+        if (!document.getElementById('player-overlay') || !document.getElementById('player-overlay').classList.contains('open')) return;
+        const loading = document.getElementById('kp-loading');
+        if (loading) {
+          playNativeVideo(box, directUrl);
+        }
+      }).catch(function() {
+        // Direct URL failed — use embed (works on browser, not GoNative)
+        playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
+        kpHideControls();
+      });
       return;
     }
   }
+
+  // ── 3. YouTube ───────────────────────────────────────────────
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     const m1 = url.match(/[?&]v=([^&]+)/), m2 = url.match(/youtu\.be\/([^?]+)/);
     const vid = (m1 && m1[1]) || (m2 && m2[1]);
     if (vid) { playEmbed(box, 'https://www.youtube.com/embed/' + vid + '?autoplay=1'); return; }
   }
-  playEmbed(box, url);
+
+  // ── 4. Fallback — treat as direct video URL ──────────────────
+  playNativeVideo(box, url);
 }
 
 function playNativeVideo(box, url) {
-  box.innerHTML = '<video id="kp-video" autoplay playsinline webkit-playsinline style="width:100%;height:100%;background:#000;display:block;object-fit:contain"><source src="' + url + '" type="video/mp4"/><source src="' + url + '"/></video>';
+  // Build video element with every compatibility attribute
+  box.innerHTML = ''
+    + '<video id="kp-video" autoplay playsinline webkit-playsinline'
+    + ' x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="true"'
+    + ' controls-list="nodownload" disablePictureInPicture'
+    + ' style="width:100%;height:100%;background:#000;display:block;object-fit:contain;max-width:100%">'
+    + '<source src="' + url + '" type="video/mp4"/>'
+    + '<source src="' + url + '" type="video/webm"/>'
+    + '<source src="' + url + '"/>'
+    + '</video>';
+
   const v = box.querySelector('video');
-  if (v) {
-    v.addEventListener('error', () => {
-      const itemId = url.match(/archive\.org\/download\/([^/]+)/)?.[1];
-      if (itemId) { playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1'); kpHideControls(); }
+  if (!v) return;
+
+  // Remove native controls — we have our own
+  v.removeAttribute('controls');
+
+  v.addEventListener('error', function() {
+    console.warn('Video error:', url);
+    // Try archive embed as fallback
+    const itemId = (url.match(/archive\.org\/download\/([^/]+)/) || [])[1];
+    if (itemId) {
+      playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
+      kpHideControls();
+    } else {
+      box.innerHTML = '<div style="width:100%;height:100%;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center">'
+        + '<div style="font-size:32px">⚠️</div>'
+        + '<div style="color:#ff6060;font-size:14px;font-weight:700">Video failed to load</div>'
+        + '<div style="color:#555;font-size:11px;line-height:1.6">The video link may be expired or unsupported.<br>Try another movie or contact admin.</div>'
+        + '<a href="' + url + '" target="_blank" style="color:#00e5c3;font-size:11px;margin-top:4px">Open direct link ↗</a>'
+        + '</div>';
+    }
+  }, { once: true });
+
+  v.addEventListener('loadedmetadata', kpUpdateTime);
+  v.addEventListener('timeupdate', kpUpdateTime);
+  v.addEventListener('play',  function() { kpSetPlayIcon(false); kpShowControls(); });
+  v.addEventListener('pause', function() { kpSetPlayIcon(true);  kpShowControls(); });
+  v.addEventListener('ended', function() { kpSetPlayIcon(true); });
+
+  // Try to play
+  var playPromise = v.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(function(e) {
+      // Autoplay blocked — show play button prominently
+      kpSetPlayIcon(true);
+      kpShowControls();
     });
-    v.addEventListener('loadedmetadata', () => kpUpdateTime());
-    v.addEventListener('timeupdate', () => kpUpdateTime());
-    v.addEventListener('play',  () => kpSetPlayIcon(false));
-    v.addEventListener('pause', () => kpSetPlayIcon(true));
-    v.addEventListener('ended', () => kpSetPlayIcon(true));
-    kpShowControls();
   }
+  kpShowControls();
 }
 
 function playEmbed(box, embedUrl) {
-  box.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen allow="autoplay;fullscreen;picture-in-picture" style="width:100%;height:100%;border:none;background:#000;display:block"></iframe>';
+  box.innerHTML = '<iframe src="' + embedUrl
+    + '" allowfullscreen allow="autoplay;fullscreen;picture-in-picture;encrypted-media"'
+    + ' style="width:100%;height:100%;border:none;background:#000;display:block"></iframe>';
+}
+
+// ── getArchiveDirectUrl with timeout ─────────────────────────
+async function getArchiveDirectUrl(itemId) {
+  if (_archiveCache[itemId]) return _archiveCache[itemId];
+  // Race: metadata fetch vs 8s timeout
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+  const fetch_p = fetch('https://archive.org/metadata/' + itemId)
+    .then(r => r.json())
+    .then(data => {
+      const files = data.files || [];
+      const vid = files.find(f => /\.mp4$/i.test(f.name) && f.source === 'original')
+               || files.find(f => /\.mp4$/i.test(f.name))
+               || files.find(f => /\.mkv$/i.test(f.name))
+               || files.find(f => /\.(webm|avi|mov)$/i.test(f.name));
+      if (!vid) throw new Error('no video file found');
+      const url = 'https://archive.org/download/' + itemId + '/' + encodeURIComponent(vid.name);
+      _archiveCache[itemId] = url;
+      return url;
+    });
+  return Promise.race([fetch_p, timeout]);
 }
 
 // ── CUSTOM PLAYER CONTROLS ───────────────────────────────────
@@ -576,15 +647,11 @@ function saveDlHistory() { try { localStorage.setItem(DL_KEY, JSON.stringify(dlH
 function removeDownload(id) { dlHistory = dlHistory.filter(d => d.id !== id); saveDlHistory(); renderDownloadsPage(); }
 
 async function getDirectMp4(itemId) {
-  if (_archiveCache[itemId]) return { url: _archiveCache[itemId], name: itemId + '.mp4' };
   try {
-    const res = await fetch('https://archive.org/metadata/' + itemId);
-    const data = await res.json();
-    const files = data.files || [];
-    const vid = files.find(f => /\.mp4$/i.test(f.name) && f.source === 'original') || files.find(f => /\.mp4$/i.test(f.name)) || files.find(f => /\.mkv$/i.test(f.name)) || files.find(f => /\.avi$/i.test(f.name));
-    if (vid) { const url = 'https://archive.org/download/' + itemId + '/' + encodeURIComponent(vid.name); _archiveCache[itemId] = url; return { url, name: vid.name }; }
-  } catch(e) {}
-  return null;
+    const url = await getArchiveDirectUrl(itemId);
+    const name = decodeURIComponent(url.split('/').pop()) || itemId + '.mp4';
+    return { url, name };
+  } catch(e) { return null; }
 }
 
 async function downloadItem(id) {
