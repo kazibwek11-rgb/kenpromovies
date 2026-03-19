@@ -141,9 +141,16 @@
 
       <!-- HOME -->
       <div class="page active" id="page-home">
-        <!-- KAWOGO-STYLE AUTO-SCROLL POSTER STRIP -->
-        <div class="auto-strip-wrap">
-          <div class="auto-strip" id="auto-strip-1"></div>
+        <!-- HERO CAROUSEL -->
+        <div class="hero" id="hero" onclick="heroClick()">
+          <div class="hero-bg" id="hero-bg"></div>
+          <div class="hero-grad"></div>
+          <div class="hero-content">
+            <div class="hero-badge">Now Streaming</div>
+            <div class="hero-title" id="hero-title">KENMOVIES</div>
+            <div class="hero-meta"  id="hero-meta">Free Ugandan movies and series</div>
+          </div>
+          <div class="hero-dots" id="hero-dots"></div>
         </div>
         <!-- UPCOMING TICKER -->
         <div class="upcoming-ticker" id="upcoming-ticker" style="display:none">
@@ -349,7 +356,6 @@
 
           <!-- SUBSCRIBERS -->
           <div class="admin-section" id="admin-subscribers">
-            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Total: <span id="sub-count">0</span></div>
             <div class="sub-add-row">
               <input type="text" id="sub-name"  placeholder="Name e.g. John"     class="sub-inp"/>
               <input type="text" id="sub-phone" placeholder="Phone +256700..."   class="sub-inp"/>
@@ -361,7 +367,6 @@
 
           <!-- PAYMENTS -->
           <div class="admin-section" id="admin-payments">
-            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Pending: <span id="pay-count">0</span></div>
             <div class="pay-list" id="pay-list"><div class="empty-msg">No payment requests yet.</div></div>
           </div>
 
@@ -475,15 +480,11 @@
       <div class="pi-body">
         <div class="pi-title" id="pi-title"></div>
         <div class="pi-ep"    id="pi-ep"></div>
-        <div class="pi-card-tags" id="pi-card-tags"></div>
+        <div class="pi-tags"  id="pi-tags"></div>
         <div class="pi-vj"    id="pi-vj"></div>
         <div class="pi-desc"  id="pi-desc"></div>
       </div>
     </div>
-    <!-- Hidden legacy elements that app3.js writes to — keep these even though invisible -->
-    <div id="pi-meta"  style="display:none"></div>
-    <div id="pi-tags"  style="display:none"></div>
-
     <div class="pi-actions">
       <button class="pi-fav-btn" id="pi-fav" onclick="toggleFav()">
         <svg width="14" height="14" id="fav-ico"><use href="#i-heart"/></svg>
@@ -574,62 +575,40 @@
   </div>
 </div>
 
-<!-- Stub openSeriesDetail BEFORE app3.js so series card clicks don't crash -->
-<script>
-window.openSeriesDetail = function(sname) {
-  if (window.openDetailOverlay) { window.openDetailOverlay(sname, 'series'); return; }
-  setTimeout(() => window.openSeriesDetail(sname), 120);
-};
-</script>
-
 <script src="app3.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/kenpromovies/service-worker.js');
 }
 
-// ── POSTER CARD BUILDER — defined first so overrides can use it ──
+// ── POSTER CARD BUILDER (replaces old movieCard) ──────────────
+// Replaces the card building in app3.js with poster-only style
 window._buildPosterCard = function(m) {
-  const isS = m.cat === 'series' || m._isSeriesGroup;
-  const sname = (m._sname || m.seriesName || m.title || '').replace(/'/g,"\\'");
+  const isS = m.cat === 'series';
   const click = isS
-    ? `openDetailOverlay('${sname}','series')`
+    ? `openDetailOverlay('${(m._sname||m.seriesName||m.title).replace(/'/g,"\\'")}','series')`
     : `openDetailOverlay('${m.id}','movie')`;
   const editBtn = window.adminUnlocked
     ? `<button class="pc-edit" onclick="event.stopPropagation();startEdit('${m.id}')">E</button>`
     : '';
-  const thumb = m.thumb || '';
   return `<div class="pcard" onclick="${click}">
     <div class="pcard-poster">
-      ${thumb ? `<img src="${thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
-      ${!thumb ? `<div class="pcard-noimg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>` : ''}
+      ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+      ${!m.thumb ? `<div class="pcard-noimg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>` : ''}
       <div class="pcard-hover">
-        <div class="pcard-hover-title">${m.seriesName || m.title || ''}</div>
+        <div class="pcard-hover-title">${m.seriesName || m.title}</div>
         ${m.vj ? `<div class="pcard-hover-vj">${m.vj}</div>` : ''}
       </div>
       ${m.vj ? `<div class="pcard-vj-tag">${m.vj}</div>` : ''}
       ${editBtn}
     </div>
     <div class="pcard-label">
-      <div class="pcard-title">${m.seriesName || m.title || ''}</div>
+      <div class="pcard-title">${m.seriesName || m.title}</div>
       ${m.year || m.genre ? `<div class="pcard-sub">${[m.year,m.genre].filter(Boolean).join(' · ')}</div>` : ''}
     </div>
   </div>`;
 };
 
-// ── OVERRIDE app3.js card builders → use poster style ────────
-window.movieCard = function(m) {
-  return window._buildPosterCard(m);
-};
-window.seriesGroupCard = function(m) {
-  return window._buildPosterCard({ ...m, _isSeriesGroup: true });
-};
-
-// ── REDIRECT openSeriesDetail → our Kawogo detail overlay ─────
-// app3.js calls openSeriesDetail(sname) when a series is tapped
-window.openSeriesDetail = function(sname) {
-  window.openDetailOverlay(sname, 'series');
-};
 // ── MOVIE DETAIL OVERLAY (Kawogo style) ───────────────────────
 window.openDetailOverlay = function(idOrSname, type) {
   let m, eps = [], sname = '';
@@ -649,7 +628,7 @@ window.openDetailOverlay = function(idOrSname, type) {
   const epHtml = eps.length ? `
     <div class="det-eps-title">Episodes</div>
     <div class="det-ep-row">${eps.map(ep => `
-      <div class="det-ep-card" onclick="closeDetailOverlay();setTimeout(()=>playItem('${ep.id}'),60)">
+      <div class="det-ep-card" onclick="playItem('${ep.id}');closeDetailOverlay()">
         <div class="det-ep-thumb">
           ${ep.thumb ? `<img src="${ep.thumb}" onerror="this.style.display='none'">` : ''}
           <div class="det-ep-overlay"><div class="det-ep-play"><svg width="16" height="16" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div></div>
@@ -687,7 +666,7 @@ window.openDetailOverlay = function(idOrSname, type) {
       </div>
       ${m.desc ? `<div class="det-desc">${m.desc}</div>` : ''}
       <div class="det-actions">
-        ${type !== 'series' ? `<button class="det-btn-watch" onclick="closeDetailOverlay();setTimeout(()=>playItem('${m.id}'),60)"><svg width="13" height="13" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Now</button>` : ''}
+        ${type !== 'series' ? `<button class="det-btn-watch" onclick="playItem('${m.id}');closeDetailOverlay()"><svg width="13" height="13" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Now</button>` : ''}
         <button class="det-btn-dl" onclick="downloadItem('${m.id}')"><svg width="13" height="13"><use href="#i-download"/></svg> Download</button>
         <button class="det-btn-fav ${isFav ? 'on' : ''}" id="det-fav-btn" onclick="_detToggleFav('${m.id}')">
           <svg width="13" height="13" id="det-fav-ico"><use href="${isFav ? '#i-heart-f' : '#i-heart'}"/></svg>
@@ -786,109 +765,49 @@ window.kpRotate = function() {
   } catch(e) { showToast('Rotate your device manually'); }
 };
 
-// ── FULLY REPLACE playItem & playEpisode ─────────────────────
-// Do NOT call the original — app3.js version crashes on missing elements.
-// We replicate everything it does but with null-safe checks.
-
+// ── POPULATE INFO CARD ────────────────────────────────────────
+const _origPlayItem = window.playItem;
 window.playItem = function(id) {
-  const m = window.allContent && window.allContent.find(c => c.id === id);
-  if (!m) return;
-  if (m.cat === 'series') { window.playEpisode(id); return; }
-
-  window.curPlay = { type:'movie', id };
-
-  // Set player header
-  const safeSet = (elId, val) => { const el = document.getElementById(elId); if(el) el.textContent = val||''; };
-  const safeHtml = (elId, val) => { const el = document.getElementById(elId); if(el) el.innerHTML = val||''; };
-  safeSet('kp-top-title', m.title);
-  safeSet('kp-top-ep', '');
-  // Legacy elements app3.js expects
-  safeSet('pi-title', m.title);
-  safeSet('pi-ep', '');
-  safeSet('pi-meta', [m.vj, m.year, m.genre].filter(Boolean).join(' · '));
-  safeHtml('pi-tags', '');
-  // Our info card
-  _fillPlayerCard(m, null);
-  // Ep nav
-  const nav = document.getElementById('ep-nav'); if(nav) nav.style.display='none';
-  // Fav
-  if(window.setFavUI) window.setFavUI('item-'+id);
-  if(document.getElementById('pi-fav')) document.getElementById('pi-fav').dataset.key = 'item-'+id;
-  // Build video
-  if(window.buildPlayer) window.buildPlayer(m.play);
-  // More like
-  if(window.renderMoreLike) window.renderMoreLike(id, m.cat, m.vj);
-  // Open overlay
-  const po = document.getElementById('player-overlay');
-  if(po) { po.classList.add('open'); po.scrollTop = 0; }
-  document.body.style.overflow = 'hidden';
+  if (_origPlayItem) _origPlayItem(id);
+  setTimeout(() => {
+    const m = allContent && allContent.find(c => c.id === id);
+    if (!m) return;
+    const card = document.getElementById('pi-card');
+    if (card) card.style.display = 'flex';
+    const img = document.getElementById('pi-poster-img');
+    const emp = document.getElementById('pi-poster-empty');
+    if (m.thumb) { if(img){img.src=m.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
+    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
+    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
+    set('pi-title', m.title || m.seriesName || '');
+    set('pi-vj',    m.vj ? m.vj : '');
+    set('pi-desc',  m.desc || '');
+    const tags = document.getElementById('pi-tags');
+    if (tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
+  }, 80);
 };
 
+const _origPlayEp = window.playEpisode;
 window.playEpisode = function(id) {
-  const ep = window.allContent && window.allContent.find(c => c.id === id);
-  if (!ep) return;
-  const sname = ep.seriesName || ep.title;
-  const allEps = window.allContent.filter(c => c.cat==='series' && (c.seriesName||c.title)===sname)
-    .sort((a,b) => (a.season||1)-(b.season||1) || (a.epNum||1)-(b.epNum||1));
-  const idx = allEps.findIndex(e => e.id === id);
-
-  window.curPlay = { type:'episode', id, sname, allEps, idx };
-
-  const safeSet = (elId, val) => { const el = document.getElementById(elId); if(el) el.textContent = val||''; };
-  const safeHtml = (elId, val) => { const el = document.getElementById(elId); if(el) el.innerHTML = val||''; };
-  const lbl = `Season ${ep.season||1} · Episode ${ep.epNum||1}`;
-
-  safeSet('kp-top-title', sname);
-  safeSet('kp-top-ep', lbl);
-  safeSet('pi-title', sname);
-  safeSet('pi-ep', lbl + (ep.epTitle ? ` — ${ep.epTitle}` : ''));
-  safeSet('pi-meta', [ep.vj, ep.year, ep.genre].filter(Boolean).join(' · '));
-  safeHtml('pi-tags', '');
-
-  _fillPlayerCard(ep, lbl);
-
-  const nav = document.getElementById('ep-nav');
-  if(nav) {
-    nav.style.display = 'flex';
-    safeSet('ep-nav-label', `${idx+1} / ${allEps.length}`);
-    const prev = document.getElementById('ep-prev'); if(prev) prev.disabled = idx<=0;
-    const next = document.getElementById('ep-next'); if(next) next.disabled = idx>=allEps.length-1;
-  }
-  if(window.setFavUI) window.setFavUI('item-'+id);
-  if(document.getElementById('pi-fav')) document.getElementById('pi-fav').dataset.key = 'item-'+id;
-  if(window.buildPlayer) window.buildPlayer(ep.play);
-  if(window.renderMoreLike) window.renderMoreLike(id, 'series', ep.vj);
-  const po = document.getElementById('player-overlay');
-  if(po) { po.classList.add('open'); po.scrollTop = 0; }
-  document.body.style.overflow = 'hidden';
+  if (_origPlayEp) _origPlayEp(id);
+  setTimeout(() => {
+    const ep = allContent && allContent.find(c => c.id === id);
+    if (!ep) return;
+    const card = document.getElementById('pi-card');
+    if (card) card.style.display = 'flex';
+    const img = document.getElementById('pi-poster-img');
+    const emp = document.getElementById('pi-poster-empty');
+    if (ep.thumb) { if(img){img.src=ep.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
+    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
+    const titleEl = document.getElementById('pi-title');
+    if (titleEl) titleEl.innerHTML = `<span style="display:block">${ep.seriesName||ep.title}</span><span style="font-size:11px;font-weight:600;color:var(--teal)">S${ep.season||1} E${ep.epNum||1}${ep.epTitle?' — '+ep.epTitle:''}</span>`;
+    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
+    set('pi-vj',   ep.vj || '');
+    set('pi-desc', ep.desc || '');
+    const tags = document.getElementById('pi-tags');
+    if (tags) tags.innerHTML = [ep.genre, ep.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
+  }, 80);
 };
-
-function _fillPlayerCard(m, epLabel) {
-  const card = document.getElementById('pi-card');
-  if(card) card.style.display = 'flex';
-  const img = document.getElementById('pi-poster-img');
-  const emp = document.getElementById('pi-poster-empty');
-  if(m.thumb) {
-    if(img) { img.src = m.thumb; img.style.display = 'block'; }
-    if(emp) emp.style.display = 'none';
-  } else {
-    if(img) img.style.display = 'none';
-    if(emp) emp.style.display = 'flex';
-  }
-  const titleEl = document.getElementById('pi-title');
-  if(titleEl) {
-    if(epLabel) {
-      titleEl.innerHTML = `<span style="display:block">${m.seriesName||m.title}</span><span style="font-size:11px;font-weight:600;color:var(--teal,#00e5c3)">${epLabel}${m.epTitle?' — '+m.epTitle:''}</span>`;
-    } else {
-      titleEl.textContent = m.title || m.seriesName || '';
-    }
-  }
-  const safeSet = (elId, val) => { const el = document.getElementById(elId); if(el) el.textContent = val||''; };
-  safeSet('pi-vj',   m.vj || '');
-  safeSet('pi-desc', m.desc || '');
-  const tags = document.getElementById('pi-card-tags');
-  if(tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
-}
 
 // ── SEEK DRAG SUPPORT ─────────────────────────────────────────
 (function(){
@@ -945,7 +864,8 @@ function _fillPlayerCard(m, epLabel) {
   };
 })();
 
-// Fully replace closePlayer — no original call to avoid crashes
+// Close player resets fullscreen
+const _origClosePlayer = window.closePlayer;
 window.closePlayer = function() {
   if (_kpFS) {
     _kpFS = false;
@@ -956,17 +876,7 @@ window.closePlayer = function() {
     try { screen.orientation.unlock(); } catch(e) {}
   }
   _kpZoomed = false;
-  const v = document.getElementById('kp-video');
-  if (v) v.pause();
-  const box = document.getElementById('player-video');
-  if (box) box.innerHTML = '';
-  const po = document.getElementById('player-overlay');
-  if (po) po.classList.remove('open');
-  document.body.style.overflow = '';
-  if (window.kpHideControls) window.kpHideControls();
-  window.curPlay = null;
-  const card = document.getElementById('pi-card');
-  if (card) card.style.display = 'none';
+  if (_origClosePlayer) _origClosePlayer();
 };
 
 // Always-tappable buttons in controls
