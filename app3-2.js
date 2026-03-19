@@ -513,10 +513,11 @@ function openPlayer(m) {
 function closePlayer() {
   kpStop();
   const wrap = $('kp-wrap');
-  wrap.style.cssText = '';
+  wrap.style.aspectRatio = '';
+  wrap.style.flex = '';
+  wrap.style.minHeight = '';
   $('kp-ctrl').style.display = '';
   $('player-ov').style.display = 'none';
-  $('player-ov').style.flexDirection = '';
   document.body.style.overflow = '';
 }
 
@@ -669,10 +670,10 @@ function kpLoadIframe(url) {
   kpIsVideo = false;
   $('kp-ctrl').style.display = 'none';
   const wrap = $('kp-wrap');
-  /* Force wrap to fill screen height on mobile */
-  wrap.style.cssText = 'flex:1;min-height:56vw;width:100%;position:relative;background:#000;display:flex;flex-direction:column;';
-  const playerOv = $('player-ov');
-  if (playerOv) playerOv.style.flexDirection = 'column';
+  /* Override aspect-ratio so iframe fills screen — keep position:relative intact */
+  wrap.style.aspectRatio = 'unset';
+  wrap.style.flex = '1';
+  wrap.style.minHeight = '56vw';
   const oldExtra = wrap.querySelector('[data-extra]');
   if (oldExtra) oldExtra.remove();
   const backBtn = document.createElement('button');
