@@ -2178,53 +2178,28 @@ onMessage(messaging, (payload) => {
   </div>
 </div>
 
-<script src="app3.js"></script>
+<script src="app3.js?v=3"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/kenpromovies/service-worker.js');
 }
 
-// ── POSTER CARD BUILDER ──────────────────────────────────────
-window._buildPosterCard = function(m) {
-  const isS = m.cat === 'series';
-  const click = isS
-    ? `openDetailOverlay('${(m._sname||m.seriesName||m.title).replace(/'/g,"\\'")}','series')`
-    : `openDetailOverlay('${m.id}','movie')`;
-  const editBtn = window.adminUnlocked
-    ? `<button class="pc-edit" onclick="event.stopPropagation();startEdit('${m.id}')">E</button>`
-    : '';
-  return `<div class="pcard" onclick="${click}">
-    <div class="pcard-poster">
-      ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
-      ${!m.thumb ? `<div class="pcard-noimg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>` : ''}
-      <div class="pcard-hover">
-        <div class="pcard-hover-title">${m.seriesName || m.title}</div>
-        ${m.vj ? `<div class="pcard-hover-vj">${m.vj}</div>` : ''}
-      </div>
-      ${m.vj ? `<div class="pcard-vj-tag">${m.vj}</div>` : ''}
-      ${editBtn}
-    </div>
-    <div class="pcard-label">
-      <div class="pcard-title">${m.seriesName || m.title}</div>
-      ${m.year || m.genre ? `<div class="pcard-sub">${[m.year,m.genre].filter(Boolean).join(' · ')}</div>` : ''}
-    </div>
-  </div>`;
-};
-
-// ── MOVIE DETAIL OVERLAY ──────────────────────────────────────
+// ── DETAIL OVERLAY (Kawogo style) — uses allContent/favs from app3.js ──
 window.openDetailOverlay = function(idOrSname, type) {
   let m, eps = [], sname = '';
   if (type === 'series') {
     sname = idOrSname;
-    eps = allContent.filter(e => e.cat === 'series' && (e.seriesName || e.title) === sname)
+    eps = (window.allContent || []).filter(e => e.cat === 'series' && (e.seriesName || e.title) === sname)
       .sort((a,b) => (a.season||1)-(b.season||1) || (a.epNum||1)-(b.epNum||1));
     m = eps[0];
   } else {
-    m = allContent.find(c => c.id === idOrSname);
+    m = (window.allContent || []).find(c => c.id === idOrSname);
   }
   if (!m) return;
-  const isFav = favs.includes('item-' + m.id);
-  const similar = allContent.filter(x => x.id !== m.id && x.cat === m.cat).slice(0, 12);
+  const fvs = window.favs || [];
+  const isFav = fvs.includes('item-' + m.id);
+  const similar = (window.allContent || []).filter(x => x.id !== m.id && x.cat === m.cat).slice(0, 12);
+
   const epHtml = eps.length ? `
     <div class="det-eps-title">Episodes (${eps.length})</div>
     <div class="det-ep-row">${eps.map(ep => `
@@ -2238,11 +2213,12 @@ window.openDetailOverlay = function(idOrSname, type) {
         <div class="det-ep-name">${ep.epTitle || ep.title || 'Episode '+(ep.epNum||1)}</div>
       </div>`).join('')}
     </div>` : '';
+
   const moreHtml = similar.length ? `
     <div style="height:1px;background:var(--brd);margin:0 0 16px"></div>
     <div class="more-title">More like these</div>
     <div class="more-row">${similar.map(x => `
-      <div class="more-card" onclick="openDetailOverlay('${x.cat==='series'?(x.seriesName||x.title).replace(/'/g,"\\'"):x.id}','${x.cat==='series'?'series':'movie'}')">
+      <div class="more-card" onclick="openDetailOverlay('${x.cat==='series'?(x.seriesName||x.title).replace(/'/g,"\'"):x.id}','${x.cat==='series'?'series':'movie'}')">
         <div class="more-poster">${x.thumb ? `<img src="${x.thumb}" loading="lazy">` : ''}</div>
         <div class="more-card-title">${x.seriesName || x.title}</div>
         <div class="more-card-vj">${x.vj || ''}</div>
@@ -2258,7 +2234,7 @@ window.openDetailOverlay = function(idOrSname, type) {
       </div>
     </div>
     <div class="det-body">
-      <div class="det-title">${type === 'series' ? sname : m.title}</div>
+      <div class="det-title">${type === 'series' ? sname : (m.title || '')}</div>
       <div class="det-meta">
         ${m.vj ? `<span class="det-vj">${m.vj}</span>` : ''}
         ${m.genre ? `<span class="det-genre">${m.genre}</span>` : ''}
@@ -2282,10 +2258,11 @@ window.openDetailOverlay = function(idOrSname, type) {
 
 window._detToggleFav = function(id) {
   const key = 'item-' + id;
-  const i = favs.indexOf(key);
-  if (i >= 0) favs.splice(i, 1); else favs.push(key);
-  saveFavs();
-  const on = favs.includes(key);
+  const fvs = window.favs || [];
+  const i = fvs.indexOf(key);
+  if (i >= 0) fvs.splice(i, 1); else fvs.push(key);
+  if (window.saveFavs) window.saveFavs();
+  const on = fvs.includes(key);
   const ico = document.getElementById('det-fav-ico');
   const txt = document.getElementById('det-fav-txt');
   const btn = document.getElementById('det-fav-btn');
@@ -2295,51 +2272,20 @@ window._detToggleFav = function(id) {
 };
 
 window.closeDetailOverlay = function() {
-  document.getElementById('detail-overlay').classList.remove('open');
+  const el = document.getElementById('detail-overlay');
+  if (el) el.classList.remove('open');
 };
 
-// ── ADMIN TABS ────────────────────────────────────────────────
-window.setATab = function(el, tab) {
-  document.querySelectorAll('.atab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('admin-' + tab).classList.add('active');
-  if (tab === 'library') renderLib();
-  if (tab === 'subscribers') renderSubs();
-  if (tab === 'payments') renderPayments();
-};
-
-// ── POSTER THUMB PREVIEW ──────────────────────────────────────
-window.previewThumb = function(url) {
-  const wrap = document.getElementById('thumb-preview');
-  const img = document.getElementById('thumb-preview-img');
-  if (url && url.startsWith('http')) {
-    img.src = url;
-    img.onload = () => { wrap.style.display = 'block'; };
-    img.onerror = () => { wrap.style.display = 'none'; };
-  } else { wrap.style.display = 'none'; }
-};
-
-// ── PIN MODAL ────────────────────────────────────────────────
-window.openPinModal = function() {
-  document.getElementById('pin-inp').value = '';
-  document.getElementById('pin-err').textContent = '';
-  openModal('pin-modal');
-  setTimeout(() => document.getElementById('pin-inp').focus(), 150);
-};
-
-// ── IMPROVED PLAYER LOGIC ─────────────────────────────────────
+// ── IMPROVED PLAYER EXTRAS (speed, volume, seek drag, fullscreen) ──
 let _kpFS = false, _kpZoomed = false;
 const _speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 let _speedIdx = 2;
 
-// Volume
 window.kpSetVolume = function(val) {
   const v = document.getElementById('kp-video');
   if (v) v.volume = parseFloat(val);
 };
 
-// Speed cycling
 window.kpCycleSpeed = function() {
   _speedIdx = (_speedIdx + 1) % _speeds.length;
   const spd = _speeds[_speedIdx];
@@ -2347,55 +2293,26 @@ window.kpCycleSpeed = function() {
   if (v) v.playbackRate = spd;
   const btn = document.getElementById('kp-speed-btn');
   if (btn) btn.textContent = spd + '×';
-  showToast('Speed: ' + spd + '×');
+  if (window.showToast) window.showToast('Speed: ' + spd + '×');
 };
 
-// Spinner integration
-function _listenVideoEvents() {
-  const v = document.getElementById('kp-video');
-  if (!v) return;
-  const spin = document.getElementById('kp-spinner');
-  const err = document.getElementById('kp-error');
-  v.addEventListener('waiting', () => { if(spin) spin.classList.add('show'); });
-  v.addEventListener('canplay', () => { if(spin) spin.classList.remove('show'); });
-  v.addEventListener('playing', () => { if(spin) spin.classList.remove('show'); });
-  v.addEventListener('error', () => { if(spin) spin.classList.remove('show'); if(err) err.classList.add('show'); });
-  // Volume slider sync
-  const vol = document.getElementById('kp-vol-slider');
-  if (vol) { v.addEventListener('volumechange', () => { vol.value = v.muted ? 0 : v.volume; }); }
-  // Buffer bar
-  v.addEventListener('progress', () => {
-    const buf = document.getElementById('kp-prog-buf');
-    if (!buf || !v.duration || !v.buffered.length) return;
-    buf.style.width = (v.buffered.end(v.buffered.length-1) / v.duration * 100) + '%';
-  });
-}
-
-window.kpRetry = function() {
-  const err = document.getElementById('kp-error');
-  if (err) err.classList.remove('show');
-  const v = document.getElementById('kp-video');
-  if (v) { v.load(); v.play().catch(()=>{}); }
-};
-
-// Fullscreen
 window.kpFullscreen = function() {
   _kpFS = !_kpFS;
   const wrap = document.getElementById('kp-wrap');
   const info = document.getElementById('player-info-area');
-  const ico = document.getElementById('kp-fs-ico');
+  const ico  = document.getElementById('kp-fs-ico');
   if (_kpFS) {
     wrap.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:9999;aspect-ratio:unset;background:#000';
-    info.style.display = 'none';
-    ico.innerHTML = '<use href="#i-exit-fs"/>';
+    if (info) info.style.display = 'none';
+    if (ico) ico.innerHTML = '<use href="#i-exit-fs"/>';
     try { screen.orientation.lock('landscape'); } catch(e) {}
   } else {
     wrap.style.cssText = '';
-    info.style.display = '';
-    ico.innerHTML = '<use href="#i-fullscreen"/>';
+    if (info) info.style.display = '';
+    if (ico) ico.innerHTML = '<use href="#i-fullscreen"/>';
     try { screen.orientation.unlock(); } catch(e) {}
   }
-  kpShowControls();
+  if (window.kpShowControls) window.kpShowControls();
 };
 
 window.kpZoom = function() {
@@ -2404,99 +2321,45 @@ window.kpZoom = function() {
   if (v) v.style.objectFit = _kpZoomed ? 'cover' : 'contain';
   const btn = document.getElementById('kp-zoom-btn');
   if (btn) btn.classList.toggle('active', _kpZoomed);
-  showToast(_kpZoomed ? 'Zoom: Fill' : 'Zoom: Fit');
+  if (window.showToast) window.showToast(_kpZoomed ? 'Zoom: Fill' : 'Zoom: Fit');
 };
 
 window.kpRotate = function() {
   try {
     const cur = screen.orientation.type;
     screen.orientation.lock(cur.startsWith('portrait') ? 'landscape' : 'portrait').catch(() => {});
-  } catch(e) { showToast('Rotate your device manually'); }
+  } catch(e) { if (window.showToast) window.showToast('Rotate your device manually'); }
 };
 
-// Populate info card
-const _origPlayItem = window.playItem;
-window.playItem = function(id) {
-  if (_origPlayItem) _origPlayItem(id);
-  setTimeout(() => {
-    const m = allContent && allContent.find(c => c.id === id);
-    if (!m) return;
-    const card = document.getElementById('pi-card');
-    if (card) card.style.display = 'flex';
-    const img = document.getElementById('pi-poster-img');
-    const emp = document.getElementById('pi-poster-empty');
-    if (m.thumb) { if(img){img.src=m.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
-    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
-    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
-    set('pi-title', m.title || m.seriesName || '');
-    set('pi-vj', m.vj ? m.vj : '');
-    set('pi-desc', m.desc || '');
-    const tags = document.getElementById('pi-tags');
-    if (tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
-    // Speed reset
-    _speedIdx = 2;
-    const btn = document.getElementById('kp-speed-btn');
-    if (btn) btn.textContent = '1×';
-    // Listen for video events after video is injected
-    setTimeout(_listenVideoEvents, 200);
-  }, 80);
-};
-
-const _origPlayEp = window.playEpisode;
-window.playEpisode = function(id) {
-  if (_origPlayEp) _origPlayEp(id);
-  setTimeout(() => {
-    const ep = allContent && allContent.find(c => c.id === id);
-    if (!ep) return;
-    const card = document.getElementById('pi-card');
-    if (card) card.style.display = 'flex';
-    const img = document.getElementById('pi-poster-img');
-    const emp = document.getElementById('pi-poster-empty');
-    if (ep.thumb) { if(img){img.src=ep.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
-    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
-    const titleEl = document.getElementById('pi-title');
-    if (titleEl) titleEl.innerHTML = `<span style="display:block">${ep.seriesName||ep.title}</span><span style="font-size:11px;font-weight:600;color:var(--teal)">S${ep.season||1} E${ep.epNum||1}${ep.epTitle?' — '+ep.epTitle:''}</span>`;
-    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
-    set('pi-vj', ep.vj || '');
-    set('pi-desc', ep.desc || '');
-    const tags = document.getElementById('pi-tags');
-    if (tags) tags.innerHTML = [ep.genre, ep.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
-    _speedIdx = 2;
-    const spbtn = document.getElementById('kp-speed-btn');
-    if (spbtn) spbtn.textContent = '1×';
-    setTimeout(_listenVideoEvents, 200);
-  }, 80);
-};
-
-// Seek drag support (touch + mouse)
+// Seek drag
 (function(){
   let _seeking = false;
-  function getV(){ return document.getElementById('kp-video'); }
+  function getV() { return document.getElementById('kp-video'); }
   function applyPct(pct) {
     const v = getV(); if (!v || !v.duration) return;
     v.currentTime = pct * v.duration;
-    document.getElementById('kp-prog-fill').style.width = (pct*100)+'%';
-    document.getElementById('kp-prog-thumb').style.left = (pct*100)+'%';
+    const fill = document.getElementById('kp-prog-fill');
+    const thumb = document.getElementById('kp-prog-thumb');
+    if (fill) fill.style.width = (pct*100)+'%';
+    if (thumb) thumb.style.left = (pct*100)+'%';
   }
   function getPct(clientX) {
-    const el = document.getElementById('kp-progress');
-    if (!el) return null;
+    const el = document.getElementById('kp-progress'); if (!el) return null;
     const r = el.getBoundingClientRect();
     return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   }
   document.addEventListener('DOMContentLoaded', () => {
-    const prog = document.getElementById('kp-progress');
-    if (!prog) return;
-    prog.addEventListener('touchstart', e => { _seeking=true; prog.classList.add('dragging'); applyPct(getPct(e.touches[0].clientX)); kpShowControls(); }, {passive:true});
-    prog.addEventListener('touchmove', e => { if (_seeking) applyPct(getPct(e.touches[0].clientX)); }, {passive:true});
-    prog.addEventListener('touchend', () => { _seeking=false; prog.classList.remove('dragging'); });
-    prog.addEventListener('mousedown', e => { _seeking=true; prog.classList.add('dragging'); applyPct(getPct(e.clientX)); kpShowControls(); });
-    document.addEventListener('mousemove', e => { if (_seeking) applyPct(getPct(e.clientX)); });
-    document.addEventListener('mouseup', () => { _seeking=false; const p=document.getElementById('kp-progress');if(p)p.classList.remove('dragging'); });
+    const prog = document.getElementById('kp-progress'); if (!prog) return;
+    prog.addEventListener('touchstart', e => { _seeking=true; prog.classList.add('dragging'); applyPct(getPct(e.touches[0].clientX)); if(window.kpShowControls) window.kpShowControls(); }, {passive:true});
+    prog.addEventListener('touchmove',  e => { if(_seeking) applyPct(getPct(e.touches[0].clientX)); }, {passive:true});
+    prog.addEventListener('touchend',   () => { _seeking=false; prog.classList.remove('dragging'); });
+    prog.addEventListener('mousedown',  e => { _seeking=true; prog.classList.add('dragging'); applyPct(getPct(e.clientX)); if(window.kpShowControls) window.kpShowControls(); });
+    document.addEventListener('mousemove', e => { if(_seeking) applyPct(getPct(e.clientX)); });
+    document.addEventListener('mouseup',   () => { _seeking=false; const p=document.getElementById('kp-progress'); if(p) p.classList.remove('dragging'); });
   });
-  window.kpSeekClick = function(e) { const p = getPct(e.clientX); if (p !== null) applyPct(p); kpShowControls(); };
+  window.kpSeekClick = function(e) { const p = getPct(e.clientX); if (p !== null) applyPct(p); if(window.kpShowControls) window.kpShowControls(); };
 
-  // Override kpSeek with flash
+  // Skip flash
   const _origSeek = window.kpSeek;
   window.kpSeek = function(secs) {
     if (_origSeek) _origSeek(secs);
@@ -2514,18 +2377,11 @@ const _origClosePlayer = window.closePlayer;
 window.closePlayer = function() {
   if (_kpFS) {
     _kpFS = false;
-    const wrap = document.getElementById('kp-wrap');
-    if (wrap) wrap.style.cssText = '';
-    const info = document.getElementById('player-info-area');
-    if (info) info.style.display = '';
+    const wrap = document.getElementById('kp-wrap'); if (wrap) wrap.style.cssText = '';
+    const info = document.getElementById('player-info-area'); if (info) info.style.display = '';
     try { screen.orientation.unlock(); } catch(e) {}
   }
-  _kpZoomed = false;
-  _speedIdx = 2;
-  const err = document.getElementById('kp-error');
-  if (err) err.classList.remove('show');
-  const spin = document.getElementById('kp-spinner');
-  if (spin) spin.classList.remove('show');
+  _kpZoomed = false; _speedIdx = 2;
   if (_origClosePlayer) _origClosePlayer();
 };
 
@@ -2536,64 +2392,5 @@ window.closePlayer = function() {
   document.head.appendChild(s);
 })();
 </script>
-
-<script>
-// ── HERO IMAGE PRELOADER + CROSSFADE PATCH ────────────────────
-// Intercepts app3.js hero bg updates and preloads images before showing
-(function() {
-  function patchHero() {
-    const heroBg = document.getElementById('hero-bg');
-    if (!heroBg) return;
-
-    // Add second layer for crossfade if not exists
-    let heroBg2 = document.getElementById('hero-bg-2');
-    if (!heroBg2) {
-      heroBg2 = document.createElement('div');
-      heroBg2.id = 'hero-bg-2';
-      heroBg2.className = 'hero-bg-2';
-      heroBg.parentNode.insertBefore(heroBg2, heroBg.nextSibling);
-    }
-
-    let lastUrl = '';
-    // Watch for backgroundImage changes using MutationObserver on style
-    const observer = new MutationObserver(() => {
-      const style = heroBg.style.backgroundImage;
-      if (!style || style === lastUrl) return;
-      lastUrl = style;
-
-      // Extract URL
-      const match = style.match(/url\(['"]?(.*?)['"]?\)/);
-      if (!match || !match[1]) return;
-      const url = match[1];
-
-      // Preload image then crossfade
-      const img = new Image();
-      img.onload = function() {
-        // Set on layer 2, fade it in, then swap
-        heroBg2.style.backgroundImage = `url('${url}')`;
-        heroBg2.style.opacity = '1';
-        setTimeout(() => {
-          heroBg.style.backgroundImage = `url('${url}')`;
-          heroBg2.style.opacity = '0';
-        }, 520);
-      };
-      img.onerror = function() {
-        // Still show even if preload fails
-        heroBg.style.backgroundImage = `url('${url}')`;
-      };
-      img.src = url;
-    });
-
-    observer.observe(heroBg, { attributes: true, attributeFilter: ['style'] });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', patchHero);
-  } else {
-    patchHero();
-  }
-})();
-</script>
-
 </body>
 </html>
