@@ -71,10 +71,10 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .hrow::-webkit-scrollbar{height:0}
 
 /* ── POSTER CARD (no buttons — tap to open detail) ── */
-.pcard{flex-shrink:0;width:120px;scroll-snap-align:start;cursor:pointer;transition:transform .2s}
-.pcard:hover{transform:translateY(-4px)}
-.pcard-poster{width:120px;height:172px;border-radius:9px;overflow:hidden;background:var(--s2);border:1px solid var(--brd);position:relative;transition:border-color .2s,box-shadow .2s}
-.pcard:hover .pcard-poster{border-color:rgba(0,229,195,.4);box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.pcard{flex-shrink:0;width:105px;scroll-snap-align:start;cursor:pointer;transition:transform .2s}
+.pcard:hover{transform:translateY(-3px)}
+.pcard-poster{width:105px;height:150px;border-radius:8px;overflow:hidden;background:var(--s2);border:1px solid var(--brd);position:relative;transition:border-color .2s,box-shadow .2s}
+.pcard:hover .pcard-poster{border-color:rgba(0,229,195,.4);box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .pcard-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .pcard-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:.15;color:var(--txt)}
 .pcard-hover{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.92) 100%);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:9px}
@@ -508,11 +508,15 @@ video{-webkit-appearance:none!important}
   .sidebar{display:flex}
   .botnav{display:none}
   .content{padding-bottom:20px}
-  .pcard{width:140px}
-  .pcard-poster{width:140px;height:200px}
-  .search-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
-  .see-all-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .pcard{width:130px}
+  .pcard-poster{width:130px;height:185px}
+  .search-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .see-all-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
   .hero{height:260px;max-height:260px}
+  /* PC: player scrolls vertically so info is visible below video */
+  .player-overlay{overflow-y:auto!important;flex-direction:column}
+  .kp-wrap{flex-shrink:0;aspect-ratio:16/9;max-height:70vh}
+  .player-info{flex:1;min-height:0}
 }
 @media(min-width:1200px){
   .pcard{width:160px}
