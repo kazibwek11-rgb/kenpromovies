@@ -480,11 +480,15 @@
       <div class="pi-body">
         <div class="pi-title" id="pi-title"></div>
         <div class="pi-ep"    id="pi-ep"></div>
-        <div class="pi-tags"  id="pi-tags"></div>
+        <div class="pi-card-tags" id="pi-card-tags"></div>
         <div class="pi-vj"    id="pi-vj"></div>
         <div class="pi-desc"  id="pi-desc"></div>
       </div>
     </div>
+    <!-- Hidden legacy elements that app3.js writes to — keep these even though invisible -->
+    <div id="pi-meta"  style="display:none"></div>
+    <div id="pi-tags"  style="display:none"></div>
+
     <div class="pi-actions">
       <button class="pi-fav-btn" id="pi-fav" onclick="toggleFav()">
         <svg width="14" height="14" id="fav-ico"><use href="#i-heart"/></svg>
@@ -782,7 +786,7 @@ window.playItem = function(id) {
     set('pi-title', m.title || m.seriesName || '');
     set('pi-vj',    m.vj ? m.vj : '');
     set('pi-desc',  m.desc || '');
-    const tags = document.getElementById('pi-tags');
+    const tags = document.getElementById('pi-card-tags');
     if (tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
   }, 80);
 };
@@ -804,7 +808,7 @@ window.playEpisode = function(id) {
     const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
     set('pi-vj',   ep.vj || '');
     set('pi-desc', ep.desc || '');
-    const tags = document.getElementById('pi-tags');
+    const tags = document.getElementById('pi-card-tags');
     if (tags) tags.innerHTML = [ep.genre, ep.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
   }, 80);
 };

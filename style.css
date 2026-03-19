@@ -48,7 +48,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .ptitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.06em;color:var(--txt)}
 
 /* ── HERO BANNER ── */
-.hero{height:240px;position:relative;overflow:hidden;background:var(--s1);flex-shrink:0;margin-bottom:20px;cursor:pointer}
+.hero{height:220px;max-height:220px;position:relative;overflow:hidden;background:var(--s1);flex-shrink:0;margin-bottom:20px;cursor:pointer}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.4);transition:transform 7s ease}
 .hero:hover .hero-bg{transform:scale(1.04)}
 .hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,6,8,.05) 0%,rgba(6,6,8,.98) 100%)}
@@ -512,7 +512,7 @@ video{-webkit-appearance:none!important}
   .pcard-poster{width:140px;height:200px}
   .search-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
   .see-all-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
-  .hero{height:300px}
+  .hero{height:260px;max-height:260px}
 }
 @media(min-width:1200px){
   .pcard{width:160px}
