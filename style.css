@@ -47,20 +47,19 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .ph{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:0 16px}
 .ptitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.06em;color:var(--txt)}
 
-/* ── AUTO-SCROLL POSTER STRIP (single movie cinematic) ── */
-.auto-strip-wrap{position:relative;overflow:hidden;background:var(--bg);margin-bottom:6px;height:220px}
-.auto-strip{display:flex;gap:0;width:max-content;animation:strip-scroll 40s linear infinite}
-.auto-strip:hover{animation-play-state:paused}
-@keyframes strip-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.strip-card{flex-shrink:0;width:140px;height:220px;overflow:hidden;background:var(--s2);cursor:pointer;transition:transform .25s,opacity .25s;position:relative;opacity:.7}
-.strip-card:hover{transform:scale(1.04);opacity:1;z-index:2}
-.strip-card.active-card{opacity:1;transform:scale(1.06);z-index:3}
-.strip-card img{width:100%;height:100%;object-fit:cover;display:block}
-.strip-card-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);text-align:center;padding:6px}
-/* fade edges */
-.auto-strip-wrap::before,.auto-strip-wrap::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:4;pointer-events:none}
-.auto-strip-wrap::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
-.auto-strip-wrap::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+/* ── HERO STRIP (single movie, 5s rotation) ── */
+.auto-strip-wrap{position:relative;overflow:hidden;background:var(--s1);margin-bottom:6px;height:240px}
+.hero-slide{position:relative;width:100%;height:240px;overflow:hidden;cursor:pointer}
+.hero-slide-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.45);transition:background-image .5s;animation:hero-zoom 5s ease forwards}
+@keyframes hero-zoom{0%{transform:scale(1)}100%{transform:scale(1.06)}}
+.hero-slide-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,6,8,.05) 0%,rgba(6,6,8,.98) 100%)}
+.hero-slide-content{position:absolute;bottom:0;left:0;right:0;padding:16px 18px 14px}
+.hero-badge{display:inline-block;font-size:8px;font-weight:700;color:var(--teal);letter-spacing:.1em;text-transform:uppercase;background:var(--tdim);border:1px solid rgba(0,229,195,.22);border-radius:4px;padding:3px 8px;margin-bottom:7px}
+.hero-slide-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.03em;color:#fff;line-height:1;margin-bottom:4px;text-shadow:0 2px 14px rgba(0,0,0,.8)}
+.hero-slide-meta{font-size:10px;color:rgba(255,255,255,.5)}
+.hero-dots{position:absolute;bottom:16px;right:16px;display:flex;gap:4px}
+.hdot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .25s}
+.hdot.active{background:var(--teal);width:16px;border-radius:3px;box-shadow:0 0 6px rgba(0,229,195,.7)}
 
 /* ── VJ ROWS ── */
 .vj-rows{display:flex;flex-direction:column;gap:24px;padding-bottom:8px}
