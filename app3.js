@@ -112,6 +112,10 @@ function startFirebase() {
 
 // ── SECTION NAV ──────────────────────────────────────────────
 function showSection(sec) {
+  // Close any open overlays first so section is visible
+  const po = document.getElementById('player-overlay'); if (po && po.classList.contains('open')) closePlayer();
+  const so = document.getElementById('search-overlay'); if (so && so.classList.contains('open')) closeSearch();
+  const det = document.getElementById('detail-overlay'); if (det && det.classList.contains('open')) { det.classList.remove('open'); }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.snav,.bnav').forEach(b => b.classList.remove('active'));
   const pg = document.getElementById('page-' + sec); if (pg) pg.classList.add('active');
@@ -358,6 +362,13 @@ function playItem(id) {
 
   const nav = document.getElementById('ep-nav'); if (nav) nav.style.display = 'none';
   setFavUI('item-' + id);
+  // Show player info card
+  const card = document.getElementById('pi-card'); if (card) card.style.display = 'flex';
+  const pimg = document.getElementById('pi-poster-img');
+  const pemp = document.getElementById('pi-poster-empty');
+  if (m.thumb) { if(pimg){pimg.src=m.thumb;pimg.style.display='block';} if(pemp)pemp.style.display='none'; }
+  else { if(pimg)pimg.style.display='none'; if(pemp)pemp.style.display='flex'; }
+  safeSet('pi-meta', [m.vj, m.year, m.genre].filter(Boolean).join(' · '));
   buildPlayer(m.play);
   renderMoreLike(id, m.cat, m.vj);
   const po = document.getElementById('player-overlay');
@@ -390,6 +401,13 @@ function playEpisode(id) {
   const next = document.getElementById('ep-next'); if (next) next.disabled = idx >= allEps.length - 1;
 
   setFavUI('item-' + id);
+  // Show player info card
+  const card = document.getElementById('pi-card'); if (card) card.style.display = 'flex';
+  const pimg = document.getElementById('pi-poster-img');
+  const pemp = document.getElementById('pi-poster-empty');
+  if (ep.thumb) { if(pimg){pimg.src=ep.thumb;pimg.style.display='block';} if(pemp)pemp.style.display='none'; }
+  else { if(pimg)pimg.style.display='none'; if(pemp)pemp.style.display='flex'; }
+  safeSet('pi-meta', [ep.vj, ep.year, ep.genre].filter(Boolean).join(' · '));
   buildPlayer(ep.play);
   renderMoreLike(id, 'series', ep.vj);
   const po = document.getElementById('player-overlay');
@@ -772,7 +790,19 @@ function goAdmin() {
   const err = document.getElementById('pin-err'); if(err) err.textContent = '';
   setTimeout(() => { const i = document.getElementById('pin-inp'); if(i) i.focus(); }, 150);
 }
-function openPinModal() { goAdmin(); }
+function openPinModal() {
+  if (adminUnlocked) {
+    // Already admin — ask to hide
+    if (confirm('Hide Admin panel?')) {
+      adminUnlocked = false;
+      localStorage.removeItem(ADMIN_KEY);
+      hideAdmin();
+      showToast('Admin hidden');
+    }
+    return;
+  }
+  goAdmin();
+}
 function checkPin() {
   const inp = document.getElementById('pin-inp'); if(!inp) return;
   if (inp.value === getAdminPass()) {
