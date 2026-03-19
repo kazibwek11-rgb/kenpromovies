@@ -14,7 +14,7 @@
 <meta name="description" content="Kenmovies – Watch Free Ugandan Movies"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
 <style>
 /* ===== DESIGN TOKENS ===== */
@@ -32,8 +32,8 @@
   --muted2: #4b5563;
   --brd: rgba(255,255,255,0.07);
   --brd2: rgba(255,255,255,0.12);
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Bebas Neue', 'Syne', sans-serif;
+  --font-body: 'Barlow', sans-serif;
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -790,12 +790,14 @@
   font-family: var(--font-body);
 }
 .topbar-logo {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
+  font-family: 'Bebas Neue', var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
   color: var(--teal);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
   flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
 }
 .topbar-center { flex: 1; min-width: 0; }
 .searchbar {
@@ -827,6 +829,7 @@
   white-space: nowrap;
 }
 .tb-btn:hover { background: var(--bg4); border-color: var(--brd2); }
+.tb-dl-btn { padding: 6px 10px; }
 
 /* ===== HERO IMPROVEMENTS ===== */
 .hero {
@@ -842,26 +845,19 @@
 .hero-bg {
   position: absolute;
   inset: 0;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  transition: opacity 0.5s ease;
-}
-.hero-bg-2 {
-  position: absolute;
-  inset: 0;
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  pointer-events: none;
+  transition: background-image 0.5s ease;
+  filter: blur(18px) brightness(0.35) saturate(1.2);
+  transform: scale(1.08);
 }
 .hero-grad {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(8,9,12,0.65) 0%, transparent 50%, rgba(8,9,12,0.2) 100%),
-              linear-gradient(to top, rgba(8,9,12,1) 0%, rgba(8,9,12,0.5) 35%, transparent 70%);
+  background: linear-gradient(135deg, rgba(8,9,12,0.5) 0%, transparent 50%, rgba(8,9,12,0.15) 100%),
+              linear-gradient(to top, rgba(8,9,12,1) 0%, rgba(8,9,12,0.6) 30%, rgba(8,9,12,0.1) 70%);
+  z-index: 3;
 }
 .hero-content {
   position: absolute;
@@ -869,6 +865,7 @@
   left: 0;
   right: 0;
   padding: 20px 16px 28px;
+  z-index: 4;
 }
 .hero-badge {
   display: inline-flex;
@@ -906,6 +903,7 @@
   right: 14px;
   display: flex;
   gap: 5px;
+  z-index: 5;
 }
 .hero-dot {
   width: 6px; height: 6px;
@@ -1546,52 +1544,44 @@ button { cursor: pointer; }
 .admin-only { display: none; }
 .admin-unlocked .admin-only { display: flex; }
 
-/* ===== AUTO STRIP (hero background) ===== */
-.auto-strip-wrap {
+/* ===== HERO BIG POSTER ===== */
+/* auto-strip containers hidden — we use full bg image instead */
+.auto-strip-wrap { display: none !important; }
+
+/* Hero bg image fills fully */
+.hero-bg {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px 0;
-  opacity: 0.35;
-  filter: blur(0px) saturate(0.8);
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  transition: opacity 0.6s ease;
 }
-.auto-strip {
-  display: flex;
-  gap: 6px;
-  animation: stripScroll 40s linear infinite;
-  will-change: transform;
-  flex-shrink: 0;
+/* Crossfade layer */
+.hero-bg-2 {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
 }
-.auto-strip-rev {
-  animation: stripScrollRev 45s linear infinite;
-}
-@keyframes stripScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-@keyframes stripScrollRev {
-  0%   { transform: translateX(-50%); }
-  100% { transform: translateX(0); }
-}
-.strip-card {
-  flex-shrink: 0;
-  width: 70px;
-  height: 105px;
-  border-radius: 6px;
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--bg3);
-}
-.strip-card img {
+
+/* ===== HERO FEATURED POSTER (single big image) ===== */
+.hero-featured-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
   display: block;
-  pointer-events: none;
+  transition: opacity 0.7s ease;
+  filter: brightness(0.75);
 }
+
 </style>
 
 <!-- Firebase: single merged init -->
@@ -1689,6 +1679,9 @@ onMessage(messaging, (payload) => {
     <div class="topbar-right">
       <button class="tb-btn" id="install-btn" onclick="triggerInstall()" style="display:none"><svg width="16" height="16"><use href="#i-install"/></svg></button>
       <button class="tb-btn" onclick="openModal('contact-modal')">Contact</button>
+      <button class="tb-btn tb-dl-btn" onclick="showSection('downloads')" title="Downloads">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
       <button class="tb-btn" id="admin-btn" onclick="goAdmin()" style="display:none">Admin</button>
       <button class="tb-btn" id="lock-btn" onclick="openPinModal()">&#9679;&#9679;&#9679;</button>
     </div>
@@ -1717,11 +1710,9 @@ onMessage(messaging, (payload) => {
         <!-- AUTO STRIP (replaces hero bg) -->
         <div class="hero" id="hero" onclick="heroClick()">
           <div class="hero-bg" id="hero-bg"></div>
-          <!-- Two auto-scrolling poster strips -->
-          <div class="auto-strip-wrap">
-            <div class="auto-strip" id="auto-strip-1"></div>
-            <div class="auto-strip auto-strip-rev" id="auto-strip-2"></div>
+          <img class="hero-featured-img" id="hero-featured-img" src="" alt="" style="opacity:0"/>
           </div>
+          <div class="hero-featured-poster" id="hero-featured-poster"></div>
           <div class="hero-grad"></div>
           <div class="hero-content">
             <div class="hero-badge">▶ Now Streaming</div>

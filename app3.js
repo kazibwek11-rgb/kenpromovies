@@ -220,14 +220,14 @@ function movieCard(m) {
     + '<div class="pcard-poster">'
     + (thumb ? '<img src="' + thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>' : '')
     + (!thumb ? '<div class="pcard-noimg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>' : '')
-    + '<div class="pcard-hover"><div class="pcard-hover-title">' + (m.seriesName || m.title || '') + '</div>'
+    + '<div class="pcard-hover"><div class="pcard-hover-title">' + (m._isSeriesGroup ? (m.seriesName || m.title || '') : m.title || '') + '</div>'
     + (m.vj ? '<div class="pcard-hover-vj">' + m.vj + '</div>' : '')
     + '</div>'
     + (m.vj ? '<div class="pcard-vj-tag">' + m.vj + '</div>' : '')
     + editBtn
     + '</div>'
     + '<div class="pcard-label">'
-    + '<div class="pcard-title">' + (m.seriesName || m.title || '') + '</div>'
+    + '<div class="pcard-title">' + (m._isSeriesGroup ? (m.seriesName || m.title || '') : (m.title || '')) + '</div>'
     + (m.year || m.genre ? '<div class="pcard-sub">' + [m.year, m.genre].filter(Boolean).join(' · ') + '</div>' : '')
     + '</div></div>';
 }
@@ -900,7 +900,7 @@ function startEdit(id) {
   const sf = document.getElementById('series-only-fields'); if(sf) sf.style.display = m.cat === 'series' ? 'flex' : 'none';
   const ei = document.getElementById('edit-id'); if(ei) ei.value = id;
   const setV = (id, v) => { const el = document.getElementById(id); if(el) { el.value = v || ''; el.dataset.userTyped = '1'; } };
-  setV('f-title', m.epTitle || m.title || '');
+  setV('f-title', m.cat === 'series' ? (m.epTitle || m.title || '') : (m.title || ''));
   setV('f-vj', m.vj); setV('f-year', m.year); setV('f-genre', m.genre); setV('f-desc', m.desc);
   setV('f-play', m.play); setV('f-dl', m.dl); setV('f-thumb', m.thumb);
   if (m.cat === 'series') { setV('f-series-name', m.seriesName); setV('f-season', m.season || 1); setV('f-epnum', m.epNum || 1); }
@@ -967,10 +967,10 @@ function renderLib() {
   el.innerHTML = list.map(m =>
     '<div class="lib-pcard">'
     + '<div class="lib-poster">' + (m.thumb ? '<img src="' + m.thumb + '" onerror="this.style.display=\'none\'"/>' : '<div class="lib-poster-empty">' + (m.epTitle || m.title) + '</div>') + '</div>'
-    + '<div class="lib-card-title">' + (m.cat === 'series' ? '<span style="color:var(--teal);font-size:7px">' + (m.seriesName || '') + ' S' + (m.season || 1) + 'E' + (m.epNum || 1) + ' · </span>' : '') + (m.epTitle || m.title) + '</div>'
+    + '<div class="lib-card-title">' + (m.cat === 'series' ? '<span style="color:var(--teal);font-size:7px">' + (m.seriesName || '') + ' S' + (m.season || 1) + 'E' + (m.epNum || 1) + ' · </span>' : '') + (m.cat === 'series' ? (m.epTitle || m.title) : m.title) + '</div>'
     + (m.vj ? '<div class="lib-card-vj">' + m.vj + '</div>' : '')
-    + '<button class="lib-edit" onclick="event.stopPropagation();startEdit(\'' + m.id + '\')">E</button>'
-    + '<button class="lib-del"  onclick="event.stopPropagation();askDelete(\'' + m.id + '\')">&#215;</button>'
+    + (adminUnlocked ? '<button class="lib-edit" onclick="event.stopPropagation();startEdit(\'' + m.id + '\')">E</button>' : '')
+    + (adminUnlocked ? '<button class="lib-del"  onclick="event.stopPropagation();askDelete(\'' + m.id + '\')">&#215;</button>' : '')
     + '</div>'
   ).join('');
 }
@@ -1143,59 +1143,6 @@ function submitChangePass() {
   setAdminPass(np.value); closeModal('change-pass-modal'); showToast('Password changed successfully!');
 }
 
-// ── HERO / AUTO STRIP ────────────────────────────────────────
-function initAutoStrip() {
-  const movies = allContent.filter(m => m.thumb);
-  if (!movies.length) return;
-  const shuffled = [...movies].sort(() => Math.random() - 0.5);
-  const strip1Items = [...shuffled, ...shuffled];
-  const strip2Items = [...shuffled].reverse();
-  const strip2Double = [...strip2Items, ...strip2Items];
-
-  function buildStrip(items) {
-    return items.map(m => {
-      const click = m.cat === 'series'
-        ? "openDetailOverlay('" + (m.seriesName || m.title).replace(/'/g, "\\'") + "','series')"
-        : "openDetailOverlay('" + m.id + "','movie')";
-      return '<div class="strip-card" onclick="' + click + '">'
-        + (m.thumb ? '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>' : '')
-        + '</div>';
-    }).join('');
-  }
-
-  const s1 = document.getElementById('auto-strip-1');
-  const s2 = document.getElementById('auto-strip-2');
-  if (s1) s1.innerHTML = buildStrip(strip1Items);
-  if (s2) s2.innerHTML = buildStrip(strip2Double);
-
-  // Also set hero-bg to a random movie poster for the blurred background
-  const heroBg = document.getElementById('hero-bg');
-  if (heroBg && movies.length) {
-    const pick = movies[Math.floor(Math.random() * Math.min(movies.length, 10))];
-    if (pick.thumb) heroBg.style.backgroundImage = "url('" + pick.thumb + "')";
-  }
-
-  // Update hero text with latest movie
-  const latest = allContent.find(m => m.thumb);
-  if (latest) {
-    const titleEl = document.getElementById('hero-title');
-    const metaEl  = document.getElementById('hero-meta');
-    if (titleEl) titleEl.textContent = latest.seriesName || latest.title || 'KENMOVIES';
-    if (metaEl)  metaEl.textContent  = [latest.vj, latest.genre, latest.year].filter(Boolean).join(' · ') || 'Free Ugandan movies and series';
-  }
-}
-
-function initHero() { initAutoStrip(); }
-function updateHero() {}
-function heroGoTo() {}
-function heroClick() {
-  // Click hero → open latest movie detail
-  const latest = allContent.find(m => m.thumb);
-  if (latest && window.openDetailOverlay) {
-    if (latest.cat === 'series') window.openDetailOverlay(latest.seriesName || latest.title, 'series');
-    else window.openDetailOverlay(latest.id, 'movie');
-  }
-}
 
 // ── INIT ─────────────────────────────────────────────────────
 loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
@@ -1203,6 +1150,86 @@ loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
 // Disable autocomplete on admin inputs after DOM ready
 document.addEventListener('DOMContentLoaded', function() {
   disableAdminAutocomplete();
+  setTimeout(_initAdminLongPress, 500);
 });
 
 startFirebase(); showSection('home');
+
+// ── HERO — single big featured poster ───────────────────────
+let _heroMovies = [], _heroIdx = 0, _heroTimer = null;
+
+function initHero() {
+  _heroMovies = allContent.filter(m => m.thumb)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 15); // rotate through latest 15
+  if (!_heroMovies.length) return;
+  _heroIdx = 0;
+  _setHeroSlide(_heroIdx);
+  _startHeroTimer();
+  _buildHeroDots();
+}
+
+function _buildHeroDots() {
+  const dots = document.getElementById('hero-dots');
+  if (!dots || !_heroMovies.length) return;
+  const count = Math.min(_heroMovies.length, 8);
+  dots.innerHTML = Array.from({length: count}, (_, i) =>
+    '<div class="hero-dot' + (i === 0 ? ' active' : '') + '" onclick="_goHeroSlide(' + i + ')"></div>'
+  ).join('');
+}
+
+function _setHeroSlide(idx) {
+  const m = _heroMovies[idx];
+  if (!m) return;
+
+  // Featured image (big poster fill)
+  const img = document.getElementById('hero-featured-img');
+  if (img) {
+    img.style.opacity = '0';
+    const tmpImg = new Image();
+    tmpImg.onload = function() {
+      img.src = m.thumb;
+      img.style.opacity = '1';
+    };
+    tmpImg.onerror = function() { img.style.opacity = '0'; };
+    tmpImg.src = m.thumb;
+  }
+
+  // Blurred bg layer
+  const bg = document.getElementById('hero-bg');
+  if (bg) bg.style.backgroundImage = "url('" + m.thumb + "')";
+
+  // Text
+  const titleEl = document.getElementById('hero-title');
+  const metaEl  = document.getElementById('hero-meta');
+  const displayTitle = m.cat === 'series' ? (m.seriesName || m.title) : (m.title || '');
+  if (titleEl) titleEl.textContent = displayTitle || 'KENMOVIES';
+  if (metaEl)  metaEl.textContent  = [m.vj, m.genre, m.year].filter(Boolean).join(' · ') || 'Free Ugandan movies and series';
+
+  // Dots
+  document.querySelectorAll('.hero-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+function _goHeroSlide(idx) {
+  _heroIdx = idx;
+  _setHeroSlide(_heroIdx);
+  _startHeroTimer();
+}
+
+function _startHeroTimer() {
+  if (_heroTimer) clearInterval(_heroTimer);
+  if (_heroMovies.length <= 1) return;
+  _heroTimer = setInterval(function() {
+    _heroIdx = (_heroIdx + 1) % Math.min(_heroMovies.length, 8);
+    _setHeroSlide(_heroIdx);
+  }, 5000);
+}
+
+function updateHero() {}
+function heroGoTo() {}
+function heroClick() {
+  const m = _heroMovies[_heroIdx];
+  if (!m || !window.openDetailOverlay) return;
+  if (m.cat === 'series') window.openDetailOverlay(m.seriesName || m.title, 'series');
+  else window.openDetailOverlay(m.id, 'movie');
+}
