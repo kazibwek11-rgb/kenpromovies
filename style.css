@@ -47,17 +47,20 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .ph{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:0 16px}
 .ptitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.06em;color:var(--txt)}
 
-/* ── AUTO-SCROLL POSTER STRIP (Kawogo style) ── */
-.auto-strip-wrap{display:flex;flex-direction:column;gap:8px;padding:14px 0 10px;overflow:hidden;background:var(--bg);margin-bottom:6px}
-.auto-strip{display:flex;gap:8px;width:max-content;animation:strip-scroll 28s linear infinite}
-.auto-strip-rev{animation:strip-scroll-rev 32s linear infinite}
-.auto-strip:hover,.auto-strip-rev:hover{animation-play-state:paused}
+/* ── AUTO-SCROLL POSTER STRIP (single movie cinematic) ── */
+.auto-strip-wrap{position:relative;overflow:hidden;background:var(--bg);margin-bottom:6px;height:220px}
+.auto-strip{display:flex;gap:0;width:max-content;animation:strip-scroll 40s linear infinite}
+.auto-strip:hover{animation-play-state:paused}
 @keyframes strip-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes strip-scroll-rev{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
-.strip-card{flex-shrink:0;width:90px;height:128px;border-radius:8px;overflow:hidden;background:var(--s2);border:1px solid var(--brd);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
-.strip-card:hover{transform:scale(1.06);border-color:rgba(0,229,195,.5);z-index:2}
+.strip-card{flex-shrink:0;width:140px;height:220px;overflow:hidden;background:var(--s2);cursor:pointer;transition:transform .25s,opacity .25s;position:relative;opacity:.7}
+.strip-card:hover{transform:scale(1.04);opacity:1;z-index:2}
+.strip-card.active-card{opacity:1;transform:scale(1.06);z-index:3}
 .strip-card img{width:100%;height:100%;object-fit:cover;display:block}
 .strip-card-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);text-align:center;padding:6px}
+/* fade edges */
+.auto-strip-wrap::before,.auto-strip-wrap::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:4;pointer-events:none}
+.auto-strip-wrap::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.auto-strip-wrap::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
 
 /* ── VJ ROWS ── */
 .vj-rows{display:flex;flex-direction:column;gap:24px;padding-bottom:8px}
@@ -184,9 +187,9 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 /* ── BOTTOM NAV ── */
 .botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:rgba(10,10,14,.97);border-top:1px solid var(--brd);display:flex;justify-content:space-around;align-items:center;z-index:200}
 .botnav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,195,.15),transparent)}
-.bnav{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:9px;font-weight:700;cursor:pointer;padding:5px 4px;transition:color .15s;min-width:44px;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif;letter-spacing:.02em}
+.bnav{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:10px;font-weight:800;cursor:pointer;padding:6px 2px;transition:color .15s;min-width:42px;flex:1;-webkit-tap-highlight-color:transparent;font-family:'DM Sans',sans-serif;letter-spacing:.01em;text-transform:uppercase}
 .bnav.active{color:var(--teal)}
-.bnav-lbl{font-size:10px;font-weight:800;letter-spacing:.02em}
+.bnav-lbl{font-size:10px;font-weight:800;letter-spacing:.01em}
 .bnav-dot{width:3px;height:3px;border-radius:50%;background:var(--teal);opacity:0;transition:opacity .15s;box-shadow:0 0 4px var(--teal);margin-top:2px}
 .bnav.active .bnav-dot{opacity:1}
 

@@ -1165,32 +1165,29 @@ function dismissInstallBanner() { const b = document.getElementById('install-ban
 loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
 startFirebase(); showSection('home');
 
-// ── AUTO-SCROLL POSTER STRIP (Kawogo style) ──────────────────
+// ── AUTO-SCROLL POSTER STRIP (single cinematic row) ──────────
 function initAutoStrip() {
   const movies = allContent.filter(m => m.thumb);
   if (!movies.length) return;
-  // Shuffle for variety
   const shuffled = [...movies].sort(() => Math.random() - 0.5);
-  // Double the list so seamless loop works
-  const strip1Items = [...shuffled, ...shuffled];
-  const strip2Items = [...shuffled.reverse(), ...shuffled];
+  const items = [...shuffled, ...shuffled]; // double for seamless loop
   function buildStrip(items) {
     return items.map(m => {
       const click = m.cat === 'series'
         ? "openDetailOverlay('" + (m.seriesName || m.title).replace(/'/g, "\\'") + "','series')"
         : "openDetailOverlay('" + m.id + "','movie')";
       return '<div class="strip-card" onclick="' + click + '">'
-        + '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>'
+        + (m.thumb ? '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.opacity=\'.2\'"/>' : '<div class="strip-card-empty">' + (m.title||'') + '</div>')
         + '</div>';
     }).join('');
   }
   const s1 = document.getElementById('auto-strip-1');
+  if (s1) s1.innerHTML = buildStrip(items);
+  // Hide second strip if exists
   const s2 = document.getElementById('auto-strip-2');
-  if (s1) s1.innerHTML = buildStrip(strip1Items);
-  if (s2) s2.innerHTML = buildStrip(strip2Items);
+  if (s2) s2.style.display = 'none';
 }
 
-// Keep stubs so nothing breaks
 function initHero() { initAutoStrip(); }
 function updateHero() {}
 function heroGoTo() {}
