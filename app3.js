@@ -1150,7 +1150,6 @@ loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
 // Disable autocomplete on admin inputs after DOM ready
 document.addEventListener('DOMContentLoaded', function() {
   disableAdminAutocomplete();
-  setTimeout(_initAdminLongPress, 500);
 });
 
 startFirebase(); showSection('home');
