@@ -513,10 +513,10 @@ function openPlayer(m) {
 function closePlayer() {
   kpStop();
   const wrap = $('kp-wrap');
-  wrap.style.flex = '';
-  wrap.style.aspectRatio = '';
+  wrap.style.cssText = '';
   $('kp-ctrl').style.display = '';
   $('player-ov').style.display = 'none';
+  $('player-ov').style.flexDirection = '';
   document.body.style.overflow = '';
 }
 
@@ -661,20 +661,23 @@ function kpLoadIframe(url) {
   fr.allowFullscreen = true;
   fr.setAttribute('allowfullscreen', '');
   fr.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
-  fr.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000';
-  container.style.cssText = 'position:relative;width:100%;height:100%';
+  fr.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000;display:block;';
+  /* Make container fill available space properly */
+  container.style.cssText = 'position:relative;width:100%;height:100%;min-height:240px;background:#000;';
   container.appendChild(fr);
   kpIframe = fr;
   kpIsVideo = false;
   $('kp-ctrl').style.display = 'none';
   const wrap = $('kp-wrap');
-  wrap.style.flex = '1';
-  wrap.style.aspectRatio = 'unset';
+  /* Force wrap to fill screen height on mobile */
+  wrap.style.cssText = 'flex:1;min-height:56vw;width:100%;position:relative;background:#000;display:flex;flex-direction:column;';
+  const playerOv = $('player-ov');
+  if (playerOv) playerOv.style.flexDirection = 'column';
   const oldExtra = wrap.querySelector('[data-extra]');
   if (oldExtra) oldExtra.remove();
   const backBtn = document.createElement('button');
   backBtn.setAttribute('data-extra', '1');
-  backBtn.style.cssText = 'position:absolute;top:12px;left:12px;z-index:100;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px';
+  backBtn.style.cssText = 'position:absolute;top:12px;left:12px;z-index:100;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';
   backBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
   backBtn.onclick = closePlayer;
   wrap.appendChild(backBtn);
@@ -1160,41 +1163,71 @@ function normalizeItem(d) {
 
 function loadContent() {
   const { onSnapshot, getDocs, getDoc, collection, doc, query, orderBy } = window._fb;
-  const q = query(collection(window._db, 'content'), orderBy('createdAt', 'desc'));
-  onSnapshot(q, async snap => {
-    const primary = [];
-    snap.forEach(d => primary.push(normalizeItem(d)));
 
+  function processSnap(snap) {
+    const items = [];
+    snap.forEach(d => items.push(normalizeItem(d)));
+    return items;
+  }
+
+  async function fetchExtras() {
     let extras = [];
-    if (primary.length === 0) {
-      for (const col of ['movies', 'videos', 'media', 'tvshows', 'series']) {
-        try {
-          const s = await getDocs(collection(window._db, col));
-          s.forEach(d => extras.push(normalizeItem(d)));
-        } catch {}
-      }
+    for (const col of ['movies', 'videos', 'media', 'tvshows', 'series']) {
       try {
-        const sd = await getDoc(doc(window._db, 'settings', 'movies'));
-        if (sd.exists()) {
-          const data = sd.data();
-          const list = data.list || data.movies || data.items || [];
-          if (Array.isArray(list)) {
-            list.forEach((m, i) => extras.push(normalizeItem({
-              data: () => ({ ...m, id: 'legacy_'+i, createdAt: m.createdAt || Date.now()-i*1000 }),
-              id: 'legacy_'+i
-            })));
-          }
-        }
+        const s = await getDocs(collection(window._db, col));
+        s.forEach(d => extras.push(normalizeItem(d)));
       } catch {}
     }
+    try {
+      const sd = await getDoc(doc(window._db, 'settings', 'movies'));
+      if (sd.exists()) {
+        const data = sd.data();
+        const list = data.list || data.movies || data.items || [];
+        if (Array.isArray(list)) {
+          list.forEach((m, i) => extras.push(normalizeItem({
+            data: () => ({ ...m, id: 'legacy_'+i, createdAt: m.createdAt || Date.now()-i*1000 }),
+            id: 'legacy_'+i
+          })));
+        }
+      }
+    } catch {}
+    return extras;
+  }
 
+  function applyContent(primary, extras) {
     allContent = [...primary, ...extras];
     buildRows();
     buildHero();
     renderStats();
     if (currentSection === 'favs') renderFavs();
     if (currentSection === 'downloads') renderDownloads();
-  }, err => { console.error('Firestore:', err); });
+  }
+
+  /* Try ordered query first; if it fails (missing index / missing field),
+     fall back to unordered snapshot which always works */
+  let unsubOrdered = null;
+  try {
+    const qOrdered = query(collection(window._db, 'content'), orderBy('createdAt', 'desc'));
+    unsubOrdered = onSnapshot(qOrdered, async snap => {
+      const primary = processSnap(snap);
+      const extras  = primary.length === 0 ? await fetchExtras() : [];
+      applyContent(primary, extras);
+    }, async err => {
+      console.warn('Ordered query failed, falling back to unordered:', err.message);
+      if (unsubOrdered) { try { unsubOrdered(); } catch {} }
+      /* Fallback: plain collection snapshot, no orderBy */
+      onSnapshot(collection(window._db, 'content'), async snap => {
+        const primary = processSnap(snap);
+        const extras  = primary.length === 0 ? await fetchExtras() : [];
+        applyContent(primary, extras);
+      }, err2 => {
+        console.error('Firestore fallback also failed:', err2.message);
+        showToast('Could not load content. Check connection.', true);
+      });
+    });
+  } catch (e) {
+    console.error('loadContent setup error:', e);
+  }
 }
 
 /* ── COMPATIBILITY ALIASES ── */
