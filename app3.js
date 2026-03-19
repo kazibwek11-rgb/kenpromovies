@@ -504,50 +504,45 @@ function kpLoad(url) {
   kpCurrentUrl = url;
   const container = $('player-video');
   container.innerHTML = '';
-  /* remove old extra back button */
   const oldBack = $('kp-wrap').querySelector('[data-extra]');
   if (oldBack) oldBack.remove();
   $('kp-ctrl').style.display = '';
   kpVideo = null; kpIframe = null; kpIsVideo = false;
   showKpState('loading');
 
-  if (!url || url.trim() === '') { showKpState('error'); return; }
+  if (!url || !url.trim()) { showKpState('error'); return; }
 
-  const isYT      = /youtu\.?be|youtube\.com/i.test(url);
-  const isArchive = /archive\.org/i.test(url);
-  const isMp4     = /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)
-                    || /ia\d+\.us\.archive\.org/i.test(url)
-                    || /archive\.org\/download\//i.test(url);
+  const isYT  = /youtu\.?be|youtube\.com/i.test(url);
+  const isMp4 = /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)
+             || /ia\d+\.us\.archive\.org/i.test(url)
+             || /archive\.org\/download\//i.test(url);
+  const isArchiveDetails = /archive\.org\/details\//i.test(url);
+  const isArchiveEmbed   = /archive\.org\/embed\//i.test(url);
 
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
-  } else if (isArchive && !isMp4) {
-    /* archive.org/details/ → fetch metadata to get real mp4 URL, fallback to embed */
-    const match = url.match(/archive\.org\/(?:details|embed)\/([\^/?#&]+)/i);
-    const itemId = match ? match[1] : '';
-    if (itemId) {
-      /* Try direct mp4 first via metadata API */
-      fetch('https://archive.org/metadata/' + itemId)
-        .then(r => r.json())
-        .then(data => {
-          const files = data.files || [];
-          /* prefer mp4, fallback to any video */
-          const mp4 = files.find(f => /\.mp4$/i.test(f.name))
-                   || files.find(f => /\.(mp4|webm|avi|mkv|mov)$/i.test(f.name));
-          if (mp4) {
-            kpLoadVideo('https://archive.org/download/' + itemId + '/' + encodeURIComponent(mp4.name));
-          } else {
-            kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
-          }
-        })
-        .catch(() => {
-          kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
-        });
-    } else {
-      kpLoadIframe(url);
-    }
   } else if (isMp4) {
     kpLoadVideo(url);
+  } else if (isArchiveDetails || isArchiveEmbed) {
+    /* Extract item ID from archive.org URL */
+    const part = url.split(isArchiveDetails ? '/details/' : '/embed/')[1] || '';
+    const itemId = part.split('/')[0].split('?')[0].split('#')[0].trim();
+    if (!itemId) { kpLoadIframe(url); return; }
+    /* Fetch metadata to get direct mp4 */
+    showKpState('loading');
+    fetch('https://archive.org/metadata/' + itemId)
+      .then(r => r.json())
+      .then(meta => {
+        const files = meta.files || [];
+        const vid = files.find(f => /\.mp4$/i.test(f.name))
+                 || files.find(f => /\.(webm|ogv|avi|mov|mkv)$/i.test(f.name));
+        if (vid) {
+          kpLoadVideo('https://archive.org/download/' + itemId + '/' + vid.name);
+        } else {
+          kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
+        }
+      })
+      .catch(() => kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1'));
   } else {
     kpLoadIframe(url);
   }
