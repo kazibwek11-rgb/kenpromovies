@@ -194,7 +194,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .bnav.active .bnav-dot{opacity:1}
 
 /* ── PLAYER ── */
-.player-overlay{display:none;position:fixed;inset:0;background:#000;z-index:500;flex-direction:column;overflow:hidden}
+.player-overlay{display:none;position:fixed;inset:0;background:#000;z-index:600;flex-direction:column;overflow:hidden}
 .player-overlay.open{display:flex}
 .kp-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#000;flex-shrink:0}
 @media(orientation:landscape) and (max-width:900px){

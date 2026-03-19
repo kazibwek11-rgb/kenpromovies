@@ -352,10 +352,13 @@ function playItem(id) {
 
   const nav = document.getElementById('ep-nav'); if (nav) nav.style.display = 'none';
   setFavUI('item-' + id);
+  // Fill info card
+  _fillInfoCard(m, null);
   buildPlayer(m.play);
   renderMoreLike(id, m.cat, m.vj);
   const po = document.getElementById('player-overlay');
   if (po) { po.classList.add('open'); po.scrollTop = 0; }
+  document.body.style.overflow = 'hidden';
 }
 
 function playEpisode(id) {
@@ -385,14 +388,45 @@ function playEpisode(id) {
   const next = document.getElementById('ep-next'); if (next) next.disabled = idx >= allEps.length - 1;
 
   setFavUI('item-' + id);
+  // Fill info card
+  _fillInfoCard(ep, lbl);
   buildPlayer(ep.play);
   renderMoreLike(id, 'series', ep.vj);
   const po = document.getElementById('player-overlay');
   if (po) { po.classList.add('open'); po.scrollTop = 0; }
+  document.body.style.overflow = 'hidden';
 }
 
-function playAdjacentEp(dir) {
-  if (!curPlay || curPlay.type !== 'episode') return;
+function _fillInfoCard(m, epLabel) {
+  const card = document.getElementById('pi-card');
+  if (card) card.style.display = 'flex';
+  const img = document.getElementById('pi-poster-img');
+  const emp = document.getElementById('pi-poster-empty');
+  if (m.thumb) {
+    if (img) { img.src = m.thumb; img.style.display = 'block'; }
+    if (emp) emp.style.display = 'none';
+  } else {
+    if (img) img.style.display = 'none';
+    if (emp) emp.style.display = 'flex';
+  }
+  const titleEl = document.getElementById('pi-title');
+  if (titleEl) {
+    if (epLabel) {
+      titleEl.innerHTML = '<span style="display:block">' + (m.seriesName || m.title) + '</span>'
+        + '<span style="font-size:11px;font-weight:600;color:var(--teal,#00e5c3)">' + epLabel
+        + (m.epTitle ? ' — ' + m.epTitle : '') + '</span>';
+    } else {
+      titleEl.textContent = m.title || m.seriesName || '';
+    }
+  }
+  function safeSet(elId, val) { const el = document.getElementById(elId); if (el) el.textContent = val || ''; }
+  safeSet('pi-vj',   m.vj || '');
+  safeSet('pi-desc', m.desc || '');
+  const tags = document.getElementById('pi-card-tags') || document.getElementById('pi-tags');
+  if (tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(function(t) { return '<span class="pi-tag">' + t + '</span>'; }).join('');
+}
+
+function playAdjacentEp(dir) {  if (!curPlay || curPlay.type !== 'episode') return;
   const next = curPlay.allEps[curPlay.idx + dir];
   if (next) playEpisode(next.id);
 }

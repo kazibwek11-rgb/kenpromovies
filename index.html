@@ -649,7 +649,7 @@ window.openDetailOverlay = function(idOrSname, type) {
   const epHtml = eps.length ? `
     <div class="det-eps-title">Episodes</div>
     <div class="det-ep-row">${eps.map(ep => `
-      <div class="det-ep-card" onclick="playItem('${ep.id}');closeDetailOverlay()">
+      <div class="det-ep-card" onclick="closeDetailOverlay();setTimeout(()=>playItem('${ep.id}'),60)">
         <div class="det-ep-thumb">
           ${ep.thumb ? `<img src="${ep.thumb}" onerror="this.style.display='none'">` : ''}
           <div class="det-ep-overlay"><div class="det-ep-play"><svg width="16" height="16" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div></div>
@@ -687,7 +687,7 @@ window.openDetailOverlay = function(idOrSname, type) {
       </div>
       ${m.desc ? `<div class="det-desc">${m.desc}</div>` : ''}
       <div class="det-actions">
-        ${type !== 'series' ? `<button class="det-btn-watch" onclick="playItem('${m.id}');closeDetailOverlay()"><svg width="13" height="13" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Now</button>` : ''}
+        ${type !== 'series' ? `<button class="det-btn-watch" onclick="closeDetailOverlay();setTimeout(()=>playItem('${m.id}'),60)"><svg width="13" height="13" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Now</button>` : ''}
         <button class="det-btn-dl" onclick="downloadItem('${m.id}')"><svg width="13" height="13"><use href="#i-download"/></svg> Download</button>
         <button class="det-btn-fav ${isFav ? 'on' : ''}" id="det-fav-btn" onclick="_detToggleFav('${m.id}')">
           <svg width="13" height="13" id="det-fav-ico"><use href="${isFav ? '#i-heart-f' : '#i-heart'}"/></svg>
