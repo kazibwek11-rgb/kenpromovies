@@ -170,14 +170,31 @@ function makeRow(label, items, target, opts={}) {
   if (!items.length) return null;
   const block = document.createElement('div');
   const cnt = items.length > 20 ? ` <span class="row-cnt">(${items.length})</span>` : '';
-  const seeAllBtn = items.length > 6 ? `<button class="see-all" onclick="openSeeAll('${label}',${JSON.stringify(items.map(m=>m.id))})">See all</button>` : '';
+  const idsJson = JSON.stringify(items.slice(0,100).map(m=>m.id)).replace(/"/g,"'");
+  const seeAllBtn = items.length > 6
+    ? `<button class="see-all" onclick="openSeeAll(this)">See all</button>`
+    : '';
   block.innerHTML = `<div class="row-head"><span class="row-lbl">${label}${cnt}</span>${seeAllBtn}</div>`;
+  /* store items on block for seeAll */
+  block._items = items;
+  block._label = label;
+  if (seeAllBtn) {
+    const btn = block.querySelector('.see-all');
+    if (btn) btn.addEventListener('click', () => openSeeAllDirect(label, items));
+  }
   const row = document.createElement('div');
   row.className = 'hrow';
   items.slice(0, 20).forEach(m => row.appendChild(posterCard(m, opts)));
   block.appendChild(row);
   target.appendChild(block);
   return block;
+}
+function openSeeAllDirect(label, items) {
+  $('sa-title').textContent = label;
+  $('sa-cnt').textContent = items.length + ' titles';
+  const grid = $('sa-grid'); grid.innerHTML = '';
+  items.forEach(m => grid.appendChild(posterCard(m)));
+  $('sa-ov').classList.add('open');
 }
 
 function buildRows() {
@@ -505,11 +522,27 @@ function kpLoad(url) {
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
   } else if (isArchive && !isMp4) {
-    /* Extract item ID and use embed — most reliable on Android */
-    const match = url.match(/archive\.org\/(?:details|embed)\/([^/?#&]+)/i);
+    /* archive.org/details/ → fetch metadata to get real mp4 URL, fallback to embed */
+    const match = url.match(/archive\.org\/(?:details|embed)\/([\^/?#&]+)/i);
     const itemId = match ? match[1] : '';
     if (itemId) {
-      kpLoadIframe(`https://archive.org/embed/${itemId}?autoplay=1&playlist=1`);
+      /* Try direct mp4 first via metadata API */
+      fetch('https://archive.org/metadata/' + itemId)
+        .then(r => r.json())
+        .then(data => {
+          const files = data.files || [];
+          /* prefer mp4, fallback to any video */
+          const mp4 = files.find(f => /\.mp4$/i.test(f.name))
+                   || files.find(f => /\.(mp4|webm|avi|mkv|mov)$/i.test(f.name));
+          if (mp4) {
+            kpLoadVideo('https://archive.org/download/' + itemId + '/' + encodeURIComponent(mp4.name));
+          } else {
+            kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
+          }
+        })
+        .catch(() => {
+          kpLoadIframe('https://archive.org/embed/' + itemId + '?autoplay=1');
+        });
     } else {
       kpLoadIframe(url);
     }
@@ -533,26 +566,55 @@ function kpLoadVideo(url) {
   const vid = document.createElement('video');
   vid.controls = false;
   vid.playsInline = true;
-  vid.preload = 'auto';
-  vid.src = url;
-  vid.style.width = '100%';
-  vid.style.height = '100%';
-  vid.style.display = 'block';
-  vid.style.background = '#000';
+  vid.setAttribute('playsinline','');
+  vid.setAttribute('webkit-playsinline','');
+  vid.preload = 'metadata';
+  vid.crossOrigin = 'anonymous';
+  vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain';
+  /* Set source */
+  const src = document.createElement('source');
+  src.src = url;
+  src.type = url.includes('.webm') ? 'video/webm' : 'video/mp4';
+  vid.appendChild(src);
   container.appendChild(vid);
   kpVideo = vid;
   kpIsVideo = true;
 
+  vid.addEventListener('loadedmetadata', () => { showKpState(''); });
   vid.addEventListener('canplay', () => { showKpState(''); kpPlay(); });
   vid.addEventListener('playing', () => { showKpState(''); kpSetPlayIcon(true); });
   vid.addEventListener('pause', () => kpSetPlayIcon(false));
   vid.addEventListener('waiting', () => showKpState('loading'));
-  vid.addEventListener('error', () => showKpState('error'));
   vid.addEventListener('timeupdate', kpTimeUpdate);
   vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => { kpSetPlayIcon(false); if(currentEpIdx>=0&&currentEpList.length>1) playAdjacentEp(1); });
+  vid.addEventListener('ended', () => {
+    kpSetPlayIcon(false);
+    if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
+  });
+  vid.addEventListener('error', (e) => {
+    console.error('Video error:', e, vid.error);
+    /* If direct mp4 fails, try embed fallback for archive.org */
+    if (url.includes('archive.org')) {
+      const match = url.match(/archive\.org\/download\/([^\/]+)\//);
+      if (match) {
+        kpStop();
+        kpLoadIframe('https://archive.org/embed/' + match[1] + '?autoplay=1');
+        return;
+      }
+    }
+    showKpState('error');
+  });
   vid.load();
-  setTimeout(() => { if(!kpPlaying) { vid.play().catch(()=>{}); } }, 500);
+  /* Try playing after short delay */
+  setTimeout(() => {
+    if (!kpPlaying && kpVideo) {
+      vid.play().catch(() => {
+        /* Autoplay blocked — show play button, user must tap */
+        showKpState('');
+        kpSetPlayIcon(false);
+      });
+    }
+  }, 800);
 }
 
 function kpLoadIframe(url) {
@@ -762,11 +824,13 @@ function removeDownload(id) {
 
 /* ── SEE ALL ─────────────────────────────── */
 function openSeeAll(label, ids) {
-  $('sa-title').textContent=label;
-  const items=ids.map(id=>allContent.find(m=>m.id===id)).filter(Boolean);
-  $('sa-cnt').textContent=items.length+' titles';
-  const grid=$('sa-grid'); grid.innerHTML='';
-  items.forEach(m=>grid.appendChild(posterCard(m)));
+  $('sa-title').textContent = label;
+  const items = Array.isArray(ids)
+    ? ids.map(id => allContent.find(m => m.id === id)).filter(Boolean)
+    : allContent.filter(m => m.category === label);
+  $('sa-cnt').textContent = items.length + ' titles';
+  const grid = $('sa-grid'); grid.innerHTML = '';
+  items.forEach(m => grid.appendChild(posterCard(m)));
   $('sa-ov').classList.add('open');
 }
 function closeSeeAll(){$('sa-ov').classList.remove('open');}
@@ -1029,10 +1093,11 @@ function normalizeItem(d) {
   const createdAt = typeof data.createdAt === 'number'
     ? data.createdAt
     : (data.createdAt?.toMillis?.() || Date.now());
-  let category = data.category || data.type || 'movie';
-  if (category === 'tvshow' || category === 'tv' || category === 'TvShow') category = 'series';
+  let category = (data.category || data.type || 'movie').toLowerCase().trim();
+  if (['tvshow','tv','tvseries','show'].includes(category)) category = 'series';
+  if (['anim','cartoon','anime'].includes(category)) category = 'animation';
   const title = data.title || data.epTitle || data.name || '';
-  const sname = data.sname || data.seriesName || data.seriesname || title;
+  const sname = (data.sname || data.seriesName || data.seriesname || (category==='series' ? title : '')).trim();
   const thumb = data.thumb || data.thumbnail || data.poster || data.image || '';
   const playLink = data.playLink || data.videoUrl || data.url || data.link || '';
   const dlLink = data.dlLink || data.downloadLink || data.download || '';
