@@ -136,7 +136,7 @@ function showSection(sec) {
   if (sec === 'downloads') renderDownloadsPage();
   if (sec === 'indian')    renderVJRows('indian', 'indian');
   if (sec === 'favs')      renderFavs();
-  if (sec === 'home')      renderComingSoon();
+  if (sec === 'home')      { renderComingSoon(); setTimeout(function(){ if(typeof initHero==='function')initHero(); }, 50); }
   if (sec === 'settings')  updateStats();
   if (sec === 'admin') { renderLib(); renderSubs(); renderPayments(); }
   const c = document.getElementById('content'); if (c) c.scrollTop = 0;
@@ -156,6 +156,8 @@ function renderAll() {
     const h = document.getElementById('sd-container');
     if (h && h.dataset.sname) openSeriesDetail(h.dataset.sname);
   }
+  // Init hero after content loads
+  setTimeout(() => { if (typeof initHero === 'function') initHero(); }, 100);
 }
 
 // ── VJ ROWS ──────────────────────────────────────────────────
@@ -1095,3 +1097,34 @@ function dismissInstallBanner() { const b = document.getElementById('install-ban
 // ── INIT ─────────────────────────────────────────────────────
 loadLocal(); loadDlHistory(); loadCS(); loadSubs(); loadPayments();
 startFirebase(); showSection('home');
+
+// ── AUTO-SCROLL POSTER STRIP (Kawogo style) ──────────────────
+function initAutoStrip() {
+  const movies = allContent.filter(m => m.thumb);
+  if (!movies.length) return;
+  // Shuffle for variety
+  const shuffled = [...movies].sort(() => Math.random() - 0.5);
+  // Double the list so seamless loop works
+  const strip1Items = [...shuffled, ...shuffled];
+  const strip2Items = [...shuffled.reverse(), ...shuffled];
+  function buildStrip(items) {
+    return items.map(m => {
+      const click = m.cat === 'series'
+        ? "openDetailOverlay('" + (m.seriesName || m.title).replace(/'/g, "\\'") + "','series')"
+        : "openDetailOverlay('" + m.id + "','movie')";
+      return '<div class="strip-card" onclick="' + click + '">'
+        + '<img src="' + m.thumb + '" loading="lazy" onerror="this.style.display=\'none\'"/>'
+        + '</div>';
+    }).join('');
+  }
+  const s1 = document.getElementById('auto-strip-1');
+  const s2 = document.getElementById('auto-strip-2');
+  if (s1) s1.innerHTML = buildStrip(strip1Items);
+  if (s2) s2.innerHTML = buildStrip(strip2Items);
+}
+
+// Keep stubs so nothing breaks
+function initHero() { initAutoStrip(); }
+function updateHero() {}
+function heroGoTo() {}
+function heroClick() {}

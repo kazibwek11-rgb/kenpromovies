@@ -141,16 +141,10 @@
 
       <!-- HOME -->
       <div class="page active" id="page-home">
-        <!-- HERO CAROUSEL -->
-        <div class="hero" id="hero" onclick="heroClick()">
-          <div class="hero-bg" id="hero-bg"></div>
-          <div class="hero-grad"></div>
-          <div class="hero-content">
-            <div class="hero-badge">Now Streaming</div>
-            <div class="hero-title" id="hero-title">KENMOVIES</div>
-            <div class="hero-meta"  id="hero-meta">Free Ugandan movies and series</div>
-          </div>
-          <div class="hero-dots" id="hero-dots"></div>
+        <!-- KAWOGO-STYLE AUTO-SCROLL POSTER STRIP -->
+        <div class="auto-strip-wrap">
+          <div class="auto-strip" id="auto-strip-1"></div>
+          <div class="auto-strip auto-strip-rev" id="auto-strip-2"></div>
         </div>
         <!-- UPCOMING TICKER -->
         <div class="upcoming-ticker" id="upcoming-ticker" style="display:none">
@@ -356,6 +350,7 @@
 
           <!-- SUBSCRIBERS -->
           <div class="admin-section" id="admin-subscribers">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Total: <span id="sub-count">0</span></div>
             <div class="sub-add-row">
               <input type="text" id="sub-name"  placeholder="Name e.g. John"     class="sub-inp"/>
               <input type="text" id="sub-phone" placeholder="Phone +256700..."   class="sub-inp"/>
@@ -367,6 +362,7 @@
 
           <!-- PAYMENTS -->
           <div class="admin-section" id="admin-payments">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Pending: <span id="pay-count">0</span></div>
             <div class="pay-list" id="pay-list"><div class="empty-msg">No payment requests yet.</div></div>
           </div>
 
