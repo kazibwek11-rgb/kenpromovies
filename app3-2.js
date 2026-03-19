@@ -546,13 +546,19 @@ function kpLoad(url) {
   if (!url || !url.trim()) { showKpState('error'); return; }
 
   const isYT      = /youtu\.?be|youtube\.com/i.test(url);
-  const isArchive = /archive\.org/i.test(url);  // ANY archive.org URL → always embed
-  const isDirect  = !isArchive && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+  /* archive.org direct .mp4 download links → use native video player (works on Android)
+     archive.org details/embed pages → use iframe embed */
+  const isArchiveDirect = /archive\.org\/download\/.+\.(mp4|webm|ogv)(\?|$)/i.test(url);
+  const isArchiveEmbed  = /archive\.org\/(details|embed)\//i.test(url)
+                       || (/archive\.org/i.test(url) && !isArchiveDirect);
+  const isDirect = !isArchiveEmbed && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
-  } else if (isArchive) {
-    /* ── archive.org: extract item ID and use embed player ── */
+  } else if (isArchiveDirect) {
+    /* Direct mp4 from archive.org — play natively, fallback to embed on error */
+    kpLoadVideo(url);
+  } else if (isArchiveEmbed) {
     kpLoadArchive(url);
   } else if (isDirect) {
     kpLoadVideo(url);
@@ -640,8 +646,12 @@ function kpLoadVideo(url) {
     if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
   });
   vid.addEventListener('error', () => {
-    /* Any video error → show error state; do NOT attempt archive fallback
-       since non-archive direct links that fail should just show error */
+    /* If archive.org direct mp4 fails (CORS etc) → fall back to embed iframe */
+    if (url.includes('archive.org')) {
+      kpStop();
+      kpLoadArchive(url);
+      return;
+    }
     showKpState('error');
   });
   vid.load();
