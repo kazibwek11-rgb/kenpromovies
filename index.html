@@ -2,1001 +2,891 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Kenmovies</title>
-<link rel="stylesheet" href="style.css?v=11"/>
+<link rel="stylesheet" href="style.css?v=10"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#060608"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="description" content="Kenmovies – Watch Free Ugandan Movies"/>
+
+<!-- Firebase: single merged init (fixes Android notifications) -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-const app = initializeApp({
-  apiKey:"AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",
-  authDomain:"kenpro-movies.firebaseapp.com",
-  projectId:"kenpro-movies",
-  storageBucket:"kenpro-movies.firebasestorage.app",
-  messagingSenderId:"861464698680",
-  appId:"1:861464698680:web:b32b386afb748662282bcd"
-});
-const db = getFirestore(app);
-const msg = getMessaging(app);
-window._db = db;
-window._fb = {collection,addDoc,getDocs,getDoc,doc,updateDoc,deleteDoc,onSnapshot,orderBy,query};
-window._fbReady = true;
-document.dispatchEvent(new Event('fb-ready'));
-window.enableNotifications = async function(){
-  try{
-    const perm = await Notification.requestPermission();
-    if(perm!=='granted'){toast('Notifications blocked',true);return;}
-    const sw = await navigator.serviceWorker.ready;
-    const token = await getToken(msg,{vapidKey:'BGH7s3dikeSUD91wYpkWDuemLmeIKuN4VyPT24g_jdDY-EDE-qEjk7uG-v2Zv6gu00WXtaWLuFEPz2I5YTFbFb8',serviceWorkerRegistration:sw});
-    if(token){try{await addDoc(collection(db,'fcm_tokens'),{token,ts:Date.now()});}catch(e){}toast('Notifications on!');}
-  }catch(e){toast('Error: '+e.message,true);}
-};
-onMessage(msg,p=>toast((p.notification?.title||'Kenmovies')+': '+(p.notification?.body||'')));
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
+  import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",
+    authDomain: "kenpro-movies.firebaseapp.com",
+    projectId: "kenpro-movies",
+    storageBucket: "kenpro-movies.firebasestorage.app",
+    messagingSenderId: "861464698680",
+    appId: "1:861464698680:web:b32b386afb748662282bcd"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+  const db = getFirestore(app);
+
+  window._db = db;
+  window._fb = { collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query };
+  window._fbReady = true;
+  document.dispatchEvent(new Event('fb-ready'));
+
+  window.enableNotifications = async function() {
+    try {
+      if (!('Notification' in window)) { showToast('Notifications not supported', true); return; }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { showToast('Notifications blocked. Enable in browser settings.', true); return; }
+      const swReg = await navigator.serviceWorker.ready;
+      const token = await getToken(messaging, {
+        vapidKey: 'BGH7s3dikeSUD91wYpkWDuemLmeIKuN4VyPT24g_jdDY-EDE-qEjk7uG-v2Zv6gu00WXtaWLuFEPz2I5YTFbFb8',
+        serviceWorkerRegistration: swReg
+      });
+      if (token) {
+        try {
+          const { collection: col, addDoc: add } = window._fb;
+          await add(col(window._db, 'fcm_tokens'), { token, createdAt: new Date().toISOString(), userAgent: navigator.userAgent });
+        } catch(e) {}
+        showToast('Notifications enabled!');
+      } else { showToast('Could not get token. Try again.', true); }
+    } catch(e) { showToast('Notifications error: ' + e.message, true); }
+  };
+
+  onMessage(messaging, (payload) => {
+    const title = payload.notification?.title || 'Kenmovies';
+    const body  = payload.notification?.body  || 'New update!';
+    showToast(title + ': ' + body);
+  });
 </script>
 </head>
 <body>
 
-<!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
-<header class="topbar">
-  <span class="topbar-logo">KENMOVIES</span>
-  <div class="topbar-center">
-    <div class="searchbar" onclick="openSearch()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span>Search movies, series, VJ...</span>
+<!-- SVG ICONS -->
+<svg style="display:none">
+  <symbol id="i-back"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-search"   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-x"        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-heart"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="i-heart-f"  viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-play"     viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></symbol>
+  <symbol id="i-pause"    viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol>
+  <symbol id="i-film"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></symbol>
+  <symbol id="i-tv"       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></symbol>
+  <symbol id="i-star"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-lock"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-plus"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-edit"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="i-trash"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-save"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="i-eye"      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-phone"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.5a16 16 0 0 0 5.55 5.55l.96-.96a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+  <symbol id="i-globe"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-crown"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M5 20l-2-12 7 5 2-8 2 8 7-5-2 12"/></symbol>
+  <symbol id="i-whatsapp" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></symbol>
+  <symbol id="i-image"    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+  <symbol id="i-tag"      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-user"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-install"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+  <symbol id="i-chevron"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-rotate"   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
+  <symbol id="i-zoom"     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></symbol>
+  <symbol id="i-fullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></symbol>
+  <symbol id="i-exit-fs"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></symbol>
+</svg>
+
+<div id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-logo">KENMOVIES</span>
+    <div class="topbar-center">
+      <div class="searchbar" onclick="openSearch()">
+        <svg class="s-ico" width="15" height="15"><use href="#i-search"/></svg>
+        <span class="s-ph">Search movies, series, VJ...</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn" id="install-btn" onclick="triggerInstall()" style="display:none"><svg width="16" height="16"><use href="#i-install"/></svg></button>
+      <button class="tb-btn" onclick="openModal('contact-modal')">Contact</button>
+      <button class="tb-btn" id="admin-btn" onclick="goAdmin()" style="display:none">Admin</button>
+      <button class="tb-btn" id="lock-btn" onclick="openPinModal()">&#9679;&#9679;&#9679;</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sb-logo">KENMOVIES</div>
+      <button class="snav active" id="snav-home"      onclick="showSection('home')"><span>Home</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-movies"    onclick="showSection('movies')"><span>Movies</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-series"    onclick="showSection('series')"><span>Series</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-indian"    onclick="showSection('indian')"><span>Indian</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-animation" onclick="showSection('animation')"><span>Animation</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-favs"      onclick="showSection('favs')"><span>Favourites</span><span class="snav-dot"></span></button>
+      <div class="sb-div"></div>
+      <button class="snav"        id="snav-downloads" onclick="showSection('downloads')"><span>Downloads</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-settings"  onclick="showSection('settings')"><span>Settings</span><span class="snav-dot"></span></button>
+      <button class="snav"                            onclick="openModal('contact-modal')"><span>Contact</span><span class="snav-dot"></span></button>
+      <button class="snav"        id="snav-admin"     onclick="goAdmin()" style="display:none"><span>Admin</span><span class="snav-dot"></span></button>
+    </nav>
+
+    <main class="content" id="content">
+
+      <!-- HOME -->
+      <div class="page active" id="page-home">
+        <!-- HERO CAROUSEL -->
+        <div class="hero" id="hero" onclick="heroClick()">
+          <div class="hero-bg" id="hero-bg"></div>
+          <div class="hero-grad"></div>
+          <div class="hero-content">
+            <div class="hero-badge">Now Streaming</div>
+            <div class="hero-title" id="hero-title">KENMOVIES</div>
+            <div class="hero-meta"  id="hero-meta">Free Ugandan movies and series</div>
+          </div>
+          <div class="hero-dots" id="hero-dots"></div>
+        </div>
+        <!-- UPCOMING TICKER -->
+        <div class="upcoming-ticker" id="upcoming-ticker" style="display:none">
+          <span class="ticker-label">UPCOMING</span>
+          <div class="ticker-wrap"><div class="ticker-track" id="ticker-track"></div></div>
+        </div>
+        <!-- UPCOMING ROW -->
+        <div id="upcoming-row-block" style="display:none">
+          <div class="row-head" style="padding:0 16px;margin-bottom:10px">
+            <span class="row-label">Upcoming Movies</span>
+            <button class="admin-only see-all-btn" id="upcoming-add-btn" style="display:none" onclick="openCSAdmin()">+ Add</button>
+          </div>
+          <div class="hrow" id="upcoming-cards-row"></div>
+        </div>
+        <div class="vj-rows" id="vj-rows-home"></div>
+      </div>
+
+      <!-- MOVIES -->
+      <div class="page" id="page-movies">
+        <div class="ph"><h1 class="ptitle">Movies</h1></div>
+        <div class="vj-rows" id="vj-rows-movies"></div>
+      </div>
+
+      <!-- SERIES -->
+      <div class="page" id="page-series">
+        <div class="ph"><h1 class="ptitle">Series</h1></div>
+        <div class="vj-rows" id="vj-rows-series"></div>
+      </div>
+
+      <!-- SERIES DETAIL -->
+      <div class="page" id="page-detail" style="padding:0;overflow-y:auto">
+        <div class="sd-container" id="sd-container">
+          <div class="sd-backdrop" id="sd-backdrop"></div>
+          <div class="sd-topbar">
+            <button class="sd-back" onclick="showSection('series')"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+            <div class="sd-topbar-actions">
+              <button class="sd-action-btn" id="sd-fav-btn" onclick="toggleSeriesFav()"><svg width="20" height="20" id="sd-fav-ico"><use href="#i-heart"/></svg></button>
+            </div>
+          </div>
+          <div class="sd-info">
+            <h1 class="sd-title" id="sd-title"></h1>
+            <div class="sd-meta-row"><span class="sd-vj-badge" id="sd-vj"></span><span class="sd-genres" id="sd-genres"></span></div>
+            <p class="sd-desc" id="sd-desc"></p>
+          </div>
+          <div class="sd-season-wrap">
+            <div class="sd-season-sel" onclick="toggleSeasonMenu()">
+              <span id="sd-season-label">Select Season</span>
+              <svg width="16" height="16" id="sd-chevron" style="transition:transform .2s"><use href="#i-chevron"/></svg>
+            </div>
+            <div class="sd-season-menu" id="sd-season-menu"></div>
+          </div>
+          <div class="sd-eps-wrap"><div class="sd-ep-row" id="sd-ep-row"></div></div>
+        </div>
+      </div>
+
+      <!-- INDIAN -->
+      <div class="page" id="page-indian">
+        <div class="ph"><h1 class="ptitle">Indian</h1></div>
+        <div class="vj-rows" id="vj-rows-indian"></div>
+      </div>
+
+      <!-- ANIMATION -->
+      <div class="page" id="page-animation">
+        <div class="ph"><h1 class="ptitle">Animation</h1></div>
+        <div class="vj-rows" id="vj-rows-animation"></div>
+      </div>
+
+      <!-- FAVOURITES -->
+      <div class="page" id="page-favs">
+        <div class="ph"><h1 class="ptitle">Favourites</h1></div>
+        <div class="poster-grid" id="grid-favs"></div>
+      </div>
+
+      <!-- DOWNLOADS -->
+      <div class="page" id="page-downloads">
+        <div class="ph"><h1 class="ptitle">Downloads</h1></div>
+        <div class="dl-page-body">
+          <div class="ph" style="margin-bottom:0"><span style="font-size:12px;color:var(--muted)">Files downloaded on this device</span><span style="font-size:11px;color:var(--muted);margin-left:auto" id="dl-page-count"></span></div>
+          <div class="dl-movie-list" id="dl-movie-list"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="ph"><h1 class="ptitle">Settings</h1></div>
+        <div class="settings-body">
+          <button onclick="enableNotifications()" class="notif-btn">Enable Notifications</button>
+          <div class="scard">
+            <div class="scard-hd">App Info</div>
+            <div class="srow"><div class="srow-ic">KM</div><div class="srow-b"><div class="sl">App Name</div><div class="sv">Kenmovies</div></div></div>
+            <div class="srow"><div class="srow-ic">WW</div><div class="srow-b"><div class="sl">Website</div><div class="sv teal">kenmovies.is-a.dev</div></div></div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd">Subscription</div>
+            <div class="sub-box">
+              <div class="sub-ico"><svg width="24" height="24"><use href="#i-crown"/></svg></div>
+              <div class="sub-title">Free Downloads</div>
+              <div class="sub-desc">All movies and series are free to watch and download!</div>
+              <button class="sub-btn" onclick="openModal('contact-modal')"><svg width="13" height="13"><use href="#i-whatsapp"/></svg> Contact Us</button>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd">Stats</div>
+            <div class="stats-row">
+              <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total</div></div>
+              <div class="stat"><div class="stat-n" id="st-movies">0</div><div class="stat-l">Movies</div></div>
+              <div class="stat"><div class="stat-n" id="st-series">0</div><div class="stat-l">Series</div></div>
+              <div class="stat"><div class="stat-n" id="st-anim">0</div><div class="stat-l">Animation</div></div>
+            </div>
+          </div>
+          <div class="scard">
+            <div class="scard-hd">App</div>
+            <div class="srow srow-tap" onclick="triggerInstall()"><div class="srow-ic"><svg width="13" height="13"><use href="#i-install"/></svg></div><div class="srow-b"><div class="sl">Install App</div><div class="sv">Add to Home Screen</div></div></div>
+            <div class="srow srow-tap" id="secret-row" onclick="secretTap()"><div class="srow-ic"><svg width="13" height="13"><use href="#i-star"/></svg></div><div class="srow-b"><div class="sl">About</div><div class="sv">Kenmovies v4.0</div></div><span id="secret-count" style="font-size:10px;color:transparent;min-width:14px">0</span></div>
+          </div>
+          <div class="app-ver">Kenmovies v4.0 · Made in Uganda</div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="ph">
+          <h1 class="ptitle">Admin</h1>
+          <button class="back-inline-btn" onclick="showSection('home')"><svg width="13" height="13"><use href="#i-back"/></svg> Exit</button>
+        </div>
+        <div class="admin-body">
+          <div class="admin-tabs">
+            <button class="atab active" onclick="setATab(this,'upload')">Upload</button>
+            <button class="atab"        onclick="setATab(this,'library')">Library</button>
+            <button class="atab"        onclick="setATab(this,'subscribers')">Subscribers</button>
+            <button class="atab"        onclick="setATab(this,'payments')">Payments</button>
+          </div>
+
+          <!-- UPLOAD -->
+          <div class="admin-section active" id="admin-upload">
+            <div class="upload-form">
+              <div class="upload-form-head">
+                <span id="form-mode-label">Add Content</span>
+                <button id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">Cancel Edit</button>
+              </div>
+              <div class="cat-tabs">
+                <button class="cat-tab active" data-cat="movie"     onclick="setCat(this,'movie')">Movie</button>
+                <button class="cat-tab"        data-cat="series"    onclick="setCat(this,'series')">Series</button>
+                <button class="cat-tab"        data-cat="animation" onclick="setCat(this,'animation')">Animation</button>
+                <button class="cat-tab"        data-cat="indian"    onclick="setCat(this,'indian')">Indian</button>
+              </div>
+              <input type="hidden" id="f-cat" value="movie"/>
+              <input type="hidden" id="edit-id" value=""/>
+              <div class="series-only" id="series-only-fields" style="display:none">
+                <div class="field"><label>Series Name</label><input type="text" id="f-series-name" placeholder="e.g. Prison Break"/></div>
+                <div class="two"><div class="field"><label>Season</label><input type="number" id="f-season" value="1" min="1"/></div><div class="field"><label>Episode</label><input type="number" id="f-epnum" value="1" min="1"/></div></div>
+              </div>
+              <div class="field"><label id="title-label">Title</label><input type="text" id="f-title" placeholder="e.g. Black Panther"/></div>
+              <div class="field"><label>Description</label><textarea id="f-desc" placeholder="Short description..."></textarea></div>
+              <div class="two">
+                <div class="field"><label>VJ</label>
+                  <select id="f-vj"><option value="">Select VJ</option><option>VJ Junior</option><option>VJ Emmy</option><option>VJ Ice P</option><option>VJ Sammy</option><option>VJ Little T</option><option>VJ Jingo</option><option>VJ ULIO</option><option>VJ HD</option><option>VJ SMK</option><option>VJ KEVO</option><option>VJ UNCLE T</option><option>VJ KISULE</option><option>VJ SHIELD</option><option>VJ MARK</option><option>VJ MOON</option><option>VJ KEVIN</option><option>VJ HEAVY Q</option><option>VJ KRISS SWEET</option><option>VJ SHAO KHAN</option><option>VJ MOSCO</option><option>VJ MUBA</option><option>VJ RONNIE</option><option>VJ IVO</option><option>VJ TONNY</option><option>VJ KS</option><option>VJ TOM</option><option>VJ SOUL</option><option>VJ NELLY</option><option>VJ BANKS</option><option>VJ RYAN</option><option>VJ KIMULI</option><option>VJ MOX</option></select>
+                </div>
+                <div class="field"><label>Year</label><input type="text" id="f-year" placeholder="2024"/></div>
+              </div>
+              <div class="field"><label>Genre</label><input type="text" id="f-genre" placeholder="Action, Drama..."/></div>
+
+              <!-- POSTER URL with live preview -->
+              <div class="field">
+                <label>Poster URL</label>
+                <div class="thumb-row">
+                  <div style="flex:1">
+                    <input type="text" id="f-thumb" placeholder="https://... paste poster image link" oninput="previewThumb(this.value)"/>
+                    <div class="field-hint">Paste any image URL — live preview on right</div>
+                  </div>
+                  <div class="thumb-preview" id="thumb-preview" style="display:none">
+                    <img id="thumb-preview-img" src="" alt=""/>
+                    <div class="thumb-preview-label">Preview</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field"><label>Play Link</label><input type="text" id="f-play" placeholder="https://archive.org/details/... or .mp4 URL"/></div>
+              <div class="field">
+                <label>Download Link</label>
+                <input type="text" id="f-dl" placeholder="https://ia600808.us.archive.org/.../MOVIE.mp4" oninput="previewDlLink(this.value)"/>
+                <div class="field-hint" id="dl-link-hint">Paste direct .mp4 URL from archive.org</div>
+              </div>
+              <button class="upload-btn" id="submit-btn" onclick="submitContent()">
+                <svg width="14" height="14"><use href="#i-plus"/></svg>
+                <span id="submit-label">Add to Library</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- LIBRARY -->
+          <div class="admin-section" id="admin-library">
+            <div class="lib-filter-bar">
+              <button class="lib-tab active" data-f="all"       onclick="setLibFilter(this,'all')">All</button>
+              <button class="lib-tab"        data-f="movie"     onclick="setLibFilter(this,'movie')">Movies</button>
+              <button class="lib-tab"        data-f="series"    onclick="setLibFilter(this,'series')">Series</button>
+              <button class="lib-tab"        data-f="animation" onclick="setLibFilter(this,'animation')">Animation</button>
+              <button class="lib-tab"        data-f="indian"    onclick="setLibFilter(this,'indian')">Indian</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px" id="lib-count">0 items</div>
+            <div class="lib-poster-grid" id="lib-list"></div>
+          </div>
+
+          <!-- SUBSCRIBERS -->
+          <div class="admin-section" id="admin-subscribers">
+            <div class="sub-add-row">
+              <input type="text" id="sub-name"  placeholder="Name e.g. John"     class="sub-inp"/>
+              <input type="text" id="sub-phone" placeholder="Phone +256700..."   class="sub-inp"/>
+              <select id="sub-plan" class="sub-inp"><option value="monthly">Monthly</option><option value="3months">3 Months</option><option value="yearly">Yearly</option></select>
+              <button class="upload-btn" style="padding:10px" onclick="addSubscriber()"><svg width="13" height="13"><use href="#i-plus"/></svg> Add</button>
+            </div>
+            <div class="sub-list" id="sub-list"><div class="empty-msg">No subscribers yet.</div></div>
+          </div>
+
+          <!-- PAYMENTS -->
+          <div class="admin-section" id="admin-payments">
+            <div class="pay-list" id="pay-list"><div class="empty-msg">No payment requests yet.</div></div>
+          </div>
+
+          <div class="acard" style="margin-top:14px">
+            <div class="acard-hd">Change Admin Password</div>
+            <button class="upload-btn" style="background:var(--s3);color:var(--txt);border:1px solid var(--brd);box-shadow:none" onclick="openChangePass()"><svg width="13" height="13"><use href="#i-lock"/></svg> Change Password</button>
+          </div>
+          <button class="back-btn-full" onclick="showSection('home')"><svg width="13" height="13"><use href="#i-back"/></svg> Back to App</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- PWA INSTALL BANNER -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <div class="install-banner-left"><svg width="18" height="18"><use href="#i-install"/></svg><span>Install Kenmovies App</span></div>
+    <div class="install-banner-right">
+      <button class="install-banner-btn" onclick="triggerInstall()">Install</button>
+      <button class="install-banner-close" onclick="dismissInstallBanner()">&#215;</button>
     </div>
   </div>
-  <div style="display:flex;gap:6px">
-    <button class="tb-btn" onclick="openModal('contact-modal')">Contact</button>
-    <button class="tb-btn" id="admin-btn" onclick="goAdmin()" style="display:none">Admin</button>
-    <button class="tb-btn" id="lock-btn" onclick="openPinModal()">&#9679;&#9679;&#9679;</button>
-  </div>
-</header>
 
-<div class="layout">
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sb-logo">KENMOVIES</div>
-    <button class="snav active" id="snav-home"      onclick="go('home')">Home</button>
-    <button class="snav"        id="snav-movies"    onclick="go('movies')">Movies</button>
-    <button class="snav"        id="snav-series"    onclick="go('series')">Series</button>
-    <button class="snav"        id="snav-indian"    onclick="go('indian')">Indian</button>
-    <button class="snav"        id="snav-animation" onclick="go('animation')">Animation</button>
-    <button class="snav"        id="snav-favs"      onclick="go('favs')">Favourites</button>
-    <div style="height:1px;background:var(--brd);margin:6px 4px"></div>
-    <button class="snav"        id="snav-downloads" onclick="go('downloads')">Downloads</button>
-    <button class="snav"        id="snav-settings"  onclick="go('settings')">Settings</button>
-    <button class="snav"                            onclick="openModal('contact-modal')">Contact</button>
-    <button class="snav"        id="snav-admin"     onclick="goAdmin()" style="display:none">Admin</button>
+  <!-- BOTTOM NAV -->
+  <nav class="botnav">
+    <button class="bnav active" id="bnav-home"      onclick="showSection('home')"><span class="bnav-lbl">Home</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-movies"    onclick="showSection('movies')"><span class="bnav-lbl">Movies</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-series"    onclick="showSection('series')"><span class="bnav-lbl">Series</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-indian"    onclick="showSection('indian')"><span class="bnav-lbl">Indian</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-animation" onclick="showSection('animation')"><span class="bnav-lbl">Anime</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-downloads" onclick="showSection('downloads')"><span class="bnav-lbl">Downloads</span><div class="bnav-dot"></div></button>
+    <button class="bnav"        id="bnav-settings"  onclick="showSection('settings')"><span class="bnav-lbl">Settings</span><div class="bnav-dot"></div></button>
   </nav>
-
-  <!-- CONTENT -->
-  <main class="content" id="content">
-
-    <!-- HOME -->
-    <div class="page active" id="page-home">
-      <div class="auto-strip-wrap"><div id="auto-strip"></div></div>
-      <div class="vj-rows" id="rows-home"></div>
-    </div>
-
-    <!-- MOVIES / SERIES / INDIAN / ANIMATION -->
-    <div class="page" id="page-movies"><div class="ph"><h1 class="ptitle">Movies</h1></div><div class="vj-rows" id="rows-movies"></div></div>
-    <div class="page" id="page-series"><div class="ph"><h1 class="ptitle">Series</h1></div><div class="vj-rows" id="rows-series"></div></div>
-    <div class="page" id="page-indian"><div class="ph"><h1 class="ptitle">Indian</h1></div><div class="vj-rows" id="rows-indian"></div></div>
-    <div class="page" id="page-animation"><div class="ph"><h1 class="ptitle">Animation</h1></div><div class="vj-rows" id="rows-animation"></div></div>
-
-    <!-- FAVOURITES -->
-    <div class="page" id="page-favs">
-      <div class="ph"><h1 class="ptitle">Favourites</h1></div>
-      <div class="poster-grid" id="grid-favs"></div>
-    </div>
-
-    <!-- DOWNLOADS -->
-    <div class="page" id="page-downloads">
-      <div class="ph"><h1 class="ptitle">Downloads</h1></div>
-      <div style="padding:0 16px"><div id="dl-list"></div></div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div class="page" id="page-settings">
-      <div class="ph"><h1 class="ptitle">Settings</h1></div>
-      <div class="settings-body">
-        <button onclick="enableNotifications()" class="notif-btn">Enable Notifications</button>
-        <div class="scard">
-          <div class="scard-hd">Contact Us</div>
-          <div class="srow srow-tap" onclick="window.open('https://wa.me/256702381857','_blank')">
-            <div class="srow-ic" style="background:rgba(37,211,102,.15);color:#25d366">W</div>
-            <div><div class="sl">WhatsApp</div><div class="sv teal">+256 702 381 857</div></div>
-          </div>
-          <div class="srow srow-tap" onclick="openModal('contact-modal')">
-            <div class="srow-ic">✉</div>
-            <div><div class="sl">Support</div><div class="sv">kenmovies.is-a.dev</div></div>
-          </div>
-        </div>
-        <div class="scard">
-          <div class="scard-hd">App Info</div>
-          <div class="srow"><div class="srow-ic">KM</div><div><div class="sl">Website</div><div class="sv teal">kenmovies.is-a.dev</div></div></div>
-        </div>
-        <div class="scard">
-          <div class="scard-hd">Stats</div>
-          <div class="stats-row">
-            <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total</div></div>
-            <div class="stat"><div class="stat-n" id="st-movies">0</div><div class="stat-l">Movies</div></div>
-            <div class="stat"><div class="stat-n" id="st-series">0</div><div class="stat-l">Series</div></div>
-            <div class="stat"><div class="stat-n" id="st-anim">0</div><div class="stat-l">Anime</div></div>
-          </div>
-        </div>
-        <div class="scard">
-          <div class="scard-hd">About</div>
-          <div class="srow srow-tap" id="secret-row" onclick="secretTap()">
-            <div class="srow-ic">★</div>
-            <div><div class="sl">Version</div><div class="sv">Kenmovies v5.0</div></div>
-          </div>
-        </div>
-        <div class="app-ver">Kenmovies v5.0 · Made in Uganda</div>
-      </div>
-    </div>
-
-    <!-- ADMIN -->
-    <div class="page" id="page-admin">
-      <div class="ph"><h1 class="ptitle">Admin</h1><button class="back-inline-btn" onclick="go('home')">← Exit</button></div>
-      <div class="admin-body">
-        <div class="admin-tabs">
-          <button class="atab active" onclick="setATab(this,'upload')">Upload</button>
-          <button class="atab" onclick="setATab(this,'library')">Library</button>
-        </div>
-        <div class="admin-section active" id="admin-upload">
-          <div class="upload-form">
-            <div class="upload-form-head">
-              <span id="form-mode-label">Add Content</span>
-              <button id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">Cancel</button>
-            </div>
-            <div class="cat-tabs">
-              <button class="cat-tab active" data-cat="movie"     onclick="setCat(this,'movie')">Movie</button>
-              <button class="cat-tab"        data-cat="series"    onclick="setCat(this,'series')">Series</button>
-              <button class="cat-tab"        data-cat="animation" onclick="setCat(this,'animation')">Animation</button>
-              <button class="cat-tab"        data-cat="indian"    onclick="setCat(this,'indian')">Indian</button>
-            </div>
-            <input type="hidden" id="f-cat" value="movie"/>
-            <input type="hidden" id="edit-id" value=""/>
-            <div id="series-only" style="display:none;flex-direction:column;gap:10px">
-              <div class="field"><label>Series Name</label><input type="text" id="f-series-name" placeholder="e.g. Prison Break"/></div>
-              <div class="two"><div class="field"><label>Season</label><input type="number" id="f-season" value="1" min="1"/></div><div class="field"><label>Episode</label><input type="number" id="f-epnum" value="1" min="1"/></div></div>
-            </div>
-            <div class="field"><label id="title-lbl">Title</label><input type="text" id="f-title" placeholder="e.g. Black Panther"/></div>
-            <div class="field"><label>Description</label><textarea id="f-desc" placeholder="Short description..."></textarea></div>
-            <div class="two">
-              <div class="field"><label>VJ</label>
-                <select id="f-vj"><option value="">Select VJ</option><option>VJ Junior</option><option>VJ Emmy</option><option>VJ Ice P</option><option>VJ Sammy</option><option>VJ Little T</option><option>VJ Jingo</option><option>VJ ULIO</option><option>VJ HD</option><option>VJ SMK</option><option>VJ KEVO</option><option>VJ UNCLE T</option><option>VJ KISULE</option><option>VJ SHIELD</option><option>VJ MARK</option><option>VJ MOON</option><option>VJ KEVIN</option><option>VJ HEAVY Q</option><option>VJ KRISS SWEET</option><option>VJ SHAO KHAN</option><option>VJ MOSCO</option><option>VJ MUBA</option><option>VJ RONNIE</option><option>VJ IVO</option><option>VJ TONNY</option><option>VJ KS</option><option>VJ TOM</option><option>VJ SOUL</option><option>VJ NELLY</option><option>VJ BANKS</option><option>VJ RYAN</option><option>VJ KIMULI</option><option>VJ MOX</option></select>
-              </div>
-              <div class="field"><label>Year</label><input type="text" id="f-year" placeholder="2024"/></div>
-            </div>
-            <div class="field"><label>Genre</label><input type="text" id="f-genre" placeholder="Action, Drama..."/></div>
-            <div class="field">
-              <label>Poster URL</label>
-              <div style="display:flex;gap:8px;align-items:flex-start">
-                <div style="flex:1"><input type="text" id="f-thumb" placeholder="https://... poster image URL" oninput="previewThumb(this.value)"/></div>
-                <div id="thumb-prev" style="display:none;width:70px;height:100px;border-radius:6px;overflow:hidden;border:1px solid var(--brd);flex-shrink:0"><img id="thumb-prev-img" style="width:100%;height:100%;object-fit:cover"/></div>
-              </div>
-            </div>
-            <div class="field"><label>Play Link <span style="color:var(--muted);font-size:9px">(archive.org/details/... or .mp4 URL)</span></label><input type="text" id="f-play" placeholder="https://archive.org/details/MOVIENAME"/></div>
-            <div class="field">
-              <label>Download Link <span style="color:var(--teal);font-size:9px">★ also used to play if Play Link empty</span></label>
-              <input type="text" id="f-dl" placeholder="https://archive.org/download/NAME/NAME.mp4"/>
-              <div id="dl-hint" style="font-size:9px;color:var(--muted);margin-top:3px">Paste direct .mp4 URL</div>
-            </div>
-            <button class="upload-btn" id="submit-btn" onclick="submitContent()">
-              <span id="submit-lbl">Add to Library</span>
-            </button>
-          </div>
-        </div>
-        <div class="admin-section" id="admin-library">
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="lib-filter-bar">
-            <button class="lib-tab active" data-f="all"       onclick="setLibFilter(this,'all')">All</button>
-            <button class="lib-tab"        data-f="movie"     onclick="setLibFilter(this,'movie')">Movies</button>
-            <button class="lib-tab"        data-f="series"    onclick="setLibFilter(this,'series')">Series</button>
-            <button class="lib-tab"        data-f="animation" onclick="setLibFilter(this,'animation')">Animation</button>
-            <button class="lib-tab"        data-f="indian"    onclick="setLibFilter(this,'indian')">Indian</button>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:8px" id="lib-count">0 items</div>
-          <div class="lib-poster-grid" id="lib-grid"></div>
-        </div>
-      </div>
-    </div>
-
-  </main>
 </div>
 
-<!-- BOTTOM NAV -->
-<nav class="botnav">
-  <button class="bnav active" id="bnav-home"      onclick="go('home')"><span class="bnav-lbl">Home</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-movies"    onclick="go('movies')"><span class="bnav-lbl">Movies</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-series"    onclick="go('series')"><span class="bnav-lbl">Series</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-indian"    onclick="go('indian')"><span class="bnav-lbl">Indian</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-animation" onclick="go('animation')"><span class="bnav-lbl">Anime</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-favs"      onclick="go('favs')"><span class="bnav-lbl">Favs</span><div class="bnav-dot"></div></button>
-  <button class="bnav"        id="bnav-settings"  onclick="go('settings')"><span class="bnav-lbl">Settings</span><div class="bnav-dot"></div></button>
-</nav>
-
-<!-- ═══ MOVIE DETAIL OVERLAY ══════════════════════════════════ -->
-<div id="detail-ov" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:400;overflow-y:auto">
-  <div id="detail-body"></div>
-</div>
-
-<!-- ═══ PLAYER OVERLAY ════════════════════════════════════════ -->
-<div id="player-ov" style="display:none;position:fixed;inset:0;background:#000;z-index:600;flex-direction:column">
-  <!-- VIDEO AREA -->
-  <div id="vid-wrap" style="position:relative;width:100%;aspect-ratio:16/9;background:#000;flex-shrink:0">
-    <div id="vid-box" style="position:absolute;inset:0"></div>
-    <!-- CONTROLS -->
-    <div id="kp-ctrl" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;opacity:0;pointer-events:none;transition:opacity .3s;background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 25%,transparent 55%,rgba(0,0,0,.85) 100%)">
-      <!-- TOP -->
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;pointer-events:all">
-        <button onclick="closePlayer()" style="background:rgba(0,0,0,.5);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent">‹</button>
-        <div style="flex:1;min-width:0">
-          <div id="kp-title" style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-          <div id="kp-ep"    style="font-size:10px;color:rgba(255,255,255,.6);margin-top:1px"></div>
-        </div>
-        <div style="display:flex;gap:5px;pointer-events:all">
-          <button onclick="kpRotate()"     style="background:rgba(0,0,0,.5);border:none;border-radius:7px;width:36px;height:36px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">↺</button>
-          <button onclick="kpZoom()"       id="zoom-btn" style="background:rgba(0,0,0,.5);border:none;border-radius:7px;width:36px;height:36px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⊕</button>
-          <button onclick="kpFullscreen()" id="fs-btn"   style="background:rgba(0,0,0,.5);border:none;border-radius:7px;width:36px;height:36px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⛶</button>
-        </div>
-      </div>
-      <!-- CENTER -->
-      <div style="display:flex;align-items:center;justify-content:center;gap:34px;pointer-events:all">
-        <button onclick="kpSeek(-10)" style="background:rgba(0,0,0,.4);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:22px;cursor:pointer;-webkit-tap-highlight-color:transparent">⟲</button>
-        <button id="kp-play-btn" onclick="kpToggle()" style="background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);border-radius:50%;width:68px;height:68px;color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▶</button>
-        <button onclick="kpSeek(10)"  style="background:rgba(0,0,0,.4);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:22px;cursor:pointer;-webkit-tap-highlight-color:transparent">⟳</button>
-      </div>
-      <!-- BOTTOM -->
-      <div style="padding:0 14px 16px;pointer-events:all">
-        <div id="kp-prog" onclick="kpSeekClick(event)" style="width:100%;height:28px;display:flex;align-items:center;cursor:pointer;position:relative;touch-action:none">
-          <div style="position:absolute;left:0;right:0;height:3px;background:rgba(255,255,255,.2);border-radius:99px"></div>
-          <div id="kp-fill" style="position:absolute;left:0;height:3px;background:#00e5c3;border-radius:99px;width:0%;pointer-events:none"></div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span id="kp-time" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:600;font-variant-numeric:tabular-nums">0:00 / 0:00</span>
-          <button onclick="kpDownload()" style="background:rgba(0,0,0,.5);border:none;border-radius:7px;width:34px;height:34px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬇</button>
-        </div>
-      </div>
-    </div>
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="search-overlay">
+  <div class="search-top">
+    <button class="search-back" onclick="closeSearch()"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+    <input type="text" id="search-input" class="search-inp" placeholder="Search..." oninput="doSearch(this.value)" autofocus/>
+    <button class="s-clear-btn" id="s-clear-btn" onclick="clearSearch()" style="display:none"><svg width="16" height="16"><use href="#i-x"/></svg></button>
   </div>
-  <!-- PLAYER INFO (scrollable below video) -->
-  <div id="player-info" style="flex:1;overflow-y:auto;background:var(--bg)">
-    <div id="pi-card" style="display:none;gap:13px;padding:14px 16px;background:var(--s1);border-bottom:1px solid var(--brd)">
-      <div style="flex-shrink:0;width:84px;height:120px;border-radius:8px;overflow:hidden;background:var(--s2);border:1px solid var(--brd)">
-        <img id="pi-img" src="" style="width:100%;height:100%;object-fit:cover;display:block"/>
-      </div>
-      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;padding-top:2px">
-        <div id="pi-title" style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--txt);line-height:1.1"></div>
-        <div id="pi-vj"    style="font-size:10px;color:var(--teal);font-weight:600"></div>
-        <div id="pi-tags"  style="display:flex;gap:4px;flex-wrap:wrap"></div>
-        <div id="pi-desc"  style="font-size:10px;color:var(--muted2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden"></div>
-      </div>
-    </div>
-    <div style="padding:12px 16px;display:flex;gap:8px">
-      <button id="fav-btn" onclick="toggleFav()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--brd);background:var(--s2);color:var(--txt);font-family:'DM Sans',sans-serif;transition:all .15s">♡ Add to Favourites</button>
-    </div>
-    <div id="more-like" style="padding:0 16px 20px"></div>
-  </div>
-</div>
-
-<!-- ═══ SEARCH ════════════════════════════════════════════════ -->
-<div id="search-ov" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:700;flex-direction:column">
-  <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--brd)">
-    <button onclick="closeSearch()" style="background:none;border:none;color:var(--teal);font-size:24px;cursor:pointer;padding:2px;line-height:1">‹</button>
-    <input id="search-inp" type="text" placeholder="Search..." oninput="doSearch(this.value)" style="flex:1;background:var(--s2);border:1px solid var(--brd);border-radius:99px;color:var(--txt);font-size:13px;padding:8px 14px;outline:none;font-family:'DM Sans',sans-serif"/>
-  </div>
-  <div style="display:flex;gap:5px;padding:8px 14px;background:var(--s1);border-bottom:1px solid var(--brd);flex-wrap:wrap">
+  <div class="search-filters">
     <button class="sf-tab active" data-f="all"       onclick="setSF(this,'all')">All</button>
     <button class="sf-tab"        data-f="movie"     onclick="setSF(this,'movie')">Movies</button>
     <button class="sf-tab"        data-f="series"    onclick="setSF(this,'series')">Series</button>
     <button class="sf-tab"        data-f="animation" onclick="setSF(this,'animation')">Animation</button>
     <button class="sf-tab"        data-f="indian"    onclick="setSF(this,'indian')">Indian</button>
   </div>
-  <div id="search-results" style="flex:1;overflow-y:auto;padding:14px"><div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">Start typing...</div></div>
+  <div class="search-results" id="search-results"><div class="search-empty">Start typing to search...</div></div>
 </div>
 
-<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+<!-- MOVIE DETAIL OVERLAY (Kawogo style - opens when poster is tapped) -->
+<div class="detail-overlay" id="detail-overlay">
+  <div id="detail-body"></div>
+</div>
+
+<!-- PLAYER OVERLAY -->
+<div class="player-overlay" id="player-overlay">
+  <div class="kp-wrap" id="kp-wrap" onclick="kpShowControls()">
+    <div class="player-video" id="player-video"></div>
+    <div class="kp-controls" id="kp-controls">
+      <!-- TOP BAR - always tappable -->
+      <div class="kp-top">
+        <button class="kp-back-btn" onclick="closePlayer()"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+        <div class="kp-top-info">
+          <div class="kp-top-title" id="kp-top-title"></div>
+          <div class="kp-top-ep"    id="kp-top-ep"></div>
+        </div>
+        <div class="kp-top-right">
+          <button class="kp-icon-btn" onclick="kpRotate()"><svg width="17" height="17"><use href="#i-rotate"/></svg></button>
+          <button class="kp-icon-btn" id="kp-zoom-btn" onclick="kpZoom()"><svg width="17" height="17"><use href="#i-zoom"/></svg></button>
+          <button class="kp-icon-btn" id="kp-fs-btn"   onclick="kpFullscreen()"><svg width="17" height="17" id="kp-fs-ico"><use href="#i-fullscreen"/></svg></button>
+        </div>
+      </div>
+      <!-- CENTER -->
+      <div class="kp-center">
+        <button class="kp-skip-btn" onclick="kpSeek(-10)">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5V2L8 6l4 4V7a7 7 0 1 1-7 7H3a9 9 0 1 0 9-9z"/><text x="7.5" y="16.5" font-size="5" fill="currentColor" stroke="none" font-weight="700">10</text></svg>
+        </button>
+        <button class="kp-play-btn" id="kp-play-btn" onclick="kpTogglePlay()">
+          <svg id="kp-play-ico" width="42" height="42" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="kp-skip-btn" onclick="kpSeek(10)">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5V2l4 4-4 4V7a7 7 0 1 0 7 7h2a9 9 0 1 1-9-9z"/><text x="7.5" y="16.5" font-size="5" fill="currentColor" stroke="none" font-weight="700">10</text></svg>
+        </button>
+      </div>
+      <!-- BOTTOM -->
+      <div class="kp-bottom">
+        <div class="kp-progress" id="kp-progress" onclick="kpSeekClick(event)">
+          <div class="kp-prog-bg"></div>
+          <div class="kp-prog-fill" id="kp-prog-fill" style="width:0%"></div>
+          <div class="kp-prog-thumb" id="kp-prog-thumb" style="left:0%"></div>
+        </div>
+        <div class="kp-bot-row">
+          <span class="kp-time" id="kp-time">0:00 / 0:00</span>
+          <div class="kp-bot-btns">
+            <button class="kp-icon-btn" onclick="downloadGate()"><svg width="15" height="15"><use href="#i-download"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PLAYER INFO -->
+  <div class="player-info" id="player-info-area">
+    <div class="pi-card" id="pi-card" style="display:none">
+      <div class="pi-poster-wrap">
+        <img class="pi-poster-img" id="pi-poster-img" src="" alt="" onerror="this.style.display='none'"/>
+        <div class="pi-poster-empty" id="pi-poster-empty"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>
+      </div>
+      <div class="pi-body">
+        <div class="pi-title" id="pi-title"></div>
+        <div class="pi-ep"    id="pi-ep"></div>
+        <div class="pi-tags"  id="pi-tags"></div>
+        <div class="pi-vj"    id="pi-vj"></div>
+        <div class="pi-desc"  id="pi-desc"></div>
+      </div>
+    </div>
+    <div class="pi-actions">
+      <button class="pi-fav-btn" id="pi-fav" onclick="toggleFav()">
+        <svg width="14" height="14" id="fav-ico"><use href="#i-heart"/></svg>
+        <span id="fav-txt">Add to Favourites</span>
+      </button>
+    </div>
+    <div class="ep-nav" id="ep-nav" style="display:none">
+      <button class="epnav-btn" id="ep-prev" onclick="playAdjacentEp(-1)"><svg width="15" height="15"><use href="#i-back"/></svg> Prev</button>
+      <span class="ep-nav-label" id="ep-nav-label"></span>
+      <button class="epnav-btn" id="ep-next" onclick="playAdjacentEp(1)">Next <svg width="15" height="15" style="transform:rotate(180deg)"><use href="#i-back"/></svg></button>
+    </div>
+    <div class="more-section">
+      <div class="more-title">More like these</div>
+      <div class="more-row" id="more-row"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
 <div class="modal-overlay" id="contact-modal" onclick="if(event.target===this)closeModal('contact-modal')">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('contact-modal')">✕</button>
-    <div style="font-size:28px">💬</div>
+    <button class="modal-close" onclick="closeModal('contact-modal')"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    <div class="modal-icon green-bg"><svg width="24" height="24"><use href="#i-whatsapp"/></svg></div>
     <div class="modal-title">Contact Kenmovies</div>
-    <div class="modal-sub">Subscriptions, requests & support</div>
-    <a class="modal-primary" href="https://wa.me/256702381857" target="_blank" style="text-decoration:none">Chat on WhatsApp</a>
-    <div style="font-size:11px;color:var(--muted2)">+256 702 381 857</div>
+    <div class="modal-sub">Subscriptions, requests and support.</div>
+    <a class="modal-primary wa-btn" href="https://wa.me/256702381857" target="_blank"><svg width="13" height="13"><use href="#i-whatsapp"/></svg> Chat on WhatsApp</a>
+    <div class="contact-info">
+      <div class="ci-row"><svg width="12" height="12"><use href="#i-phone"/></svg> +256 702 381 857</div>
+      <div class="ci-row"><svg width="12" height="12"><use href="#i-globe"/></svg> kenmovies.is-a.dev</div>
+    </div>
     <button class="modal-secondary" onclick="closeModal('contact-modal')">Close</button>
   </div>
 </div>
 
 <div class="modal-overlay" id="del-modal" onclick="if(event.target===this)closeModal('del-modal')">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('del-modal')">✕</button>
-    <div style="font-size:28px">🗑️</div>
+    <button class="modal-close" onclick="closeModal('del-modal')"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    <div class="modal-icon" style="background:rgba(255,68,68,.12);color:#ff4444;border:1px solid rgba(255,68,68,.2)"><svg width="24" height="24"><use href="#i-trash"/></svg></div>
     <div class="modal-title">Delete?</div>
-    <div class="modal-sub" id="del-sub">This cannot be undone.</div>
-    <button class="modal-primary" style="background:var(--red)" onclick="confirmDel()">Delete</button>
+    <div class="modal-sub" id="del-modal-sub">This cannot be undone.</div>
+    <button class="modal-primary" style="background:#ff4444" onclick="confirmDelete()"><svg width="13" height="13"><use href="#i-trash"/></svg> Delete</button>
     <button class="modal-secondary" onclick="closeModal('del-modal')">Cancel</button>
   </div>
 </div>
 
+<div class="modal-overlay" id="cs-modal" onclick="if(event.target===this)closeModal('cs-modal')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('cs-modal')"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    <div class="modal-title">Add Coming Soon</div>
+    <div class="modal-sub">Add a poster for an upcoming movie</div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <input type="text" id="cs-title-inp" class="momo-inp" placeholder="Movie title"/>
+      <input type="text" id="cs-thumb-inp" class="momo-inp" placeholder="Poster URL"/>
+      <input type="text" id="cs-date-inp"  class="momo-inp" placeholder="Release e.g. Coming April 2026"/>
+    </div>
+    <button class="modal-primary" onclick="addComingSoon()">Add Poster</button>
+    <button class="modal-secondary" onclick="closeModal('cs-modal')">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="change-pass-modal" onclick="if(event.target===this)closeModal('change-pass-modal')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('change-pass-modal')"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    <div class="modal-icon lock-bg"><svg width="24" height="24"><use href="#i-lock"/></svg></div>
+    <div class="modal-title">Change Password</div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <div class="pw-wrap"><input type="password" id="cp-current" class="pin-inp" placeholder="Current password"/></div>
+      <div class="pw-wrap"><input type="password" id="cp-new"     class="pin-inp" placeholder="New password (min 4 chars)"/></div>
+      <div class="pw-wrap"><input type="password" id="cp-confirm" class="pin-inp" placeholder="Confirm new password"/></div>
+    </div>
+    <div class="pin-err" id="cp-err"></div>
+    <button class="modal-primary" onclick="submitChangePass()"><svg width="13" height="13"><use href="#i-save"/></svg> Save Password</button>
+    <button class="modal-secondary" onclick="closeModal('change-pass-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- PIN MODAL -->
 <div class="modal-overlay" id="pin-modal" onclick="if(event.target===this)closeModal('pin-modal')">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('pin-modal')">✕</button>
-    <div style="font-size:28px">🔐</div>
+    <button class="modal-close" onclick="closeModal('pin-modal')"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    <div class="modal-icon lock-bg"><svg width="24" height="24"><use href="#i-lock"/></svg></div>
     <div class="modal-title">Admin Access</div>
-    <div class="pw-wrap"><input type="password" id="pin-inp" class="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/></div>
-    <div id="pin-err" style="font-size:11px;color:var(--red);min-height:14px"></div>
-    <button class="modal-primary" onclick="checkPin()">Enter Admin</button>
+    <div class="modal-sub">Enter your admin password</div>
+    <div class="pw-wrap"><input type="password" id="pin-inp" class="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="15" height="15" id="eye-ico"><use href="#i-eye"/></svg></button></div>
+    <div class="pin-err" id="pin-err"></div>
+    <button class="modal-primary" onclick="checkPin()"><svg width="13" height="13"><use href="#i-lock"/></svg> Enter Admin</button>
     <button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button>
   </div>
 </div>
 
-<div id="toast" style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--s2);color:var(--txt);border:1px solid var(--brd2);border-radius:99px;padding:9px 18px;font-size:11px;font-weight:700;z-index:9999;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s;font-family:'DM Sans',sans-serif"></div>
-
+<script src="app3.js"></script>
 <script>
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/kenpromovies/service-worker.js');
-
-// ── STATE ─────────────────────────────────────────────────────
-var DB = [], favs = [], curPlay = null, adminOn = false;
-var secretN = 0, secretT = null, libF = 'all', searchF = 'all';
-var editId = null, pendingDel = null;
-var kpZoomed = false, kpFS = false, kpCtrlT = null;
-var PASS_KEY = 'kp_admin_pass', FAV_KEY = 'kp_favs';
-
-function getPass(){ return localStorage.getItem(PASS_KEY)||'kenpro123'; }
-function loadFavs(){ try{ favs=JSON.parse(localStorage.getItem(FAV_KEY)||'[]'); }catch(e){ favs=[]; } }
-function saveFavs(){ try{ localStorage.setItem(FAV_KEY,JSON.stringify(favs)); }catch(e){} }
-loadFavs();
-if(localStorage.getItem('kp_admin')==='1'){ adminOn=true; revealAdmin(); }
-
-// ── FIREBASE ──────────────────────────────────────────────────
-function startFB(){
-  if(!window._fbReady){ document.addEventListener('fb-ready',startFB,{once:true}); return; }
-  var {collection,onSnapshot,orderBy,query,doc} = window._fb, db = window._db;
-  var newD=[], oldD=[], nDone=false, oDone=false;
-  function merge(){
-    if(!nDone||!oDone) return;
-    DB = [...oldD];
-    newD.forEach(n=>{ if(!DB.find(o=>o.id===n.id)) DB.push(n); });
-    renderAll();
-  }
-  onSnapshot(query(collection(db,'content'),orderBy('createdAt','desc')),snap=>{
-    newD=snap.docs.map(d=>({id:d.id,...d.data()})); nDone=true; merge();
-  },()=>{ nDone=true; merge(); });
-  onSnapshot(doc(db,'settings','movies'),snap=>{
-    if(snap.exists()){
-      var raw=snap.data(), list=raw.list||raw.movies||[];
-      oldD=list.map((m,i)=>({id:'L'+i,title:m.title||m.name||'',cat:m.cat||(m.seriesName?'series':'movie'),
-        vj:m.vj||m.VJ||'',genre:m.genre||'',year:m.year||'',desc:m.desc||m.description||'',
-        thumb:m.thumb||m.thumbnail||m.poster||'',play:m.play||m.playLink||m.link||m.url||'',
-        dl:m.dl||m.dlLink||m.downloadLink||'',seriesName:m.seriesName||'',
-        season:m.season||1,epNum:m.epNum||m.episode||1,epTitle:m.epTitle||'',createdAt:m.createdAt||i}));
-    } else oldD=[];
-    oDone=true; merge();
-  },()=>{ oDone=true; merge(); });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/kenpromovies/service-worker.js');
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────
-function go(sec){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.snav,.bnav').forEach(b=>b.classList.remove('active'));
-  var pg=document.getElementById('page-'+sec); if(pg) pg.classList.add('active');
-  var sn=document.getElementById('snav-'+sec); if(sn) sn.classList.add('active');
-  var bn=document.getElementById('bnav-'+sec); if(bn) bn.classList.add('active');
-  var c=document.getElementById('content'); if(c) c.scrollTop=0;
-  if(sec==='favs') renderFavs();
-  if(sec==='settings') updateStats();
-  if(sec==='admin'){ renderLib(); }
-}
+// ── POSTER CARD BUILDER (replaces old movieCard) ──────────────
+// Replaces the card building in app3.js with poster-only style
+window._buildPosterCard = function(m) {
+  const isS = m.cat === 'series';
+  const click = isS
+    ? `openDetailOverlay('${(m._sname||m.seriesName||m.title).replace(/'/g,"\\'")}','series')`
+    : `openDetailOverlay('${m.id}','movie')`;
+  const editBtn = window.adminUnlocked
+    ? `<button class="pc-edit" onclick="event.stopPropagation();startEdit('${m.id}')">E</button>`
+    : '';
+  return `<div class="pcard" onclick="${click}">
+    <div class="pcard-poster">
+      ${m.thumb ? `<img src="${m.thumb}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+      ${!m.thumb ? `<div class="pcard-noimg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>` : ''}
+      <div class="pcard-hover">
+        <div class="pcard-hover-title">${m.seriesName || m.title}</div>
+        ${m.vj ? `<div class="pcard-hover-vj">${m.vj}</div>` : ''}
+      </div>
+      ${m.vj ? `<div class="pcard-vj-tag">${m.vj}</div>` : ''}
+      ${editBtn}
+    </div>
+    <div class="pcard-label">
+      <div class="pcard-title">${m.seriesName || m.title}</div>
+      ${m.year || m.genre ? `<div class="pcard-sub">${[m.year,m.genre].filter(Boolean).join(' · ')}</div>` : ''}
+    </div>
+  </div>`;
+};
 
-// ── RENDER ────────────────────────────────────────────────────
-function renderAll(){
-  buildRows('rows-home', DB);
-  buildRows('rows-movies', DB.filter(m=>m.cat==='movie'));
-  buildRows('rows-series', DB.filter(m=>m.cat==='series'), true);
-  buildRows('rows-indian', DB.filter(m=>m.cat==='indian'));
-  buildRows('rows-animation', DB.filter(m=>m.cat==='animation'));
-  buildStrip();
-  updateStats();
-}
-
-function buildRows(containerId, items, dedupeS){
-  var el=document.getElementById(containerId); if(!el) return;
-  var base=items;
-  if(dedupeS){
-    var seen={}, deduped=[];
-    items.forEach(m=>{ var k=m.seriesName||m.title; if(!seen[k]){seen[k]=true;deduped.push({...m,_sg:true,_sn:k});} });
-    base=deduped;
-  }
-  if(!base.length){ el.innerHTML='<div class="empty-page">No content yet.</div>'; return; }
-  var vjMap={};
-  base.forEach(m=>{ var v=m.vj||'Unknown'; if(!vjMap[v]) vjMap[v]=[]; vjMap[v].push(m); });
-  var html='<div class="vj-row-block"><div class="row-head"><span class="row-label">Latest</span><span style="font-size:9px;color:var(--muted)">'+base.length+' titles</span></div><div class="hrow">'+base.slice(0,20).map(m=>card(m)).join('')+'</div></div>';
-  Object.keys(vjMap).forEach(vj=>{
-    html+='<div class="vj-row-block"><div class="row-head"><span class="row-label">'+vj+'</span></div><div class="hrow">'+vjMap[vj].map(m=>card(m)).join('')+'</div></div>';
-  });
-  el.innerHTML=html;
-}
-
-function card(m){
-  var click = m._sg||m.cat==='series'
-    ? "openDetail('"+(m._sn||m.seriesName||m.title).replace(/'/g,"\\'")+"','series')"
-    : "openDetail('"+m.id+"','movie')";
-  var edit = adminOn ? '<button class="pc-edit" onclick="event.stopPropagation();startEdit(\''+m.id+'\')">E</button>' : '';
-  return '<div class="pcard" onclick="'+click+'">'
-    +'<div class="pcard-poster">'
-    +(m.thumb?'<img src="'+m.thumb+'" loading="lazy" onerror="this.style.display=\'none\'"/>':'')
-    +'<div class="pcard-hover"><div class="pcard-hover-title">'+(m.seriesName||m.title||'')+'</div>'
-    +(m.vj?'<div class="pcard-hover-vj">'+m.vj+'</div>':'')
-    +'</div>'
-    +(m.vj?'<div class="pcard-vj-tag">'+m.vj+'</div>':'')
-    +edit
-    +'</div>'
-    +'<div class="pcard-label"><div class="pcard-title">'+(m.seriesName||m.title||'')+'</div>'
-    +(m.year||m.genre?'<div class="pcard-sub">'+(m.year||'')+( m.year&&m.genre?' · ':'')+( m.genre||'')+'</div>':'')
-    +'</div></div>';
-}
-
-// ── HERO STRIP — one movie at a time, 5s rotation ─────────────
-var _heroMovies=[], _heroIdx=0, _heroTimer=null;
-
-function buildStrip(){
-  _heroMovies=DB.filter(m=>m.thumb);
-  if(!_heroMovies.length) return;
-  showHero(0);
-  clearInterval(_heroTimer);
-  _heroTimer=setInterval(function(){
-    _heroIdx=(_heroIdx+1)%_heroMovies.length;
-    showHero(_heroIdx);
-  },5000);
-}
-
-function showHero(idx){
-  var m=_heroMovies[idx]; if(!m) return;
-  var strip=document.getElementById('auto-strip'); if(!strip) return;
-  // Build full-width hero card
-  var click=m.cat==='series'
-    ?"openDetail('"+(m.seriesName||m.title).replace(/'/g,"\\'")+"','series')"
-    :"openDetail('"+m.id+"','movie')";
-  strip.innerHTML=
-    '<div class="hero-slide" onclick="'+click+'">'
-    +'<div class="hero-slide-bg" style="background-image:url(\''+m.thumb+'\')"></div>'
-    +'<div class="hero-slide-grad"></div>'
-    +'<div class="hero-slide-content">'
-    +'<div class="hero-badge">Now Streaming</div>'
-    +'<div class="hero-slide-title">'+(m.seriesName||m.title)+'</div>'
-    +'<div class="hero-slide-meta">'+(m.vj||'')+( m.vj&&m.year?' · ':'')+( m.year||'')+( (m.vj||m.year)&&m.genre?' · ':'')+( m.genre||'')+'</div>'
-    +'</div>'
-    +'<div class="hero-dots">'
-    +_heroMovies.slice(0,Math.min(_heroMovies.length,8)).map((_,i)=>'<div class="hdot'+(i===idx?' active':'')+'" onclick="event.stopPropagation();jumpHero('+i+')"></div>').join('')
-    +'</div>'
-    +'</div>';
-}
-
-function jumpHero(i){
-  _heroIdx=i; clearInterval(_heroTimer);
-  showHero(i);
-  _heroTimer=setInterval(function(){ _heroIdx=(_heroIdx+1)%_heroMovies.length; showHero(_heroIdx); },5000);
-}
-
-function updateStats(){
-  function ss(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
-  ss('st-total',DB.length);
-  ss('st-movies',DB.filter(m=>m.cat==='movie').length);
-  ss('st-series',[...new Set(DB.filter(m=>m.cat==='series').map(m=>m.seriesName||m.title))].length);
-  ss('st-anim',DB.filter(m=>m.cat==='animation').length);
-}
-
-// ── DETAIL OVERLAY ────────────────────────────────────────────
-function openDetail(idOrSname, type){
-  var m, eps=[], sname='';
-  if(type==='series'){
-    sname=idOrSname;
-    eps=DB.filter(e=>e.cat==='series'&&(e.seriesName||e.title)===sname)
-       .sort((a,b)=>(a.season||1)-(b.season||1)||(a.epNum||1)-(b.epNum||1));
-    m=eps[0];
+// ── MOVIE DETAIL OVERLAY (Kawogo style) ───────────────────────
+window.openDetailOverlay = function(idOrSname, type) {
+  let m, eps = [], sname = '';
+  if (type === 'series') {
+    sname = idOrSname;
+    eps = allContent.filter(e => e.cat === 'series' && (e.seriesName || e.title) === sname)
+      .sort((a,b) => (a.season||1)-(b.season||1) || (a.epNum||1)-(b.epNum||1));
+    m = eps[0];
   } else {
-    m=DB.find(c=>c.id===idOrSname);
+    m = allContent.find(c => c.id === idOrSname);
   }
-  if(!m) return;
+  if (!m) return;
 
-  var isFav=favs.includes('F'+m.id);
-  var similar=DB.filter(x=>x.id!==m.id&&x.cat===m.cat).slice(0,12);
+  const isFav = favs.includes('item-' + m.id);
+  const similar = allContent.filter(x => x.id !== m.id && x.cat === m.cat).slice(0, 12);
 
-  var epHtml='';
-  if(eps.length){
-    epHtml='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;letter-spacing:.06em;margin-bottom:12px">Episodes</div>'
-      +'<div class="det-ep-row">'+eps.map(ep=>'<div class="det-ep-card">'
-        +'<div class="det-ep-thumb" onclick="playNow(\''+ep.id+'\')">'
-        +(ep.thumb?'<img src="'+ep.thumb+'" onerror="this.style.display=\'none\'">':'')
-        +'<div class="det-ep-overlay">▶</div>'
-        +'<div class="det-ep-badge">S'+(ep.season||1)+' E'+(ep.epNum||1)+'</div></div>'
-        +'<div style="font-size:8px;color:var(--teal);font-weight:700;margin-bottom:2px">S'+(ep.season||1)+' E'+(ep.epNum||1)+'</div>'
-        +'<div style="font-size:10px;font-weight:600;color:var(--txt);margin-bottom:6px">'+(ep.epTitle||ep.title||'Episode '+(ep.epNum||1))+'</div>'
-        +'<div style="display:flex;gap:5px">'
-        +'<button onclick="playNow(\''+ep.id+'\')" style="flex:1;background:var(--teal);color:#000;border:none;border-radius:6px;padding:6px 4px;font-size:10px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif">▶ Play</button>'
-        +'<button onclick="dlItem(\''+ep.id+'\')" style="background:var(--s2);color:var(--txt);border:1px solid var(--brd);border-radius:6px;padding:6px 8px;font-size:10px;cursor:pointer;font-family:\'DM Sans\',sans-serif">⬇</button>'
-        +'</div>'
-        +'</div>').join('')+'</div>';
-  }
+  const epHtml = eps.length ? `
+    <div class="det-eps-title">Episodes</div>
+    <div class="det-ep-row">${eps.map(ep => `
+      <div class="det-ep-card" onclick="playItem('${ep.id}');closeDetailOverlay()">
+        <div class="det-ep-thumb">
+          ${ep.thumb ? `<img src="${ep.thumb}" onerror="this.style.display='none'">` : ''}
+          <div class="det-ep-overlay"><div class="det-ep-play"><svg width="16" height="16" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div></div>
+          <div class="det-ep-badge">S${ep.season||1} E${ep.epNum||1}</div>
+        </div>
+        <div class="det-ep-code">S${ep.season||1} E${ep.epNum||1}</div>
+        <div class="det-ep-name">${ep.epTitle || ep.title || 'Episode '+(ep.epNum||1)}</div>
+      </div>`).join('')}
+    </div>` : '';
 
-  var moreHtml='';
-  if(similar.length){
-    moreHtml='<div style="font-size:13px;font-weight:700;color:var(--txt);padding-top:16px;border-top:1px solid var(--brd);margin-bottom:12px">More like these</div>'
-      +'<div class="more-row">'+similar.map(x=>'<div class="more-card" onclick="openDetail(\''+(x.cat==='series'?(x.seriesName||x.title).replace(/'/g,"\\'"):x.id)+"','"+(x.cat==='series'?'series':'movie')+'\')">'
-        +'<div class="more-poster">'+(x.thumb?'<img src="'+x.thumb+'" loading="lazy">':'')+'</div>'
-        +'<div style="font-size:9px;font-weight:700;color:var(--txt)">'+(x.seriesName||x.title)+'</div>'
-        +'<div style="font-size:8px;color:var(--teal)">'+(x.vj||'')+'</div>'
-        +'</div>').join('')+'</div>';
-  }
+  const moreHtml = similar.length ? `
+    <div class="more-title" style="margin-top:0;padding-top:16px;border-top:1px solid var(--brd)">More like these</div>
+    <div class="more-row">${similar.map(x => `
+      <div class="more-card" onclick="openDetailOverlay('${x.cat==='series'?(x.seriesName||x.title).replace(/'/g,"\\'"):x.id}','${x.cat==='series'?'series':'movie'}')">
+        <div class="more-poster">${x.thumb ? `<img src="${x.thumb}" loading="lazy">` : ''}</div>
+        <div class="more-card-title">${x.seriesName || x.title}</div>
+        <div class="more-card-vj">${x.vj || ''}</div>
+      </div>`).join('')}
+    </div>` : '';
 
-  document.getElementById('detail-body').innerHTML=
-    '<div class="det-backdrop">'+(m.thumb?'<img src="'+m.thumb+'" onerror="this.style.opacity=\'.05\'">':'')
-    +'<div class="det-backdrop-grad"></div>'
-    +'<div class="det-topbar"><button class="det-back-btn" onclick="closeDetail()">‹</button></div>'
-    +'</div>'
-    +'<div class="det-body">'
-    +'<div class="det-title">'+(type==='series'?sname:m.title)+'</div>'
-    +'<div class="det-meta">'+(m.vj?'<span class="det-vj">'+m.vj+'</span>':'')+(m.genre?'<span class="det-genre">'+m.genre+'</span>':'')+(m.year?'<span class="det-year">'+m.year+'</span>':'')+'</div>'
-    +(m.desc?'<div class="det-desc">'+m.desc+'</div>':'')
-    +'<div class="det-actions">'
-    +(type!=='series'?'<button class="det-btn-watch" onclick="playNow(\''+m.id+'\')">▶ Play Now</button>':'')
-    +'<button class="det-btn-dl" onclick="dlItem(\''+m.id+'\')">⬇ Download</button>'
-    +'<button class="det-btn-fav'+(isFav?' on':'')+'" id="det-fav" onclick="detFav(\''+m.id+'\')">'+(isFav?'♥ Saved':'♡ Save')+'</button>'
-    +'</div>'
-    +epHtml+moreHtml
-    +'</div>';
+  document.getElementById('detail-body').innerHTML = `
+    <div class="det-backdrop">
+      ${m.thumb ? `<img src="${m.thumb}" onerror="this.style.opacity='.1'">` : ''}
+      <div class="det-backdrop-grad"></div>
+      <div class="det-topbar">
+        <button class="det-back-btn" onclick="closeDetailOverlay()"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-title">${type === 'series' ? sname : m.title}</div>
+      <div class="det-meta">
+        ${m.vj ? `<span class="det-vj">${m.vj}</span>` : ''}
+        ${m.genre ? `<span class="det-genre">${m.genre}</span>` : ''}
+        ${m.year  ? `<span class="det-year">${m.year}</span>` : ''}
+      </div>
+      ${m.desc ? `<div class="det-desc">${m.desc}</div>` : ''}
+      <div class="det-actions">
+        ${type !== 'series' ? `<button class="det-btn-watch" onclick="playItem('${m.id}');closeDetailOverlay()"><svg width="13" height="13" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Play Now</button>` : ''}
+        <button class="det-btn-dl" onclick="downloadItem('${m.id}')"><svg width="13" height="13"><use href="#i-download"/></svg> Download</button>
+        <button class="det-btn-fav ${isFav ? 'on' : ''}" id="det-fav-btn" onclick="_detToggleFav('${m.id}')">
+          <svg width="13" height="13" id="det-fav-ico"><use href="${isFav ? '#i-heart-f' : '#i-heart'}"/></svg>
+          <span id="det-fav-txt">${isFav ? 'Saved' : 'Save'}</span>
+        </button>
+      </div>
+      ${epHtml}
+      ${moreHtml}
+    </div>
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+};
 
-  var ov=document.getElementById('detail-ov');
-  ov.style.display='block';
-  ov.scrollTop=0;
-}
-
-function closeDetail(){
-  document.getElementById('detail-ov').style.display='none';
-}
-
-function detFav(id){
-  var key='F'+id, i=favs.indexOf(key);
-  if(i>=0) favs.splice(i,1); else favs.push(key);
+window._detToggleFav = function(id) {
+  const key = 'item-' + id;
+  const i = favs.indexOf(key);
+  if (i >= 0) favs.splice(i, 1); else favs.push(key);
   saveFavs();
-  var btn=document.getElementById('det-fav'); if(!btn) return;
-  var on=favs.includes(key);
-  btn.textContent=on?'♥ Saved':'♡ Save';
-  btn.className='det-btn-fav'+(on?' on':'');
-}
+  const on = favs.includes(key);
+  const ico = document.getElementById('det-fav-ico');
+  const txt = document.getElementById('det-fav-txt');
+  const btn = document.getElementById('det-fav-btn');
+  if (ico) ico.innerHTML = `<use href="${on ? '#i-heart-f' : '#i-heart'}"/>`;
+  if (txt) txt.textContent = on ? 'Saved' : 'Save';
+  if (btn) btn.classList.toggle('on', on);
+};
 
-// ── PLAY ──────────────────────────────────────────────────────
-function playNow(id){
-  var m=DB.find(c=>c.id===id); if(!m) return;
+window.closeDetailOverlay = function() {
+  document.getElementById('detail-overlay').classList.remove('open');
+};
 
-  // Close detail overlay first
-  closeDetail();
+// ── ADMIN TABS ────────────────────────────────────────────────
+window.setATab = function(el, tab) {
+  document.querySelectorAll('.atab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('admin-' + tab).classList.add('active');
+  if (tab === 'library') renderLib();
+  if (tab === 'subscribers') renderSubs();
+  if (tab === 'payments') renderPayments();
+};
 
-  curPlay={id, dlUrl: m.dl||''};
+// ── POSTER THUMB PREVIEW ──────────────────────────────────────
+window.previewThumb = function(url) {
+  const wrap = document.getElementById('thumb-preview');
+  const img  = document.getElementById('thumb-preview-img');
+  if (url && url.startsWith('http')) {
+    img.src = url;
+    img.onload  = () => { wrap.style.display = 'block'; };
+    img.onerror = () => { wrap.style.display = 'none'; };
+  } else { wrap.style.display = 'none'; }
+};
 
-  // Fill info card
-  var card=document.getElementById('pi-card'); if(card) card.style.display='flex';
-  var img=document.getElementById('pi-img'); if(img){ img.src=m.thumb||''; img.style.display=m.thumb?'block':'none'; }
-  var titleEl=document.getElementById('pi-title');
-  if(titleEl){
-    if(m.cat==='series'){
-      titleEl.innerHTML='<span style="display:block">'+(m.seriesName||m.title)+'</span>'
-        +'<span style="font-size:11px;font-weight:600;color:var(--teal)">S'+(m.season||1)+' E'+(m.epNum||1)+(m.epTitle?' — '+m.epTitle:'')+'</span>';
-    } else {
-      titleEl.textContent=m.title||'';
-    }
+// ── PIN MODAL (separate from app3 goAdmin) ────────────────────
+window.openPinModal = function() {
+  document.getElementById('pin-inp').value = '';
+  document.getElementById('pin-err').textContent = '';
+  openModal('pin-modal');
+  setTimeout(() => document.getElementById('pin-inp').focus(), 150);
+};
+
+// ── FULLSCREEN (CSS-based, works on all devices) ──────────────
+let _kpFS = false, _kpZoomed = false;
+window.kpFullscreen = function() {
+  _kpFS = !_kpFS;
+  const wrap = document.getElementById('kp-wrap');
+  const info = document.getElementById('player-info-area');
+  const ico  = document.getElementById('kp-fs-ico');
+  if (_kpFS) {
+    wrap.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:9999;aspect-ratio:unset;background:#000';
+    info.style.display = 'none';
+    ico.innerHTML = '<use href="#i-exit-fs"/>';
+    try { screen.orientation.lock('landscape'); } catch(e) {}
+  } else {
+    wrap.style.cssText = '';
+    info.style.display = '';
+    ico.innerHTML = '<use href="#i-fullscreen"/>';
+    try { screen.orientation.unlock(); } catch(e) {}
   }
-  function ss(i,v){ var e=document.getElementById(i); if(e) e.textContent=v||''; }
-  ss('pi-vj', m.vj||'');
-  ss('pi-desc', m.desc||'');
-  var tags=document.getElementById('pi-tags');
-  if(tags) tags.innerHTML=[m.genre,m.year].filter(Boolean).map(t=>'<span class="pi-tag">'+t+'</span>').join('');
+  kpShowControls();
+};
 
-  // Player header
-  ss('kp-title', m.cat==='series'?(m.seriesName||m.title):m.title);
-  ss('kp-ep', m.cat==='series'?'Season '+(m.season||1)+' · Episode '+(m.epNum||1):'');
+window.kpZoom = function() {
+  _kpZoomed = !_kpZoomed;
+  const v = document.querySelector('#player-video video');
+  if (v) v.style.objectFit = _kpZoomed ? 'cover' : 'contain';
+  const btn = document.getElementById('kp-zoom-btn');
+  if (btn) btn.style.color = _kpZoomed ? 'var(--teal)' : '';
+  showToast(_kpZoomed ? 'Zoom: Fill' : 'Zoom: Fit');
+};
 
-  // Fav button
-  var fb=document.getElementById('fav-btn');
-  if(fb){ var on=favs.includes('F'+id); fb.textContent=on?'♥ In Favourites':'♡ Add to Favourites'; fb.dataset.id=id; }
+window.kpRotate = function() {
+  try {
+    const cur = screen.orientation.type;
+    screen.orientation.lock(cur.startsWith('portrait') ? 'landscape' : 'portrait').catch(() => {});
+  } catch(e) { showToast('Rotate your device manually'); }
+};
 
-  // More like
-  buildMoreLike(id, m.cat);
+// ── POPULATE INFO CARD ────────────────────────────────────────
+const _origPlayItem = window.playItem;
+window.playItem = function(id) {
+  if (_origPlayItem) _origPlayItem(id);
+  setTimeout(() => {
+    const m = allContent && allContent.find(c => c.id === id);
+    if (!m) return;
+    const card = document.getElementById('pi-card');
+    if (card) card.style.display = 'flex';
+    const img = document.getElementById('pi-poster-img');
+    const emp = document.getElementById('pi-poster-empty');
+    if (m.thumb) { if(img){img.src=m.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
+    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
+    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
+    set('pi-title', m.title || m.seriesName || '');
+    set('pi-vj',    m.vj ? m.vj : '');
+    set('pi-desc',  m.desc || '');
+    const tags = document.getElementById('pi-tags');
+    if (tags) tags.innerHTML = [m.genre, m.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
+  }, 80);
+};
 
-  // Show player overlay
-  var po=document.getElementById('player-ov');
-  po.style.display='flex';
-  document.body.style.overflow='hidden';
+const _origPlayEp = window.playEpisode;
+window.playEpisode = function(id) {
+  if (_origPlayEp) _origPlayEp(id);
+  setTimeout(() => {
+    const ep = allContent && allContent.find(c => c.id === id);
+    if (!ep) return;
+    const card = document.getElementById('pi-card');
+    if (card) card.style.display = 'flex';
+    const img = document.getElementById('pi-poster-img');
+    const emp = document.getElementById('pi-poster-empty');
+    if (ep.thumb) { if(img){img.src=ep.thumb;img.style.display='block';} if(emp)emp.style.display='none'; }
+    else { if(img)img.style.display='none'; if(emp)emp.style.display='flex'; }
+    const titleEl = document.getElementById('pi-title');
+    if (titleEl) titleEl.innerHTML = `<span style="display:block">${ep.seriesName||ep.title}</span><span style="font-size:11px;font-weight:600;color:var(--teal)">S${ep.season||1} E${ep.epNum||1}${ep.epTitle?' — '+ep.epTitle:''}</span>`;
+    const set=(i,v)=>{const el=document.getElementById(i);if(el)el.textContent=v||'';};
+    set('pi-vj',   ep.vj || '');
+    set('pi-desc', ep.desc || '');
+    const tags = document.getElementById('pi-tags');
+    if (tags) tags.innerHTML = [ep.genre, ep.year].filter(Boolean).map(t => `<span class="pi-tag">${t}</span>`).join('');
+  }, 80);
+};
 
-  // Build video — use dl as play source if play empty
-  var src=(m.play&&m.play.trim())?m.play.trim():(m.dl&&m.dl.trim()?m.dl.trim():'');
-  buildVideo(src, m.dl||'', m.title||'');
-}
-
-function buildMoreLike(currentId, cat){
-  var el=document.getElementById('more-like'); if(!el) return;
-  var list=DB.filter(x=>x.id!==currentId&&x.cat===cat).slice(0,12);
-  if(!list.length){ el.innerHTML=''; return; }
-  el.innerHTML='<div style="font-size:14px;font-weight:700;color:var(--txt);margin-bottom:12px;padding-top:14px;border-top:1px solid var(--brd)">More like these</div>'
-    +'<div class="more-row">'+list.map(x=>'<div class="more-card" onclick="playNow(\''+x.id+'\')">'
-      +'<div class="more-poster">'+(x.thumb?'<img src="'+x.thumb+'" loading="lazy">':'')+'</div>'
-      +'<div style="font-size:9px;font-weight:700;color:var(--txt)">'+(x.seriesName||x.title)+'</div>'
-      +'<div style="font-size:8px;color:var(--teal)">'+(x.vj||'')+'</div>'
-      +'</div>').join('')+'</div>';
-}
-
-// ── VIDEO PLAYER ──────────────────────────────────────────────
-function buildVideo(src, dlUrl, title){
-  var box=document.getElementById('vid-box'); if(!box) return;
-  box.innerHTML='';
-  if(!src){
-    box.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center">'
-      +'<div style="color:#555;font-size:13px">No play link yet.<br>Add one in Admin panel.</div>'
-      +(dlUrl?'<a href="'+dlUrl+'" target="_blank" style="background:#00e5c3;color:#000;padding:10px 22px;border-radius:99px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px">Open in Browser</a>':'')
-      +'</div>';
-    showCtrls();
-    return;
-  }
-
-  // YouTube
-  if(src.includes('youtube.com')||src.includes('youtu.be')){
-    var m1=src.match(/[?&]v=([^&]+)/), m2=src.match(/youtu\.be\/([^?]+)/);
-    var vid=(m1&&m1[1])||(m2&&m2[1]);
-    if(vid){ box.innerHTML='<iframe src="https://www.youtube.com/embed/'+vid+'?autoplay=1" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;background:#000;display:block"></iframe>'; return; }
-  }
-
-  // Direct mp4
-  if(/\.(mp4|webm|m3u8)(\?|$)/i.test(src)){
-    playVid(box, src, dlUrl);
-    return;
-  }
-
-  // archive.org — extract item ID
-  var idM=src.match(/archive\.org\/(?:details|download|embed)\/([^/?#\s]+)/);
-  if(idM){
-    var itemId=idM[1].split('/')[0];
-    // If dl is direct mp4, use that (most reliable!)
-    if(dlUrl&&/\.mp4(\?|$)/i.test(dlUrl)){
-      playVid(box, dlUrl, dlUrl);
-      return;
-    }
-    // Try constructed direct URL
-    var direct='https://archive.org/download/'+itemId+'/'+itemId+'.mp4';
-    playVid(box, direct, dlUrl, itemId);
-    return;
-  }
-
-  // Fallback
-  playVid(box, src, dlUrl);
-}
-
-function playVid(box, url, dlUrl, archiveId){
-  box.innerHTML='<video id="kv" autoplay playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5"'
-    +' style="width:100%;height:100%;background:#000;display:block;object-fit:contain">'
-    +'<source src="'+url+'" type="video/mp4"/>'
-    +'<source src="'+url+'"/>'
-    +'</video>';
-
-  var v=document.getElementById('kv'); if(!v) return;
-
-  v.addEventListener('error',function(){
-    // Try dl URL if different
-    if(dlUrl&&dlUrl!==url&&/\.mp4(\?|$)/i.test(dlUrl)){
-      box.innerHTML=''; playVid(box,dlUrl,null,archiveId); return;
-    }
-    // Try archive embed
-    var iid=archiveId||(url.match(/archive\.org\/download\/([^/]+)/)||[])[1];
-    if(iid){
-      box.innerHTML='<iframe src="https://archive.org/embed/'+iid+'?autoplay=1&playlist=0" allowfullscreen allow="autoplay;fullscreen" style="width:100%;height:100%;border:none;display:block"></iframe>';
-      hideCtrls(); return;
-    }
-    box.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center">'
-      +'<div style="color:#ff6060;font-size:14px;font-weight:700">Video failed</div>'
-      +'<div style="color:#555;font-size:11px">Link may be unsupported on this device.</div>'
-      +(dlUrl?'<a href="'+dlUrl+'" target="_blank" style="background:#00e5c3;color:#000;padding:10px 22px;border-radius:99px;font-size:13px;font-weight:800;text-decoration:none">Open in Browser</a>':'')
-      +'</div>';
-  },{once:true});
-
-  v.addEventListener('timeupdate',kpTick);
-  v.addEventListener('loadedmetadata',kpTick);
-  v.addEventListener('play', function(){ document.getElementById('kp-play-btn').textContent='⏸'; showCtrls(); });
-  v.addEventListener('pause',function(){ document.getElementById('kp-play-btn').textContent='▶'; showCtrls(); });
-  v.addEventListener('ended',function(){ document.getElementById('kp-play-btn').textContent='▶'; });
-
-  var p=v.play(); if(p&&p.catch) p.catch(function(){ showCtrls(); });
-  showCtrls();
-}
-
-function getVid(){ return document.getElementById('kv'); }
-
-function closePlayer(){
-  var v=getVid(); if(v) v.pause();
-  var box=document.getElementById('vid-box'); if(box) box.innerHTML='';
-  var po=document.getElementById('player-ov'); if(po) po.style.display='none';
-  document.body.style.overflow='';
-  hideCtrls();
-  curPlay=null;
-  var card=document.getElementById('pi-card'); if(card) card.style.display='none';
-}
-
-function showCtrls(){
-  var c=document.getElementById('kp-ctrl'); if(!c) return;
-  c.style.opacity='1'; c.style.pointerEvents='all';
-  clearTimeout(kpCtrlT);
-  var v=getVid();
-  kpCtrlT=setTimeout(function(){ if(v&&!v.paused) hideCtrls(); }, 3500);
-}
-function hideCtrls(){
-  var c=document.getElementById('kp-ctrl'); if(!c) return;
-  c.style.opacity='0'; c.style.pointerEvents='none';
-}
-
-function kpTick(){
-  var v=getVid(); if(!v) return;
-  var cur=v.currentTime||0, dur=v.duration||0;
-  var pct=dur>0?(cur/dur)*100:0;
-  var fill=document.getElementById('kp-fill'); if(fill) fill.style.width=pct+'%';
-  var time=document.getElementById('kp-time');
-  if(time) time.textContent=fmtT(cur)+' / '+fmtT(dur);
-}
-function fmtT(s){ if(!s||isNaN(s)) return '0:00'; return Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60); }
-
-function kpToggle(){ var v=getVid(); if(!v) return; v.paused?v.play():v.pause(); showCtrls(); }
-function kpSeek(s){ var v=getVid(); if(!v) return; v.currentTime=Math.max(0,Math.min(v.duration||0,v.currentTime+s)); showCtrls(); }
-function kpSeekClick(e){ var v=getVid(); if(!v||!v.duration) return; var r=document.getElementById('kp-prog').getBoundingClientRect(); v.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*v.duration; showCtrls(); }
-function kpRotate(){ try{ var c=screen.orientation.type; screen.orientation.lock(c.startsWith('portrait')?'landscape':'portrait').catch(function(){}); }catch(e){ toast('Rotate your device'); } }
-function kpZoom(){ kpZoomed=!kpZoomed; var v=getVid(); if(v) v.style.objectFit=kpZoomed?'cover':'contain'; toast(kpZoomed?'Zoom: Fill':'Zoom: Fit'); }
-function kpFullscreen(){
-  kpFS=!kpFS;
-  var w=document.getElementById('vid-wrap'), info=document.getElementById('player-info');
-  if(kpFS){ w.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;z-index:9999;aspect-ratio:unset;background:#000'; if(info) info.style.display='none'; try{screen.orientation.lock('landscape').catch(function(){});}catch(e){} }
-  else { w.style.cssText=''; if(info) info.style.display=''; try{screen.orientation.unlock();}catch(e){} }
-  showCtrls();
-}
-function kpDownload(){ if(curPlay&&curPlay.dlUrl) window.open(curPlay.dlUrl,'_blank'); else toast('No download link',true); }
-
-// Touch drag on progress bar
+// ── SEEK DRAG SUPPORT ─────────────────────────────────────────
 (function(){
-  var seeking=false;
-  function applyPct(cx){ var v=getVid(); if(!v||!v.duration) return; var el=document.getElementById('kp-prog'); if(!el) return; var r=el.getBoundingClientRect(); v.currentTime=Math.max(0,Math.min(1,(cx-r.left)/r.width))*v.duration; }
-  document.addEventListener('DOMContentLoaded',function(){
-    var prog=document.getElementById('kp-prog'); if(!prog) return;
-    prog.addEventListener('touchstart',function(e){seeking=true;applyPct(e.touches[0].clientX);showCtrls();},{passive:true});
-    prog.addEventListener('touchmove', function(e){if(seeking)applyPct(e.touches[0].clientX);},{passive:true});
-    prog.addEventListener('touchend',  function(){seeking=false;});
+  let _seeking = false;
+  function getV(){ return document.getElementById('kp-video'); }
+  function applyPct(pct) {
+    const v = getV(); if (!v || !v.duration) return;
+    v.currentTime = pct * v.duration;
+    document.getElementById('kp-prog-fill').style.width = (pct*100)+'%';
+    document.getElementById('kp-prog-thumb').style.left = (pct*100)+'%';
+  }
+  function getPct(clientX) {
+    const el = document.getElementById('kp-progress');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const prog = document.getElementById('kp-progress');
+    if (!prog) return;
+    prog.addEventListener('touchstart', e => { _seeking = true; applyPct(getPct(e.touches[0].clientX)); kpShowControls(); }, {passive:true});
+    prog.addEventListener('touchmove',  e => { if (_seeking) applyPct(getPct(e.touches[0].clientX)); }, {passive:true});
+    prog.addEventListener('touchend',   () => { _seeking = false; });
+    prog.addEventListener('mousedown',  e => { _seeking = true; applyPct(getPct(e.clientX)); kpShowControls(); });
+    document.addEventListener('mousemove', e => { if (_seeking) applyPct(getPct(e.clientX)); });
+    document.addEventListener('mouseup',   () => { _seeking = false; });
   });
+
+  // Override kpSeekClick with improved version
+  window.kpSeekClick = function(e) { const p = getPct(e.clientX); if (p !== null) applyPct(p); kpShowControls(); };
+
+  // Override kpSeek with flash
+  const _origSeek = window.kpSeek;
+  window.kpSeek = function(secs) {
+    if (_origSeek) _origSeek(secs);
+    const wrap = document.getElementById('kp-wrap');
+    if (!wrap) return;
+    const dir = secs < 0 ? 'back' : 'fwd';
+    let flash = document.getElementById('kp-flash-' + dir);
+    if (!flash) {
+      flash = document.createElement('div');
+      flash.id = 'kp-flash-' + dir;
+      flash.style.cssText = 'position:absolute;top:50%;transform:translateY(-50%);' +
+        (secs<0?'left:12%':'right:12%') +
+        ';color:#fff;font-size:13px;font-weight:800;pointer-events:none;z-index:30;' +
+        'background:rgba(0,0,0,.55);border-radius:99px;padding:7px 14px;' +
+        'opacity:0;transition:opacity .2s;font-family:"DM Sans",sans-serif';
+      flash.textContent = secs < 0 ? '- 10s' : '+ 10s';
+      wrap.appendChild(flash);
+    }
+    flash.style.opacity = '1';
+    clearTimeout(flash._t);
+    flash._t = setTimeout(() => flash.style.opacity = '0', 600);
+  };
 })();
 
-// Tap video area to show controls
-document.addEventListener('DOMContentLoaded',function(){
-  var vw=document.getElementById('vid-wrap');
-  if(vw) vw.addEventListener('click',function(e){
-    if(e.target===vw||e.target===document.getElementById('vid-box')||e.target===document.getElementById('kv')){
-      showCtrls();
-    }
-  });
-});
-
-// ── FAVOURITES ────────────────────────────────────────────────
-function toggleFav(){
-  var btn=document.getElementById('fav-btn'); if(!btn) return;
-  var id=btn.dataset.id; if(!id) return;
-  var key='F'+id, i=favs.indexOf(key);
-  if(i>=0) favs.splice(i,1); else favs.push(key);
-  saveFavs();
-  var on=favs.includes(key);
-  btn.textContent=on?'♥ In Favourites':'♡ Add to Favourites';
-}
-function renderFavs(){
-  var g=document.getElementById('grid-favs'); if(!g) return;
-  var items=DB.filter(m=>favs.includes('F'+m.id));
-  if(!items.length){ g.innerHTML='<div class="empty-page" style="padding:30px">No favourites yet.</div>'; return; }
-  g.innerHTML=items.map(m=>card(m)).join('');
-}
-
-// ── DOWNLOAD ──────────────────────────────────────────────────
-function dlItem(id){
-  var m=DB.find(c=>c.id===id); if(!m) return;
-  var url=m.dl||m.play; if(!url){ toast('No download link',true); return; }
-  var a=document.createElement('a'); a.href=url; a.download=m.title+'.mp4'; a.target='_blank'; document.body.appendChild(a); a.click(); setTimeout(()=>document.body.removeChild(a),500);
-  toast('Download started!');
-}
-
-// ── SEARCH ────────────────────────────────────────────────────
-function openSearch(){ var s=document.getElementById('search-ov'); s.style.display='flex'; setTimeout(()=>{ var i=document.getElementById('search-inp'); if(i) i.focus(); },100); }
-function closeSearch(){ document.getElementById('search-ov').style.display='none'; }
-function setSF(el,f){ searchF=f; document.querySelectorAll('.sf-tab').forEach(t=>t.classList.toggle('active',t.dataset.f===f)); doSearch(document.getElementById('search-inp').value); }
-function doSearch(q){
-  var r=document.getElementById('search-results'); if(!r) return;
-  if(!q.trim()){ r.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">Start typing...</div>'; return; }
-  var ql=q.toLowerCase();
-  var list=DB.filter(m=>(m.title||'').toLowerCase().includes(ql)||(m.vj||'').toLowerCase().includes(ql)||(m.genre||'').toLowerCase().includes(ql)||(m.seriesName||'').toLowerCase().includes(ql)||(m.desc||'').toLowerCase().includes(ql));
-  if(searchF!=='all') list=list.filter(m=>m.cat===searchF);
-  var seen={}, deduped=[];
-  list.forEach(m=>{ if(m.cat==='series'){var k=m.seriesName||m.title;if(!seen[k]){seen[k]=true;deduped.push({...m,_sg:true,_sn:k});}}else deduped.push(m); });
-  if(!deduped.length){ r.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">No results.</div>'; return; }
-  r.innerHTML='<div style="font-size:10px;color:var(--muted);margin-bottom:10px">'+deduped.length+' results</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">'+deduped.map(m=>card(m)).join('')+'</div>';
-}
-
-// ── ADMIN ─────────────────────────────────────────────────────
-function openPinModal(){ document.getElementById('pin-inp').value=''; document.getElementById('pin-err').textContent=''; openModal('pin-modal'); setTimeout(()=>document.getElementById('pin-inp').focus(),150); }
-function checkPin(){
-  var v=document.getElementById('pin-inp').value;
-  if(v===getPass()){ closeModal('pin-modal'); adminOn=true; localStorage.setItem('kp_admin','1'); revealAdmin(); go('admin'); }
-  else{ document.getElementById('pin-err').textContent='Wrong password.'; document.getElementById('pin-inp').value=''; }
-}
-function revealAdmin(){
-  var ab=document.getElementById('admin-btn'); if(ab) ab.style.display='flex';
-  var lb=document.getElementById('lock-btn'); if(lb) lb.style.display='none';
-  var sb=document.getElementById('snav-admin'); if(sb) sb.style.display='flex';
-}
-function goAdmin(){ if(!adminOn){ openPinModal(); return; } go('admin'); }
-
-var secretN2=0, secretT2=null;
-function secretTap(){
-  secretN2++;
-  clearTimeout(secretT2);
-  if(secretN2>=7){
-    secretN2=0;
-    if(!adminOn){ openPinModal(); }
-    else { adminOn=false; localStorage.removeItem('kp_admin'); var ab=document.getElementById('admin-btn'); if(ab) ab.style.display='none'; var lb=document.getElementById('lock-btn'); if(lb) lb.style.display='flex'; var sb=document.getElementById('snav-admin'); if(sb) sb.style.display='none'; toast('Admin hidden'); }
-    return;
+// Close player resets fullscreen
+const _origClosePlayer = window.closePlayer;
+window.closePlayer = function() {
+  if (_kpFS) {
+    _kpFS = false;
+    const wrap = document.getElementById('kp-wrap');
+    if (wrap) wrap.style.cssText = '';
+    const info = document.getElementById('player-info-area');
+    if (info) info.style.display = '';
+    try { screen.orientation.unlock(); } catch(e) {}
   }
-  secretT2=setTimeout(()=>{ secretN2=0; },2500);
-}
+  _kpZoomed = false;
+  if (_origClosePlayer) _origClosePlayer();
+};
 
-function setATab(el,tab){
-  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
-  document.getElementById('admin-'+tab).classList.add('active');
-  if(tab==='library') renderLib();
-}
-
-function setCat(el,cat){
-  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('f-cat').value=cat;
-  document.getElementById('series-only').style.display=cat==='series'?'flex':'none';
-  document.getElementById('title-lbl').textContent=cat==='series'?'Episode Title':'Title';
-}
-
-function previewThumb(url){
-  var w=document.getElementById('thumb-prev'), img=document.getElementById('thumb-prev-img');
-  if(!w||!img) return;
-  if(url&&url.startsWith('http')){ img.src=url; img.onload=()=>w.style.display='block'; img.onerror=()=>w.style.display='none'; }
-  else w.style.display='none';
-}
-
-async function submitContent(){
-  var title=(document.getElementById('f-title').value||'').trim();
-  if(!title){ toast('Enter a title',true); return; }
-  var btn=document.getElementById('submit-btn'), lbl=document.getElementById('submit-lbl');
-  btn.disabled=true; lbl.textContent='Saving...';
-  try{
-    var cat=document.getElementById('f-cat').value;
-    var data={title,cat,
-      vj:document.getElementById('f-vj').value,
-      year:document.getElementById('f-year').value.trim(),
-      genre:document.getElementById('f-genre').value.trim(),
-      desc:document.getElementById('f-desc').value.trim(),
-      play:document.getElementById('f-play').value.trim(),
-      dl:document.getElementById('f-dl').value.trim(),
-      thumb:document.getElementById('f-thumb').value.trim(),
-      updatedAt:Date.now()
-    };
-    if(cat==='series'){
-      data.seriesName=(document.getElementById('f-series-name').value||'').trim()||title;
-      data.season=parseInt(document.getElementById('f-season').value)||1;
-      data.epNum=parseInt(document.getElementById('f-epnum').value)||1;
-      data.epTitle=title;
-    }
-    var eid=editId||(document.getElementById('edit-id').value||'');
-    var {collection,addDoc,doc:fbDoc,updateDoc}=window._fb;
-    if(eid&&!eid.startsWith('L')){
-      await updateDoc(fbDoc(window._db,'content',eid),data);
-      toast('Updated!'); cancelEdit();
-    } else {
-      data.createdAt=Date.now();
-      await addDoc(collection(window._db,'content'),data);
-      toast('Added!');
-      if(cat==='series'){ var ep=document.getElementById('f-epnum'); if(ep) ep.value=(parseInt(ep.value)||1)+1; document.getElementById('f-title').value=''; }
-      else resetForm();
-    }
-  }catch(e){ toast('Error: '+e.message,true); }
-  finally{ btn.disabled=false; lbl.textContent=editId?'Save Changes':'Add to Library'; }
-}
-
-function startEdit(id){
-  var m=DB.find(c=>c.id===id); if(!m) return;
-  editId=id; go('admin');
-  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.toggle('active',t.dataset.cat===m.cat));
-  document.getElementById('f-cat').value=m.cat;
-  document.getElementById('series-only').style.display=m.cat==='series'?'flex':'none';
-  document.getElementById('edit-id').value=id;
-  function sv(i,v){ var e=document.getElementById(i); if(e) e.value=v||''; }
-  sv('f-title',m.epTitle||m.title); sv('f-vj',m.vj); sv('f-year',m.year); sv('f-genre',m.genre);
-  sv('f-desc',m.desc); sv('f-play',m.play); sv('f-dl',m.dl); sv('f-thumb',m.thumb);
-  if(m.cat==='series'){ sv('f-series-name',m.seriesName); sv('f-season',m.season||1); sv('f-epnum',m.epNum||1); }
-  if(m.thumb) previewThumb(m.thumb);
-  document.getElementById('form-mode-label').textContent='Edit';
-  document.getElementById('cancel-edit-btn').style.display='inline-block';
-  document.getElementById('submit-lbl').textContent='Save Changes';
-}
-
-function cancelEdit(){
-  editId=null; resetForm();
-  document.getElementById('form-mode-label').textContent='Add Content';
-  document.getElementById('cancel-edit-btn').style.display='none';
-  document.getElementById('submit-lbl').textContent='Add to Library';
-  document.getElementById('edit-id').value='';
-}
-
-function resetForm(){
-  ['f-title','f-vj','f-year','f-genre','f-desc','f-play','f-dl','f-thumb','f-series-name'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('f-season').value='1'; document.getElementById('f-epnum').value='1';
-  document.getElementById('f-cat').value='movie';
-  document.getElementById('series-only').style.display='none';
-  document.querySelectorAll('.cat-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.getElementById('thumb-prev').style.display='none';
-  document.getElementById('title-lbl').textContent='Title';
-}
-
-function askDel(id){ var m=DB.find(c=>c.id===id); if(!m) return; pendingDel=id; document.getElementById('del-sub').textContent='Delete "'+( m.epTitle||m.title)+'"?'; openModal('del-modal'); }
-async function confirmDel(){
-  if(!pendingDel) return; closeModal('del-modal');
-  try{
-    if(pendingDel.startsWith('L')){ toast('Cannot delete legacy items directly',true); }
-    else{ var {doc:fbDoc,deleteDoc}=window._fb; await deleteDoc(fbDoc(window._db,'content',pendingDel)); toast('Deleted.'); }
-    favs=favs.filter(f=>f!=='F'+pendingDel); saveFavs();
-    if(editId===pendingDel) cancelEdit();
-  }catch(e){ toast('Error: '+e.message,true); }
-  pendingDel=null;
-}
-
-function setLibFilter(el,f){ libF=f; document.querySelectorAll('.lib-tab').forEach(t=>t.classList.toggle('active',t.dataset.f===f)); renderLib(); }
-function renderLib(){
-  var list=libF==='all'?DB:DB.filter(m=>m.cat===libF);
-  var cnt=document.getElementById('lib-count'); if(cnt) cnt.textContent=list.length+' items';
-  var g=document.getElementById('lib-grid'); if(!g) return;
-  g.innerHTML=list.map(m=>'<div class="lib-pcard">'
-    +'<div class="lib-poster">'+(m.thumb?'<img src="'+m.thumb+'" onerror="this.style.display=\'none\'">':'<div class="lib-poster-empty">'+(m.epTitle||m.title)+'</div>')+'</div>'
-    +'<div class="lib-card-title">'+(m.epTitle||m.title)+'</div>'
-    +(m.vj?'<div class="lib-card-vj">'+m.vj+'</div>':'')
-    +'<button class="lib-edit" onclick="event.stopPropagation();startEdit(\''+m.id+'\')">E</button>'
-    +'<button class="lib-del"  onclick="event.stopPropagation();askDel(\''+m.id+'\')">✕</button>'
-    +'</div>').join('');
-}
-
-// ── MODALS / TOAST ────────────────────────────────────────────
-function openModal(id){ var e=document.getElementById(id); if(e) e.classList.add('open'); }
-function closeModal(id){ var e=document.getElementById(id); if(e) e.classList.remove('open'); }
-var _toastT=null;
-function toast(msg,err){
-  var t=document.getElementById('toast');
-  t.textContent=msg; t.style.borderColor=err?'rgba(255,68,68,.4)':'rgba(0,229,195,.3)';
-  t.style.color=err?'#ff7070':'var(--txt)'; t.style.opacity='1';
-  clearTimeout(_toastT); _toastT=setTimeout(()=>t.style.opacity='0',3000);
-}
-
-// ESC key
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){
-    document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
-    var po=document.getElementById('player-ov'); if(po&&po.style.display!=='none') closePlayer();
-  }
-});
-
-// ── START ─────────────────────────────────────────────────────
-startFB();
+// Always-tappable buttons in controls
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `
+    .kp-back-btn,.kp-skip-btn,.kp-play-btn,.kp-top-right .kp-icon-btn,.kp-bot-btns .kp-icon-btn,.kp-progress{pointer-events:all!important}
+  `;
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
