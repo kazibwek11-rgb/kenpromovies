@@ -165,17 +165,32 @@ function renderVJRows(pageId, cat) {
   if (!base.length) { container.innerHTML = '<div class="empty-page">No content yet.</div>'; return; }
   let html = '';
   if (pageId === 'home') {
-    // ── FIX: sort by createdAt descending so newest appears first in Latest
-    const recent = [...allContent]
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-      .slice(0, 20);
-    html += buildRow('Latest', recent, 'home');
+    // Home page: show rows in order — Movies, Series, Animation, Indian
+    const sortBy = arr => [...arr].sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
+    const movies    = sortBy(allContent.filter(m => m.cat === 'movie')).slice(0, 20);
+    const seriesSeen = {}, seriesLatest = [];
+    sortBy(allContent.filter(m => m.cat === 'series')).forEach(m => {
+      const name = m.seriesName || m.title;
+      if (!seriesSeen[name]) { seriesSeen[name] = true; seriesLatest.push({...m, _isSeriesGroup:true, _sname:name}); }
+    });
+    const animation = sortBy(allContent.filter(m => m.cat === 'animation')).slice(0, 20);
+    const indian    = sortBy(allContent.filter(m => m.cat === 'indian')).slice(0, 20);
+    if (movies.length)    html += buildRow('Latest Movies', movies, 'home');
+    if (seriesLatest.length) html += buildRow('Latest TvShows', seriesLatest.slice(0,20), 'series');
+    if (animation.length) html += buildRow('Latest Animation', animation, 'home');
+    if (indian.length)    html += buildRow('Indian', indian, 'home');
+    // VJ rows
     VJS.forEach(vj => {
       const items = allContent.filter(m => m.vj === vj);
       if (items.length) html += buildRow(vj, items, 'home');
     });
   } else if (cat === 'series') {
-    html += buildRow('All Series', base, 'series');
+    const serSeen = {}, serBase = [];
+    allContent.filter(m => m.cat === 'series').forEach(m => {
+      const name = m.seriesName || m.title;
+      if (!serSeen[name]) { serSeen[name] = true; serBase.push({...m, _isSeriesGroup:true, _sname:name}); }
+    });
+    html += buildRow('All Series', serBase, 'series');
     VJS.forEach(vj => {
       const vjSeen = {}, vjItems = [];
       allContent.filter(m => m.cat === 'series' && m.vj === vj).forEach(m => {
@@ -185,7 +200,6 @@ function renderVJRows(pageId, cat) {
       if (vjItems.length) html += buildRow(vj, vjItems, 'series');
     });
   } else {
-    // ── FIX: Latest within each category also sorted by createdAt
     const catLatest = [...base].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
     html += buildRow('Latest', catLatest, cat);
     VJS.forEach(vj => {
@@ -203,7 +217,8 @@ function buildRow(label, items, rowType) {
     return movieCard(m);
   }).join('');
   const safeLabel = label.replace(/'/g, "\\'");
-  const seeAllBtn = label !== 'Latest'
+  const isLatestRow = label === 'Latest' || label === 'Latest Movies' || label === 'Latest TvShows' || label === 'Latest Animation' || label === 'Indian';
+  const seeAllBtn = !isLatestRow
     ? '<button class="see-all-btn" onclick="showSeeAll(\'' + safeLabel + '\')">See All</button>'
     : '<span class="vj-row-count">' + items.length + ' title' + (items.length !== 1 ? 's' : '') + '</span>';
   return '<div class="vj-row-block"><div class="row-head"><span class="row-label">' + label + '</span>' + seeAllBtn + '</div><div class="hrow">' + cards + '</div></div>';
@@ -230,10 +245,7 @@ function movieCard(m) {
     + (m.vj ? '<div class="pcard-vj-tag">' + m.vj + '</div>' : '')
     + editBtn
     + '</div>'
-    + '<div class="pcard-label">'
-    + '<div class="pcard-title">' + (m._isSeriesGroup ? (m.seriesName || m.title || '') : (m.title || '')) + '</div>'
-    + (m.year || m.genre ? '<div class="pcard-sub">' + [m.year, m.genre].filter(Boolean).join(' · ') + '</div>' : '')
-    + '</div></div>';
+    + '</div>';
 }
 
 function seriesGroupCard(m) { return movieCard({ ...m, _isSeriesGroup: true }); }
@@ -824,6 +836,18 @@ function togglePwEye() {
 }
 
 // ── ADMIN FORM ───────────────────────────────────────────────
+
+// ── ADMIN TABS ───────────────────────────────────────────────
+function setATab(el, tab) {
+  document.querySelectorAll('.atab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById('admin-' + tab);
+  if (sec) sec.classList.add('active');
+  if (tab === 'library')     renderLib();
+  if (tab === 'subscribers') renderSubs();
+  if (tab === 'payments')    renderPayments();
+}
 function setCat(el, cat) {
   document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
