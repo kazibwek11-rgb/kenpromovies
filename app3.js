@@ -467,16 +467,36 @@ function buildPlayer(url) {
     const m = url.match(/archive\.org\/(?:details|download|embed)\/([^/?#\s]+)/);
     const itemId = m ? m[1] : null;
     if (itemId) {
+      // Show loading spinner
       box.innerHTML = '<div id="kp-loading" style="width:100%;height:100%;background:#060608;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:200px">'
         + '<div style="width:46px;height:46px;border:3px solid #1a1a1a;border-top-color:#00e5c3;border-radius:50%;animation:spin .8s linear infinite"></div>'
         + '<div style="color:#666;font-size:12px;font-weight:600">Loading video...</div></div>';
-      getArchiveDirectUrl(itemId).then(function(directUrl) {
-        if (!document.getElementById('player-overlay') || !document.getElementById('player-overlay').classList.contains('open')) return;
-        if (document.getElementById('kp-loading')) playNativeVideo(box, directUrl);
-      }).catch(function() {
-        playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
-        kpHideControls();
-      });
+      // Try metadata API first, then fall back to embed (works on all devices)
+      var metaUrl = 'https://archive.org/metadata/' + itemId;
+      fetch(metaUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!document.getElementById('player-overlay') || !document.getElementById('player-overlay').classList.contains('open')) return;
+          var files = data.files || [];
+          var vid = files.find(function(f){ return /\.mp4$/i.test(f.name) && f.source === 'original'; })
+                 || files.find(function(f){ return /\.mp4$/i.test(f.name); })
+                 || files.find(function(f){ return /\.(mkv|webm|avi)$/i.test(f.name); });
+          if (vid && document.getElementById('kp-loading')) {
+            var directUrl = 'https://archive.org/download/' + itemId + '/' + encodeURIComponent(vid.name);
+            _archiveCache[itemId] = directUrl;
+            playNativeVideo(box, directUrl);
+          } else {
+            // No video file found — use embed
+            playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
+            kpHideControls();
+          }
+        })
+        .catch(function() {
+          // Fetch failed (CORS/network) — use embed as fallback, works on all devices
+          if (!document.getElementById('player-overlay') || !document.getElementById('player-overlay').classList.contains('open')) return;
+          playEmbed(box, 'https://archive.org/embed/' + itemId + '?autoplay=1&playlist=0');
+          kpHideControls();
+        });
       return;
     }
   }
@@ -496,10 +516,9 @@ function playNativeVideo(box, url) {
   box.innerHTML = ''
     + '<video id="kp-video" autoplay playsinline webkit-playsinline'
     + ' x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="true"'
-    + ' controls-list="nodownload" disablePictureInPicture'
+    + ' preload="auto" crossorigin="anonymous"'
     + ' style="width:100%;height:100%;background:#000;display:block;object-fit:contain;max-width:100%">'
     + '<source src="' + url + '" type="video/mp4"/>'
-    + '<source src="' + url + '" type="video/webm"/>'
     + '<source src="' + url + '"/>'
     + '</video>';
 
