@@ -476,23 +476,53 @@ function playItem(m) {
 function openPlayer(m) {
   const ov = $('player-ov'); ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  $('pi-card').style.display = 'flex';
-  $('pi-img').src = m.thumb || '';
-  $('pi-title').textContent = m.sname || m.title || '';
-  $('pi-ep').textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
-  $('pi-meta').textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' · ');
-  $('kp-ttl').textContent = m.sname || m.title || '';
-  $('kp-ep').textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
+
+  /* Show info card */
+  const piCard = $('pi-card');
+  if (piCard) piCard.style.display = 'flex';
+
+  /* Poster */
+  const piImg = $('pi-img');
+  if (piImg) piImg.src = m.thumb || '';
+
+  /* Titles */
+  const piTitle = $('pi-title');
+  if (piTitle) piTitle.textContent = m.sname || m.title || '';
+
+  const piEp = $('pi-ep');
+  if (piEp) piEp.textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
+
+  const piMeta = $('pi-meta');
+  if (piMeta) piMeta.textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' · ');
+
+  const kpTtl = $('kp-ttl');
+  if (kpTtl) kpTtl.textContent = m.sname || m.title || '';
+
+  const kpEp = $('kp-ep');
+  if (kpEp) kpEp.textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
+
   updateFavUI();
+
+  /* Episode nav */
   const epNav = $('ep-nav');
-  if (currentEpList.length > 1) {
-    epNav.style.display = 'flex';
-    $('ep-nl').textContent = `Ep ${currentEpIdx + 1} of ${currentEpList.length}`;
-    $('ep-prev').disabled = currentEpIdx <= 0;
-    $('ep-next').disabled = currentEpIdx >= currentEpList.length - 1;
-  } else { epNav.style.display = 'none'; }
-  const mr = $('more-row'); mr.innerHTML = '';
-  buildMoreRow(mr, m);
+  if (epNav) {
+    if (currentEpList.length > 1) {
+      epNav.style.display = 'flex';
+      const epNl = $('ep-nl');
+      if (epNl) epNl.textContent = `Ep ${currentEpIdx + 1} of ${currentEpList.length}`;
+      const epPrev = $('ep-prev');
+      if (epPrev) epPrev.disabled = currentEpIdx <= 0;
+      const epNext = $('ep-next');
+      if (epNext) epNext.disabled = currentEpIdx >= currentEpList.length - 1;
+    } else {
+      epNav.style.display = 'none';
+    }
+  }
+
+  /* More like these */
+  const mr = $('more-row');
+  if (mr) { mr.innerHTML = ''; buildMoreRow(mr, m); }
+
   kpLoad(m.playLink || m.dlLink || '');
 }
 function closePlayer() {
@@ -512,26 +542,26 @@ function closePlayer() {
    ════════════════════════════════════════════ */
 
 function kpLoad(url) {
+  console.log('[KP] kpLoad:', url);
   kpCurrentUrl = url;
   const container = $('player-video');
+  if (!container) return;
   container.innerHTML = '';
-  const oldBack = $('kp-wrap').querySelector('[data-extra]');
-  if (oldBack) oldBack.remove();
-  $('kp-ctrl').style.display = '';
+  const wrap = $('kp-wrap');
+  if (wrap) { const ob = wrap.querySelector('[data-extra]'); if (ob) ob.remove(); }
+  const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = '';
   kpVideo = null; kpIframe = null; kpIsVideo = false;
   showKpState('loading');
 
   if (!url || !url.trim()) { showKpState('error'); return; }
 
-  const isYT           = /youtu\.?be|youtube\.com/i.test(url);
-  const isArchiveDirect = /archive\.org\/download\/.+\.(mp4|webm|ogv)(\?|$)/i.test(url);
-  const isArchiveAny   = /archive\.org/i.test(url);
-  const isDirect       = !isArchiveAny && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+  const isYT         = /youtu\.?be|youtube\.com/i.test(url);
+  const isArchiveAny = /archive\.org/i.test(url);
+  const isDirect     = !isArchiveAny && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 
   if (isYT) {
     kpLoadIframe(ytEmbedUrl(url));
   } else if (isArchiveAny) {
-    /* ALL archive.org links go through kpLoadArchive — it decides embed vs direct */
     kpLoadArchive(url);
   } else if (isDirect) {
     kpLoadVideo(url);
