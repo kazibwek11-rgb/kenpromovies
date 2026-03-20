@@ -79,7 +79,7 @@ img{display:block}
 .hrow{display:flex;gap:8px;overflow-x:auto;padding:0 14px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .hrow::-webkit-scrollbar{display:none}
 
-/* POSTER CARD — poster only, no text */
+/* POSTER CARD */
 .pcard{flex-shrink:0;width:100px;cursor:pointer}
 .pcard-img{width:100%;aspect-ratio:2/3;border-radius:var(--r2);overflow:hidden;background:var(--bg3);position:relative;transition:transform 0.2s}
 .pcard:hover .pcard-img{transform:scale(1.04)}
@@ -119,15 +119,22 @@ img{display:block}
 .search-results{flex:1;overflow-y:auto;padding:12px 14px}
 .search-empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 0}
 
-/* DETAIL OVERLAY */
-.detail-ov{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1)}
+/* ═══════════════════════════════════════════
+   DETAIL OVERLAY — FIXED FOR MOBILE
+   Image on top, content scrolls below
+   ═══════════════════════════════════════════ */
+.detail-ov{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1)}
 .detail-ov.open{transform:translateY(0)}
-.det-hero{position:relative;width:100%;aspect-ratio:16/9;background:var(--bg3);overflow:hidden}
-.det-hero img{width:100%;height:100%;object-fit:cover;filter:brightness(0.6)}
-.det-hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,15,0.15),rgba(10,10,15,0.95))}
+
+/* Hero image block — sits at top, never overlaps body */
+.det-hero{position:relative;width:100%;aspect-ratio:16/9;background:var(--bg3);overflow:hidden;flex-shrink:0;display:block}
+.det-hero img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.det-hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,15,0) 0%,rgba(10,10,15,0.5) 60%,rgba(10,10,15,0.92) 100%);pointer-events:none}
 .det-topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;z-index:2}
-.det-back{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center}
-.det-body{padding:14px}
+.det-back{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:#fff;display:flex;align-items:center;justify-content:center}
+
+/* Body sits BELOW the hero image — never overlaps */
+.det-body{padding:14px;background:var(--bg);position:relative;z-index:1}
 .det-title{font-family:var(--fd);font-size:24px;color:var(--txt);letter-spacing:0.02em;margin-bottom:8px}
 .det-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .det-vj{font-size:10px;font-weight:700;color:#000;background:var(--gold);border-radius:4px;padding:2px 7px;font-family:var(--fd)}
@@ -643,15 +650,15 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
     <div id="player-video"></div>
     <div class="kp-gt"></div><div class="kp-gb"></div>
     <div class="kp-load" id="kp-load" style="display:none"><div class="kp-spin"></div><div class="kp-load-txt">Loading video...</div></div>
-    <div class="kp-err-box" id="kp-err" style="display:none"><div class="kp-err-ico">⚠️</div><div class="kp-err-msg">Video failed to load</div><div class="kp-err-sub">Link may be expired. Try another movie or contact admin.</div><button class="kp-retry" onclick="kpRetry()">Retry</button></div>
-    <div class="kp-flash kp-fl-l" id="kp-fl-l">‹ 10s</div>
-    <div class="kp-flash kp-fl-r" id="kp-fl-r">10s ›</div>
+    <div class="kp-err-box" id="kp-err" style="display:none"><div class="kp-err-ico">&#9888;&#65039;</div><div class="kp-err-msg">Video failed to load</div><div class="kp-err-sub">Link may be expired. Try another movie or contact admin.</div><button class="kp-retry" onclick="kpRetry()">Retry</button></div>
+    <div class="kp-flash kp-fl-l" id="kp-fl-l">&#8249; 10s</div>
+    <div class="kp-flash kp-fl-r" id="kp-fl-r">10s &#8250;</div>
     <div class="kp-ctrl" id="kp-ctrl">
       <div class="kp-top">
         <button class="kp-back" onclick="closePlayer()"><svg width="20" height="20"><use href="#ic-back"/></svg></button>
         <div class="kp-tw"><div class="kp-ttl" id="kp-ttl"></div><div class="kp-ep" id="kp-ep"></div></div>
         <div class="kp-tbtns">
-          <button class="kp-spd" id="kp-spd" onclick="kpCycleSpeed()">1×</button>
+          <button class="kp-spd" id="kp-spd" onclick="kpCycleSpeed()">1&times;</button>
           <button class="kp-ib" onclick="kpRotate()"><svg width="14" height="14"><use href="#ic-rotate"/></svg></button>
           <button class="kp-ib" id="kp-zoom-btn" onclick="kpZoom()"><svg width="14" height="14"><use href="#ic-zoom"/></svg></button>
           <button class="kp-ib" id="kp-fs-btn" onclick="kpFullscreen()"><svg width="14" height="14" id="kp-fs-ico"><use href="#ic-fs"/></svg></button>
@@ -709,13 +716,13 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
 </div>
 
 <!-- MODALS -->
-<div class="modal-ov" id="contact-modal" onclick="if(event.target===this)closeModal('contact-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('contact-modal')">✕</button><div class="modal-ico green"><svg width="24" height="24"><use href="#ic-wa"/></svg></div><div class="modal-title">Contact Kenmovies</div><div class="modal-sub">Subscriptions, requests and support.</div><a class="modal-primary wa" href="https://wa.me/256702381857" target="_blank" style="text-decoration:none"><svg width="12" height="12"><use href="#ic-wa"/></svg> Chat on WhatsApp</a><div class="ci-row"><svg width="12" height="12"><use href="#ic-phone"/></svg> +256 702 381 857</div><div class="ci-row"><svg width="12" height="12"><use href="#ic-globe"/></svg> kenmovies.is-a.dev</div><button class="modal-secondary" onclick="closeModal('contact-modal')">Close</button></div></div>
-<div class="modal-ov" id="del-modal" onclick="if(event.target===this)closeModal('del-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('del-modal')">✕</button><div class="modal-ico red"><svg width="24" height="24"><use href="#ic-trash"/></svg></div><div class="modal-title">Delete?</div><div class="modal-sub" id="del-modal-sub">This cannot be undone.</div><button class="modal-primary danger" onclick="confirmDelete()"><svg width="12" height="12"><use href="#ic-trash"/></svg> Delete</button><button class="modal-secondary" onclick="closeModal('del-modal')">Cancel</button></div></div>
-<div class="modal-ov" id="cs-modal" onclick="if(event.target===this)closeModal('cs-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('cs-modal')">✕</button><div class="modal-title">Add Coming Soon</div><div style="display:flex;flex-direction:column;gap:8px;width:100%"><input class="momo-inp" type="text" id="cs-title-inp" placeholder="Movie title"/><input class="momo-inp" type="text" id="cs-thumb-inp" placeholder="Poster URL"/><input class="momo-inp" type="text" id="cs-date-inp" placeholder="Release e.g. April 2026"/></div><button class="modal-primary" onclick="addCS()">Add Poster</button><button class="modal-secondary" onclick="closeModal('cs-modal')">Cancel</button></div></div>
-<div class="modal-ov" id="change-pass-modal" onclick="if(event.target===this)closeModal('change-pass-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('change-pass-modal')">✕</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Change Password</div><div style="display:flex;flex-direction:column;gap:8px;width:100%"><input class="pin-inp" type="password" id="cp-cur" placeholder="Current password"/><input class="pin-inp" type="password" id="cp-new" placeholder="New password (min 4)"/><input class="pin-inp" type="password" id="cp-conf" placeholder="Confirm new password"/></div><div class="pin-err" id="cp-err"></div><button class="modal-primary" onclick="submitChangePass()"><svg width="12" height="12"><use href="#ic-save"/></svg> Save</button><button class="modal-secondary" onclick="closeModal('change-pass-modal')">Cancel</button></div></div>
-<div class="modal-ov" id="pin-modal" onclick="if(event.target===this)closeModal('pin-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('pin-modal')">✕</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Admin Access</div><div class="modal-sub">Enter admin password</div><div class="pw-wrap"><input class="pin-inp" type="password" id="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="14" height="14" id="eye-ico"><use href="#ic-eye"/></svg></button></div><div class="pin-err" id="pin-err"></div><button class="modal-primary" onclick="checkPin()"><svg width="12" height="12"><use href="#ic-lock"/></svg> Enter Admin</button><button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button></div></div>
+<div class="modal-ov" id="contact-modal" onclick="if(event.target===this)closeModal('contact-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('contact-modal')">&#10005;</button><div class="modal-ico green"><svg width="24" height="24"><use href="#ic-wa"/></svg></div><div class="modal-title">Contact Kenmovies</div><div class="modal-sub">Subscriptions, requests and support.</div><a class="modal-primary wa" href="https://wa.me/256702381857" target="_blank" style="text-decoration:none"><svg width="12" height="12"><use href="#ic-wa"/></svg> Chat on WhatsApp</a><div class="ci-row"><svg width="12" height="12"><use href="#ic-phone"/></svg> +256 702 381 857</div><div class="ci-row"><svg width="12" height="12"><use href="#ic-globe"/></svg> kenmovies.is-a.dev</div><button class="modal-secondary" onclick="closeModal('contact-modal')">Close</button></div></div>
+<div class="modal-ov" id="del-modal" onclick="if(event.target===this)closeModal('del-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('del-modal')">&#10005;</button><div class="modal-ico red"><svg width="24" height="24"><use href="#ic-trash"/></svg></div><div class="modal-title">Delete?</div><div class="modal-sub" id="del-modal-sub">This cannot be undone.</div><button class="modal-primary danger" onclick="confirmDelete()"><svg width="12" height="12"><use href="#ic-trash"/></svg> Delete</button><button class="modal-secondary" onclick="closeModal('del-modal')">Cancel</button></div></div>
+<div class="modal-ov" id="cs-modal" onclick="if(event.target===this)closeModal('cs-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('cs-modal')">&#10005;</button><div class="modal-title">Add Coming Soon</div><div style="display:flex;flex-direction:column;gap:8px;width:100%"><input class="momo-inp" type="text" id="cs-title-inp" placeholder="Movie title"/><input class="momo-inp" type="text" id="cs-thumb-inp" placeholder="Poster URL"/><input class="momo-inp" type="text" id="cs-date-inp" placeholder="Release e.g. April 2026"/></div><button class="modal-primary" onclick="addCS()">Add Poster</button><button class="modal-secondary" onclick="closeModal('cs-modal')">Cancel</button></div></div>
+<div class="modal-ov" id="change-pass-modal" onclick="if(event.target===this)closeModal('change-pass-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('change-pass-modal')">&#10005;</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Change Password</div><div style="display:flex;flex-direction:column;gap:8px;width:100%"><input class="pin-inp" type="password" id="cp-cur" placeholder="Current password"/><input class="pin-inp" type="password" id="cp-new" placeholder="New password (min 4)"/><input class="pin-inp" type="password" id="cp-conf" placeholder="Confirm new password"/></div><div class="pin-err" id="cp-err"></div><button class="modal-primary" onclick="submitChangePass()"><svg width="12" height="12"><use href="#ic-save"/></svg> Save</button><button class="modal-secondary" onclick="closeModal('change-pass-modal')">Cancel</button></div></div>
+<div class="modal-ov" id="pin-modal" onclick="if(event.target===this)closeModal('pin-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('pin-modal')">&#10005;</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Admin Access</div><div class="modal-sub">Enter admin password</div><div class="pw-wrap"><input class="pin-inp" type="password" id="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="14" height="14" id="eye-ico"><use href="#ic-eye"/></svg></button></div><div class="pin-err" id="pin-err"></div><button class="modal-primary" onclick="checkPin()"><svg width="12" height="12"><use href="#ic-lock"/></svg> Enter Admin</button><button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button></div></div>
 
 <div id="toast"></div>
-<script src="app3-2.js?v=19"></script>
+<script src="app3-2.js?v=20"></script>
 </body>
 </html>
