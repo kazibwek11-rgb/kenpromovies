@@ -315,7 +315,8 @@ function updateFavUI() {
   if (ico) ico.innerHTML = on ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
   const btn = $('pi-fav-btn');
 if (btn) { btn.classList.toggle('fav-on', on); }
-  if (txt) txt.textContent = on ? 'Saved' : 'Save';
+ const txt = $('pi-fav-txt');
+   if (txt) txt.textContent = on ? 'Saved' : 'Save';
 }
 function toggleDetailFav() {
   if (!currentPlayItem) return;
