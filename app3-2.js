@@ -534,6 +534,7 @@ function closePlayer() {
    ════════════════════════════════════════════ */
 
 function kpLoad(url) {
+   console.log('kpLoad URL:', url);
   kpCurrentUrl = url;
   const container = $('player-video');
   container.innerHTML = '';
