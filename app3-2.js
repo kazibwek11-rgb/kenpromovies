@@ -171,7 +171,7 @@ function posterCard(m, opts = {}) {
            <path d="M12 8v8M8 12h8"/>
          </svg>
        </div>`;
-  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:10px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m.vj}</div>` : '';
+  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:10px;background:rgba(0,0,0,0.7);color:#00e676;padding:2px 5px;border-radius:3px;">${m.vj}</div>` : '';
   const badge = m._isSeries && m._epCount
     ? `<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,9,20,0.9);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m._epCount} EP</div>`
     : '';
