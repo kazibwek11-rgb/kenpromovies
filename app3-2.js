@@ -1,8 +1,7 @@
 /* ═══════════════════════════════════════
-   KENMOVIES v5.2  —  app3-2.js
-   Fixed: archive.org blank screen, player bugs,
-          series/movies separation, poster cards,
-          hero overlap, Firebase errors
+   KENMOVIES v5.4  —  app3-2.js
+   Fixed: VJ font light+green, genre white+light,
+          shadow removed, archive in-app player
    ═══════════════════════════════════════ */
 'use strict';
 
@@ -68,7 +67,7 @@ function checkPin() {
     localStorage.setItem('km_admin', '1');
     closeModal('pin-modal');
     applyAdminUI();
-    showToast('Admin unlocked ✓');
+    showToast('Admin unlocked \u2713');
     showSection('admin');
   } else {
     $('pin-err').textContent = 'Wrong password';
@@ -91,7 +90,7 @@ function submitChangePass() {
   if (nw !== conf) { err.textContent = 'Passwords do not match'; return; }
   localStorage.setItem('kp_admin_pass', nw);
   closeModal('change-pass-modal');
-  showToast('Password changed ✓');
+  showToast('Password changed \u2713');
 }
 function setATab(btn, tab) {
   document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
@@ -147,7 +146,7 @@ function setHero(i) {
   img.onload = () => { img.style.opacity = '1'; };
   img.src = m.thumb || '';
   $('hero-title').textContent = m.sname || m.title || '';
-  $('hero-meta').textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' · ');
+  $('hero-meta').textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' \u00b7 ');
   document.querySelectorAll('.hdot').forEach((d, idx) => d.classList.toggle('on', idx === i));
 }
 function heroClick() {
@@ -171,12 +170,13 @@ function posterCard(m, opts = {}) {
            <path d="M12 8v8M8 12h8"/>
          </svg>
        </div>`;
-  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:10px;background:rgba(0,0,0,0.7);color:#00e676;padding:2px 5px;border-radius:3px;">${m.vj}</div>` : '';
+  /* FIX: VJ label — green, thin font, small */
+  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:300;background:rgba(0,0,0,0.7);color:#00e676;padding:2px 5px;border-radius:3px;">${m.vj}</div>` : '';
   const badge = m._isSeries && m._epCount
     ? `<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,9,20,0.9);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m._epCount} EP</div>`
     : '';
   const editBtn = (adminUnlocked && opts.showEdit)
-    ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')" style="position:absolute;top:4px;left:4px;z-index:2;">✎</button>`
+    ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')" style="position:absolute;top:4px;left:4px;z-index:2;">\u270e</button>`
     : '';
   div.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${vj}${badge}${editBtn}</div>`;
   return div;
@@ -233,7 +233,6 @@ function buildRows() {
     vjMapMovies[vj].push(m);
   });
 
-  /* HOME */
   const hh = $('vj-rows-home'); hh.innerHTML = '';
   if (movies.length)       makeRow('Latest Movies',  movies,       hh);
   if (seriesSorted.length) makeRow('Latest Series',  seriesSorted, hh);
@@ -243,7 +242,6 @@ function buildRows() {
     if (items.length >= 2) makeRow(vj, byNew(items), hh);
   });
 
-  /* MOVIES PAGE */
   const hm = $('vj-rows-movies'); hm.innerHTML = '';
   if (movies.length) {
     const vjsM = [...new Set(movies.map(m => m.vj || 'Other'))];
@@ -255,7 +253,6 @@ function buildRows() {
     hm.innerHTML = '<div class="empty-page">No movies yet.</div>';
   }
 
-  /* SERIES PAGE */
   const hs = $('vj-rows-series'); hs.innerHTML = '';
   if (seriesSorted.length) {
     makeRow('All Series', seriesSorted, hs);
@@ -270,12 +267,10 @@ function buildRows() {
     hs.innerHTML = '<div class="empty-page">No series yet.</div>';
   }
 
-  /* INDIAN */
   const hi = $('vj-rows-indian'); hi.innerHTML = '';
   if (indians.length) makeRow('Indian', indians, hi, { showEdit: true });
   else hi.innerHTML = '<div class="empty-page">No Indian content yet.</div>';
 
-  /* ANIMATION */
   const ha = $('vj-rows-animation'); ha.innerHTML = '';
   if (animations.length) makeRow('Animation', animations, ha, { showEdit: true });
   else ha.innerHTML = '<div class="empty-page">No animation yet.</div>';
@@ -314,9 +309,9 @@ function updateFavUI() {
   const ico = $('pi-fav-ico');
   if (ico) ico.innerHTML = on ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
   const btn = $('pi-fav-btn');
-if (btn) { btn.classList.toggle('fav-on', on); }
- const txt = $('pi-fav-txt');
-   if (txt) txt.textContent = on ? 'Saved' : 'Save';
+  if (btn) { btn.classList.toggle('fav-on', on); }
+  const txt = $('pi-fav-txt');
+  if (txt) txt.textContent = on ? 'Saved' : 'Save';
 }
 function toggleDetailFav() {
   if (!currentPlayItem) return;
@@ -368,7 +363,7 @@ function openDetail(m) {
   db.innerHTML = `
     <div class="det-hero">
       <img src="${m.thumb || ''}" alt="" onerror="this.src=''"/>
-      <div class="det-hero-grad"></div>
+      <div class="det-hero-grad" style="display:none;"></div>
       <div class="det-topbar">
         <button class="det-back" onclick="closeDetail()"><svg width="20" height="20"><use href="#ic-back"/></svg></button>
         <button class="det-back" id="detail-fav-btn" onclick="toggleDetailFav()"><svg width="18" height="18" id="detail-fav-ico"><use href="${isF ? '#ic-heart-f' : '#ic-heart'}"/></svg></button>
@@ -377,9 +372,9 @@ function openDetail(m) {
     <div class="det-body">
       <div class="det-title">${m.title || m.sname || ''}</div>
       <div class="det-meta">
-        ${m.vj ? `<span class="det-vj">${m.vj}</span>` : ''}
+        ${m.vj ? `<span class="det-vj" style="color:#00e676;font-weight:300;">${m.vj}</span>` : ''}
         ${m.year ? `<span class="det-tag">${m.year}</span>` : ''}
-        ${m.genre ? `<span class="det-tag">${m.genre}</span>` : ''}
+        ${m.genre ? `<span class="det-tag" style="color:#ffffff;font-weight:300;">${m.genre}</span>` : ''}
       </div>
       <p class="det-desc">${m.description || m.desc || 'No description available.'}</p>
       <div class="det-actions">
@@ -424,7 +419,7 @@ function openSeriesDetail(sname, firstEp) {
   sd.style.backgroundImage = img ? `url('${img}')` : 'none';
   $('sd-title').textContent = sname;
   $('sd-vj').textContent = firstEp.vj || '';
-  $('sd-genres').textContent = [firstEp.genre, firstEp.year].filter(Boolean).join(' · ');
+  $('sd-genres').textContent = [firstEp.genre, firstEp.year].filter(Boolean).join(' \u00b7 ');
   $('sd-desc').textContent = firstEp.description || firstEp.desc || '';
   const ico = $('sd-fav-ico');
   ico.innerHTML = isFav(firstEp.id) ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
@@ -476,34 +471,21 @@ function playItem(m) {
 function openPlayer(m) {
   const ov = $('player-ov'); ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-
-  /* Show info card */
   const piCard = $('pi-card');
   if (piCard) piCard.style.display = 'flex';
-
-  /* Poster */
   const piImg = $('pi-img');
   if (piImg) piImg.src = m.thumb || '';
-
-  /* Titles */
   const piTitle = $('pi-title');
   if (piTitle) piTitle.textContent = m.sname || m.title || '';
-
   const piEp = $('pi-ep');
   if (piEp) piEp.textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
-
   const piMeta = $('pi-meta');
-  if (piMeta) piMeta.textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' · ');
-
+  if (piMeta) piMeta.textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' \u00b7 ');
   const kpTtl = $('kp-ttl');
   if (kpTtl) kpTtl.textContent = m.sname || m.title || '';
-
   const kpEp = $('kp-ep');
   if (kpEp) kpEp.textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
-
   updateFavUI();
-
-  /* Episode nav */
   const epNav = $('ep-nav');
   if (epNav) {
     if (currentEpList.length > 1) {
@@ -518,11 +500,8 @@ function openPlayer(m) {
       epNav.style.display = 'none';
     }
   }
-
-  /* More like these */
   const mr = $('more-row');
   if (mr) { mr.innerHTML = ''; buildMoreRow(mr, m); }
-
   kpLoad(m.playLink || m.dlLink || '');
 }
 function closePlayer() {
@@ -536,11 +515,7 @@ function closePlayer() {
   document.body.style.overflow = '';
 }
 
-/* ════════════════════════════════════════════
-   FIXED VIDEO PLAYER — v5.2
-   Full archive.org support with filename extraction
-   ════════════════════════════════════════════ */
-
+/* ── PLAYER CORE ─────────────────────────── */
 function kpLoad(url) {
   console.log('[KP] kpLoad:', url);
   kpCurrentUrl = url;
@@ -552,98 +527,53 @@ function kpLoad(url) {
   const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = '';
   kpVideo = null; kpIframe = null; kpIsVideo = false;
   showKpState('loading');
-
   if (!url || !url.trim()) { showKpState('error'); return; }
-
   const isYT         = /youtu\.?be|youtube\.com/i.test(url);
   const isArchiveAny = /archive\.org/i.test(url);
   const isDirect     = !isArchiveAny && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
-
-  if (isYT) {
-    kpLoadIframe(ytEmbedUrl(url));
-  } else if (isArchiveAny) {
-    kpLoadArchive(url);
-  } else if (isDirect) {
-    kpLoadVideo(url);
-  } else {
-    kpLoadIframe(url);
-  }
+  if (isYT) { kpLoadIframe(ytEmbedUrl(url)); }
+  else if (isArchiveAny) { kpLoadArchive(url); }
+  else if (isDirect) { kpLoadVideo(url); }
+  else { kpLoadIframe(url); }
 }
 
-/* ── ARCHIVE.ORG HANDLER ─────────────────
-   Extracts itemId AND filename from any archive.org URL format:
-   - https://archive.org/details/ITEM_ID
-   - https://archive.org/embed/ITEM_ID
-   - https://archive.org/download/ITEM_ID/file.mp4
-   - https://ia902345.us.archive.org/NN/items/ITEM_ID/file.mp4
-   ────────────────────────────────────────── */
 function kpLoadArchive(url) {
-  let itemId = '';
-  let fileName = '';
-
+  let itemId = '', fileName = '';
   try {
     const u = new URL(url);
-    const host = u.hostname; // e.g. "archive.org" or "ia902345.us.archive.org"
-    const path = u.pathname;
-
+    const host = u.hostname, path = u.pathname;
     if (/^ia\d+\./i.test(host)) {
-      /* ia subdomain: /NN/items/ITEM_ID/file.mp4 */
       const m = path.match(/\/items\/([^\/]+)\/(.+)/);
       if (m) { itemId = m[1]; fileName = m[2]; }
     } else {
-      /* archive.org/details|embed|download/ITEM_ID/optional_file */
       const m = path.match(/\/(details|embed|download)\/([^\/\?#]+)\/?([^?#]*)?/);
-      if (m) {
-        itemId   = m[2];
-        fileName = (m[3] || '').replace(/\/$/, ''); // strip trailing slash
-      }
+      if (m) { itemId = m[2]; fileName = (m[3] || '').replace(/\/$/, ''); }
     }
   } catch {
-    /* URL parse failed — try regex fallback */
     const m = url.match(/(?:details|embed|download)\/([^\/\?#&]+)\/?([^?#&]*)?/);
     if (m) { itemId = m[1]; fileName = (m[2] || ''); }
   }
-
-  if (!itemId) {
-    /* Cannot determine item ID — try iframe with original URL */
-    kpLoadIframe(url);
-    return;
-  }
-
-  /* If we have a filename that is a direct video file, try native player first.
-     It loads faster and gives us full controls (seek, speed, etc.) */
+  if (!itemId) { kpLoadIframe(url); return; }
   if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
-    const directUrl = `https://archive.org/download/${itemId}/${fileName}`;
-    kpLoadVideoWithFallback(directUrl, itemId, fileName);
+    kpLoadVideoWithFallback(`https://archive.org/download/${itemId}/${fileName}`, itemId, fileName);
     return;
   }
-
-  /* No filename or non-video path — use embed iframe */
-  const embedUrl = `https://archive.org/embed/${itemId}?autoplay=1`;
-  kpLoadIframe(embedUrl);
+  kpLoadIframe(`https://archive.org/embed/${itemId}?autoplay=1`);
 }
 
-/* Try native video; if it errors (CORS / range issues) fall back to embed iframe */
 function kpLoadVideoWithFallback(directUrl, itemId, fileName) {
   const container = $('player-video');
   const vid = document.createElement('video');
-  vid.controls = false;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline', '');
-  vid.setAttribute('webkit-playsinline', '');
+  vid.controls = false; vid.playsInline = true;
+  vid.setAttribute('playsinline', ''); vid.setAttribute('webkit-playsinline', '');
   vid.preload = 'metadata';
   vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain';
-
   const src = document.createElement('source');
   src.src = directUrl;
   src.type = /\.webm$/i.test(directUrl) ? 'video/webm' : 'video/mp4';
-  vid.appendChild(src);
-  container.appendChild(vid);
-  kpVideo = vid;
-  kpIsVideo = true;
-
+  vid.appendChild(src); container.appendChild(vid);
+  kpVideo = vid; kpIsVideo = true;
   let errFired = false;
-
   vid.addEventListener('loadedmetadata', () => { showKpState(''); });
   vid.addEventListener('canplay', () => { showKpState(''); kpPlay(); });
   vid.addEventListener('playing', () => { showKpState(''); kpSetPlayIcon(true); });
@@ -651,57 +581,34 @@ function kpLoadVideoWithFallback(directUrl, itemId, fileName) {
   vid.addEventListener('waiting', () => showKpState('loading'));
   vid.addEventListener('timeupdate', kpTimeUpdate);
   vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => {
-    kpSetPlayIcon(false);
-    if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
-  });
+  vid.addEventListener('ended', () => { kpSetPlayIcon(false); if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1); });
   vid.addEventListener('error', () => {
-    if (errFired) return;
-    errFired = true;
-    /* Native video failed — fall back to embed iframe */
-    kpStop();
-    const embedUrl = `https://archive.org/embed/${itemId}?autoplay=1`;
-    kpLoadIframe(embedUrl);
+    if (errFired) return; errFired = true;
+    kpStop(); kpLoadIframe(`https://archive.org/embed/${itemId}?autoplay=1`);
   });
-
   vid.load();
-  setTimeout(() => {
-    if (kpVideo && !kpPlaying) {
-      vid.play().catch(() => {
-        /* Autoplay blocked — show controls, user taps play */
-        showKpState('');
-        kpSetPlayIcon(false);
-      });
-    }
-  }, 600);
+  setTimeout(() => { if (kpVideo && !kpPlaying) vid.play().catch(() => { showKpState(''); kpSetPlayIcon(false); }); }, 600);
 }
 
 function ytEmbedUrl(url) {
   let id = '';
-  try {
-    const u = new URL(url);
-    id = u.searchParams.get('v') || u.pathname.split('/').pop();
-  } catch { id = url.split('/').pop().split('?')[0]; }
+  try { const u = new URL(url); id = u.searchParams.get('v') || u.pathname.split('/').pop(); }
+  catch { id = url.split('/').pop().split('?')[0]; }
   return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
 }
 
 function kpLoadVideo(url) {
   const container = $('player-video');
   const vid = document.createElement('video');
-  vid.controls = false;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline', '');
-  vid.setAttribute('webkit-playsinline', '');
+  vid.controls = false; vid.playsInline = true;
+  vid.setAttribute('playsinline', ''); vid.setAttribute('webkit-playsinline', '');
   vid.preload = 'metadata';
   vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain';
   const src = document.createElement('source');
   src.src = url;
   src.type = url.includes('.webm') ? 'video/webm' : url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
-  vid.appendChild(src);
-  container.appendChild(vid);
-  kpVideo = vid;
-  kpIsVideo = true;
-
+  vid.appendChild(src); container.appendChild(vid);
+  kpVideo = vid; kpIsVideo = true;
   vid.addEventListener('loadedmetadata', () => { showKpState(''); });
   vid.addEventListener('canplay', () => { showKpState(''); kpPlay(); });
   vid.addEventListener('playing', () => { showKpState(''); kpSetPlayIcon(true); });
@@ -709,36 +616,25 @@ function kpLoadVideo(url) {
   vid.addEventListener('waiting', () => showKpState('loading'));
   vid.addEventListener('timeupdate', kpTimeUpdate);
   vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => {
-    kpSetPlayIcon(false);
-    if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
-  });
+  vid.addEventListener('ended', () => { kpSetPlayIcon(false); if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1); });
   vid.addEventListener('error', () => showKpState('error'));
   vid.load();
-  setTimeout(() => {
-    if (!kpPlaying && kpVideo) {
-      vid.play().catch(() => { showKpState(''); kpSetPlayIcon(false); });
-    }
-  }, 800);
+  setTimeout(() => { if (!kpPlaying && kpVideo) vid.play().catch(() => { showKpState(''); kpSetPlayIcon(false); }); }, 800);
 }
 
 function kpLoadIframe(url) {
   const container = $('player-video');
   const fr = document.createElement('iframe');
-  fr.src = url;
-  fr.allowFullscreen = true;
+  fr.src = url; fr.allowFullscreen = true;
   fr.setAttribute('allowfullscreen', '');
   fr.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
   fr.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000;display:block;';
   container.style.cssText = 'position:relative;width:100%;height:100%;min-height:240px;background:#000;';
   container.appendChild(fr);
-  kpIframe = fr;
-  kpIsVideo = false;
+  kpIframe = fr; kpIsVideo = false;
   $('kp-ctrl').style.display = 'none';
   const wrap = $('kp-wrap');
-  wrap.style.aspectRatio = 'unset';
-  wrap.style.flex = '1';
-  wrap.style.minHeight = '56vw';
+  wrap.style.aspectRatio = 'unset'; wrap.style.flex = '1'; wrap.style.minHeight = '56vw';
   const oldExtra = wrap.querySelector('[data-extra]');
   if (oldExtra) oldExtra.remove();
   const backBtn = document.createElement('button');
@@ -751,18 +647,9 @@ function kpLoadIframe(url) {
   setTimeout(() => showKpState(''), 2500);
 }
 
-function kpPlay() {
-  if (!kpVideo) return;
-  kpVideo.play().then(() => { kpPlaying = true; kpSetPlayIcon(true); }).catch(() => showKpState('error'));
-}
-function kpPause() {
-  if (!kpVideo) return;
-  kpVideo.pause(); kpPlaying = false; kpSetPlayIcon(false);
-}
-function kpTogglePlay() {
-  if (!kpVideo) return;
-  if (kpVideo.paused) kpPlay(); else kpPause();
-}
+function kpPlay() { if (!kpVideo) return; kpVideo.play().then(() => { kpPlaying = true; kpSetPlayIcon(true); }).catch(() => showKpState('error')); }
+function kpPause() { if (!kpVideo) return; kpVideo.pause(); kpPlaying = false; kpSetPlayIcon(false); }
+function kpTogglePlay() { if (!kpVideo) return; if (kpVideo.paused) kpPlay(); else kpPause(); }
 function kpStop() {
   if (kpVideo) { kpVideo.pause(); kpVideo.src = ''; kpVideo = null; }
   kpIframe = null; kpIsVideo = false; kpPlaying = false;
@@ -771,16 +658,13 @@ function kpStop() {
   resetProgress();
 }
 function kpRetry() { if (kpCurrentUrl) kpLoad(kpCurrentUrl); }
-
 function kpSetPlayIcon(playing) {
   kpPlaying = playing;
-  const ico = $('kp-pico');
-  if (!ico) return;
+  const ico = $('kp-pico'); if (!ico) return;
   ico.innerHTML = playing
     ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
     : '<polygon points="5,3 19,12 5,21"/>';
 }
-
 function showKpState(state) {
   $('kp-load').style.display = state === 'loading' ? 'flex' : 'none';
   $('kp-err').style.display  = state === 'error'   ? 'flex' : 'none';
@@ -797,10 +681,7 @@ function kpTimeUpdate() {
 }
 function kpBufferUpdate() {
   if (!kpVideo) return;
-  try {
-    const buf = kpVideo.buffered, dur = kpVideo.duration || 1;
-    if (buf.length) $('kp-buf').style.width = (buf.end(buf.length - 1) / dur * 100) + '%';
-  } catch {}
+  try { const buf = kpVideo.buffered, dur = kpVideo.duration || 1; if (buf.length) $('kp-buf').style.width = (buf.end(buf.length - 1) / dur * 100) + '%'; } catch {}
 }
 function resetProgress() {
   if ($('kp-fill')) $('kp-fill').style.width = '0%';
@@ -816,8 +697,7 @@ function kpProgClick(e) {
 
 /* PROG DRAG */
 function initProgDrag() {
-  const prog = $('kp-prog');
-  if (!prog) return;
+  const prog = $('kp-prog'); if (!prog) return;
   const seek = e => {
     if (!kpVideo) return;
     const t = e.touches ? e.touches[0] : e;
@@ -838,8 +718,7 @@ function initProgDrag() {
 /* CONTROLS */
 function kpTap() {
   const ctrl = $('kp-ctrl');
-  if (ctrl.classList.contains('hide')) { ctrl.classList.remove('hide'); kpResetCtrlTimer(); }
-  else { ctrl.classList.add('hide'); }
+  if (ctrl.classList.contains('hide')) { ctrl.classList.remove('hide'); kpResetCtrlTimer(); } else { ctrl.classList.add('hide'); }
 }
 function kpResetCtrlTimer() {
   clearTimeout(kpCtrlTimer);
@@ -867,11 +746,8 @@ function kpZoom() {
 }
 function kpFullscreen() {
   const wrap = $('kp-wrap');
-  if (!document.fullscreenElement) {
-    (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen || function () {}).call(wrap);
-  } else {
-    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || function () {}).call(document);
-  }
+  if (!document.fullscreenElement) { (wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen || function(){}).call(wrap); }
+  else { (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || function(){}).call(document); }
 }
 document.addEventListener('fullscreenchange', () => {
   const ico = $('kp-fs-ico'); if (!ico) return;
@@ -881,7 +757,7 @@ function kpCycleSpeed() {
   kpSpeedIdx = (kpSpeedIdx + 1) % KP_SPEEDS.length;
   const s = KP_SPEEDS[kpSpeedIdx];
   if (kpVideo) kpVideo.playbackRate = s;
-  const btn = $('kp-spd'); if (btn) btn.textContent = s + '×';
+  const btn = $('kp-spd'); if (btn) btn.textContent = s + '\u00d7';
 }
 function kpDownload() {
   const url = kpCurrentDl || kpCurrentUrl;
@@ -955,12 +831,11 @@ function previewThumb(url) {
   else prev.style.display = 'none';
 }
 function previewDlLink(url) {
-  const hint = $('dl-hint');
-  if (!hint) return;
+  const hint = $('dl-hint'); if (!hint) return;
   if (!url) { hint.textContent = 'Paste direct .mp4 URL'; hint.className = 'fhint'; return; }
   const isMp4 = /\.(mp4|webm)(\?|$)/i.test(url) || /archive\.org\//i.test(url);
-  if (isMp4) { hint.textContent = '✓ Looks like a direct link!'; hint.className = 'fhint ok'; }
-  else { hint.textContent = '⚠ Should be a direct .mp4 or archive.org link'; hint.className = 'fhint warn'; }
+  if (isMp4) { hint.textContent = '\u2713 Looks like a direct link!'; hint.className = 'fhint ok'; }
+  else { hint.textContent = '\u26a0 Should be a direct .mp4 or archive.org link'; hint.className = 'fhint warn'; }
 }
 function cancelEdit() {
   editId = null; $('edit-id').value = '';
@@ -975,7 +850,6 @@ function clearForm() {
   $('thumb-prev').style.display = 'none';
 }
 
-/* Auto-fix partial archive.org URLs */
 function fixUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -993,10 +867,8 @@ async function submitContent() {
   if (!title && cat !== 'series') { showToast('Enter a title', true); return; }
   if (cat === 'series' && !title) { showToast('Enter episode title', true); return; }
   const btn = $('submit-btn'); btn.disabled = true;
-
   const obj = {
-    category: cat,
-    title,
+    category: cat, title,
     sname: cat === 'series' ? sname : title,
     description: $('f-desc').value.trim(),
     vj: $('f-vj').value,
@@ -1012,14 +884,13 @@ async function submitContent() {
     obj.epNum   = parseInt($('f-epnum').value) || 1;
     obj.epTitle = title;
   }
-
   try {
     if (editId) {
       await window._fb.updateDoc(window._fb.doc(window._db, 'content', editId), obj);
-      showToast('Updated ✓');
+      showToast('Updated \u2713');
     } else {
       await window._fb.addDoc(window._fb.collection(window._db, 'content'), obj);
-      showToast('Added ✓');
+      showToast('Added \u2713');
     }
     cancelEdit(); clearForm();
   } catch (e) { showToast('Error: ' + e.message, true); }
@@ -1081,7 +952,7 @@ async function confirmDelete() {
   if (!deleteId) return;
   try {
     await window._fb.deleteDoc(window._fb.doc(window._db, 'content', deleteId));
-    showToast('Deleted ✓'); closeModal('del-modal'); deleteId = null; renderLibrary();
+    showToast('Deleted \u2713'); closeModal('del-modal'); deleteId = null; renderLibrary();
   } catch (e) { showToast('Error: ' + e.message, true); }
 }
 
@@ -1092,7 +963,7 @@ async function addSubscriber() {
   try {
     await window._fb.addDoc(window._fb.collection(window._db, 'subscribers'), { name, phone, plan, createdAt: new Date().toISOString(), active: true });
     $('sub-name').value = ''; $('sub-phone').value = '';
-    showToast('Subscriber added ✓'); renderSubscribers();
+    showToast('Subscriber added \u2713'); renderSubscribers();
   } catch (e) { showToast('Error: ' + e.message, true); }
 }
 async function renderSubscribers() {
@@ -1104,7 +975,7 @@ async function renderSubscribers() {
     list.innerHTML = '';
     subs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(s => {
       const div = document.createElement('div'); div.className = 'sub-item';
-      div.innerHTML = `<div class="sub-ifo"><div class="sub-name">${s.name || ''}</div><div class="sub-phone">${s.phone || ''}</div><div class="sub-date">${s.plan || ''} · ${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : ''}</div></div><span class="sub-badge ${s.active ? 'active' : 'expired'}">${s.active ? 'Active' : 'Expired'}</span><button class="sub-wa" onclick="window.open('https://wa.me/${(s.phone || '').replace(/\D/g, '')}','_blank')"><svg width="14" height="14"><use href="#ic-wa"/></svg></button><button class="sub-del" onclick="deleteSub('${s.id}')"><svg width="12" height="12"><use href="#ic-trash"/></svg></button>`;
+      div.innerHTML = `<div class="sub-ifo"><div class="sub-name">${s.name || ''}</div><div class="sub-phone">${s.phone || ''}</div><div class="sub-date">${s.plan || ''} \u00b7 ${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : ''}</div></div><span class="sub-badge ${s.active ? 'active' : 'expired'}">${s.active ? 'Active' : 'Expired'}</span><button class="sub-wa" onclick="window.open('https://wa.me/${(s.phone || '').replace(/\D/g, '')}','_blank')"><svg width="14" height="14"><use href="#ic-wa"/></svg></button><button class="sub-del" onclick="deleteSub('${s.id}')"><svg width="12" height="12"><use href="#ic-trash"/></svg></button>`;
       list.appendChild(div);
     });
   } catch (e) { list.innerHTML = '<div class="empty-msg">Error loading.</div>'; }
@@ -1136,7 +1007,7 @@ async function updatePayment(id, status) {
   catch (e) { showToast('Error', true); }
 }
 
-/* ── UPCOMING / COMING SOON ─────────────────── */
+/* ── UPCOMING ─────────────────────────────── */
 async function loadUpcoming() {
   try {
     const snap = await window._fb.getDocs(window._fb.collection(window._db, 'upcoming'));
@@ -1145,7 +1016,7 @@ async function loadUpcoming() {
     $('upcoming-ticker').style.display = 'block';
     const track = $('ticker-track');
     const dupe = [...items, ...items];
-    track.innerHTML = dupe.map(it => `<span class="ticker-item">🎬 ${it.title || ''} ${it.releaseDate ? '(' + it.releaseDate + ')' : ''}</span>`).join('');
+    track.innerHTML = dupe.map(it => `<span class="ticker-item">\ud83c\udfac ${it.title || ''} ${it.releaseDate ? '(' + it.releaseDate + ')' : ''}</span>`).join('');
     $('upcoming-row-block').style.display = 'block';
     const row = $('upcoming-cards-row'); row.innerHTML = '';
     items.forEach(it => {
@@ -1155,7 +1026,7 @@ async function loadUpcoming() {
         ? `<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>`
         : `<div class="pcard-noimg" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>`;
       const badge = it.releaseDate ? `<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>` : '';
-      const del = adminUnlocked ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">✕</button>` : '';
+      const del = adminUnlocked ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">\u2715</button>` : '';
       card.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${badge}${del}</div>`;
       row.appendChild(card);
     });
@@ -1211,7 +1082,6 @@ function init() {
   loadUpcoming();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(() => {});
 }
-
 document.addEventListener('DOMContentLoaded', init);
 
 /* ── NORMALIZE ─────────────────────────────── */
@@ -1235,20 +1105,13 @@ function normalizeItem(d) {
 /* ── LOAD CONTENT ─────────────────────────── */
 function loadContent() {
   const { onSnapshot, getDocs, getDoc, collection, doc, query, orderBy } = window._fb;
-
   function processSnap(snap) {
-    const items = [];
-    snap.forEach(d => items.push(normalizeItem(d)));
-    return items;
+    const items = []; snap.forEach(d => items.push(normalizeItem(d))); return items;
   }
-
   async function fetchExtras() {
     let extras = [];
     for (const col of ['movies', 'videos', 'media', 'tvshows', 'series']) {
-      try {
-        const s = await getDocs(collection(window._db, col));
-        s.forEach(d => extras.push(normalizeItem(d)));
-      } catch {}
+      try { const s = await getDocs(collection(window._db, col)); s.forEach(d => extras.push(normalizeItem(d))); } catch {}
     }
     try {
       const sd = await getDoc(doc(window._db, 'settings', 'movies'));
@@ -1265,16 +1128,12 @@ function loadContent() {
     } catch {}
     return extras;
   }
-
   function applyContent(primary, extras) {
     allContent = [...primary, ...extras];
-    buildRows();
-    buildHero();
-    renderStats();
+    buildRows(); buildHero(); renderStats();
     if (currentSection === 'favs') renderFavs();
     if (currentSection === 'downloads') renderDownloads();
   }
-
   let unsubOrdered = null;
   try {
     const qOrdered = query(collection(window._db, 'content'), orderBy('createdAt', 'desc'));
@@ -1294,16 +1153,11 @@ function loadContent() {
         showToast('Could not load content. Check connection.', true);
       });
     });
-  } catch (e) {
-    console.error('loadContent setup error:', e);
-  }
+  } catch (e) { console.error('loadContent setup error:', e); }
 }
 
 /* ── COMPATIBILITY ALIASES ── */
-window.openDetailOverlay = function (id) {
-  const m = allContent.find(x => x.id === id);
-  if (m) openDetail(m);
-};
+window.openDetailOverlay = function(id) { const m = allContent.find(x => x.id === id); if (m) openDetail(m); };
 window.openDetail = openDetail;
 window.playItem = playItem;
 window.showSection = showSection;
