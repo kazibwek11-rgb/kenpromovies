@@ -473,7 +473,17 @@ function openPlayer(m) {
   document.body.style.overflow = 'hidden';
   const piCard = $('pi-card');
   if (piCard) piCard.style.display = 'flex';
-  const piImg = $('pi-img');
+ const piImg = $('pi-img');
+if (piImg) {
+  piImg.style.display = 'block';
+  if (m.thumb) {
+    piImg.src = m.thumb;
+    piImg.onerror = () => { piImg.style.display = 'none'; };
+  } else {
+    piImg.src = '';
+    piImg.style.display = 'none';
+  }
+}
   if (piImg) piImg.src = m.thumb || '';
   const piTitle = $('pi-title');
   if (piTitle) piTitle.textContent = m.sname || m.title || '';
