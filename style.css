@@ -78,7 +78,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif
 .pcard:hover .pcard-poster{border-color:rgba(0,229,195,.4);box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .pcard-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .pcard-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:.15;color:var(--txt)}
-.pcard-hover{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.92) 100%);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:9px}
+.pcard-hover{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,0) 100%);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:9px}
 .pcard:hover .pcard-hover{opacity:1}
 .pcard-hover-title{font-size:10px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:2px}
 .pcard-hover-vj{font-size:8px;color:var(--teal);font-weight:600}
