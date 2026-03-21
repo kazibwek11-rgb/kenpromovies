@@ -554,7 +554,15 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
           <div class="row-head"><span class="row-lbl">Upcoming</span><button class="see-all" id="upcoming-add-btn" onclick="openModal('cs-modal')" style="display:none">+ Add</button></div>
           <div class="hrow" id="upcoming-cards-row"></div>
         </div>
-        <div id="vj-rows-home"></div>
+      <div id="home-skeleton" style="padding:14px;display:flex;flex-direction:column;gap:16px;">
+  <div style="height:18px;width:120px;background:var(--bg3);border-radius:4px;"></div>
+  <div style="display:flex;gap:8px;">
+    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
+    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
+    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
+  </div>
+</div>
+<div id="vj-rows-home"></div>
       </div>
       <!-- MOVIES --><div class="page" id="page-movies"><div class="ph"><h1 class="ptitle">Movies</h1></div><div id="vj-rows-movies"></div></div>
       <!-- SERIES --><div class="page" id="page-series"><div class="ph"><h1 class="ptitle">Series</h1></div><div id="vj-rows-series"></div></div>
