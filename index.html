@@ -453,11 +453,10 @@ img{display:block}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query }...onSnapshot, orderBy, query, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const cfg={apiKey:"AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",authDomain:"kenpro-movies.firebaseapp.com",projectId:"kenpro-movies",storageBucket:"kenpro-movies.firebasestorage.app",messagingSenderId:"861464698680",appId:"1:861464698680:web:b32b386afb748662282bcd"};
 const app=initializeApp(cfg);const db=getFirestore(app);const msg=getMessaging(app);
 window._db=db;window._fb={collection,addDoc,getDocs,getDoc,doc,updateDoc,deleteDoc,onSnapshot,orderBy,query};
-enableIndexedDbPersistence(db).catch(()=>{});
 window._fbReady=true;document.dispatchEvent(new Event('fb-ready'));
 window.enableNotifications=async function(){
   try{if(!('Notification' in window)){showToast('Not supported',true);return;}
@@ -555,15 +554,7 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
           <div class="row-head"><span class="row-lbl">Upcoming</span><button class="see-all" id="upcoming-add-btn" onclick="openModal('cs-modal')" style="display:none">+ Add</button></div>
           <div class="hrow" id="upcoming-cards-row"></div>
         </div>
-      <div id="home-skeleton" style="padding:14px;display:flex;flex-direction:column;gap:16px;">
-  <div style="height:18px;width:120px;background:var(--bg3);border-radius:4px;"></div>
-  <div style="display:flex;gap:8px;">
-    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
-    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
-    <div style="width:100px;height:150px;background:var(--bg3);border-radius:6px;flex-shrink:0;"></div>
-  </div>
-</div>
-<div id="vj-rows-home"></div>
+        <div id="vj-rows-home"></div>
       </div>
       <!-- MOVIES --><div class="page" id="page-movies"><div class="ph"><h1 class="ptitle">Movies</h1></div><div id="vj-rows-movies"></div></div>
       <!-- SERIES --><div class="page" id="page-series"><div class="ph"><h1 class="ptitle">Series</h1></div><div id="vj-rows-series"></div></div>
@@ -732,6 +723,6 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
 <div class="modal-ov" id="pin-modal" onclick="if(event.target===this)closeModal('pin-modal')"><div class="modal-box"><button class="modal-close" onclick="closeModal('pin-modal')">&#10005;</button><div class="modal-ico gold"><svg width="24" height="24"><use href="#ic-lock"/></svg></div><div class="modal-title">Admin Access</div><div class="modal-sub">Enter admin password</div><div class="pw-wrap"><input class="pin-inp" type="password" id="pin-inp" placeholder="Password" onkeydown="if(event.key==='Enter')checkPin()"/><button class="pw-eye" onclick="togglePwEye()"><svg width="14" height="14" id="eye-ico"><use href="#ic-eye"/></svg></button></div><div class="pin-err" id="pin-err"></div><button class="modal-primary" onclick="checkPin()"><svg width="12" height="12"><use href="#ic-lock"/></svg> Enter Admin</button><button class="modal-secondary" onclick="closeModal('pin-modal')">Cancel</button></div></div>
 
 <div id="toast"></div>
-<script src="app3-2.js?v=22"></script>
+<script src="app3-2.js?v=20"></script>
 </body>
 </html>
