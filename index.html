@@ -453,10 +453,11 @@ img{display:block}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query }...onSnapshot, orderBy, query, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const cfg={apiKey:"AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",authDomain:"kenpro-movies.firebaseapp.com",projectId:"kenpro-movies",storageBucket:"kenpro-movies.firebasestorage.app",messagingSenderId:"861464698680",appId:"1:861464698680:web:b32b386afb748662282bcd"};
 const app=initializeApp(cfg);const db=getFirestore(app);const msg=getMessaging(app);
 window._db=db;window._fb={collection,addDoc,getDocs,getDoc,doc,updateDoc,deleteDoc,onSnapshot,orderBy,query};
+enableIndexedDbPersistence(db).catch(()=>{});
 window._fbReady=true;document.dispatchEvent(new Event('fb-ready'));
 window.enableNotifications=async function(){
   try{if(!('Notification' in window)){showToast('Not supported',true);return;}
