@@ -511,6 +511,8 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
       <button class="tb-btn" onclick="openModal('contact-modal')">Contact</button>
       <button class="tb-btn ico" onclick="showSection('downloads')" title="Downloads"><svg width="17" height="17"><use href="#ic-dl"/></svg></button>
       <button class="tb-btn" id="admin-btn" onclick="goAdmin()" style="display:none">Admin</button>
+      <button id="auth-login-btn" onclick="openLoginModal()" style="display:flex;align-items:center;gap:5px;background:#00e676;color:#000;border:none;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;">👤 Login</button>
+      <button id="auth-user-btn" onclick="openUserMenu()" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer;">👤 <span id="auth-user-name">User</span> <span id="auth-sub-badge" style="font-size:9px;background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:10px;color:#aaa;">Free</span></button>
       <button class="tb-btn" id="lock-btn" onclick="openPinModal()">&#9679;&#9679;&#9679;</button>
       <button class="tb-btn ico" id="install-btn" onclick="triggerInstall()" style="display:none"><svg width="16" height="16"><use href="#ic-install"/></svg></button>
     </div>
