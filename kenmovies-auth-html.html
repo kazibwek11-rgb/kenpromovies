@@ -1,0 +1,491 @@
+<!-- ═══════════════════════════════════════
+     KENMOVIES AUTH MODALS
+     Add these HTML blocks to your index.html
+     Just before the closing </body> tag
+     ═══════════════════════════════════════ -->
+
+<!-- AUTH BUTTONS — Add these to your top navbar -->
+<!-- Find your navbar in index.html and add these buttons -->
+<style>
+/* ── AUTH STYLES ─────────────────────────── */
+.auth-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #00e676;
+  color: #000;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.auth-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.auth-sub-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.auth-sub-badge.pro { background: #FFD700; color: #000; }
+.auth-sub-badge.free { background: rgba(255,255,255,0.15); color: #aaa; }
+
+/* ── MODAL BASE ─────────────────────────── */
+.auth-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.auth-modal.open { display: flex; }
+
+.auth-box {
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+}
+
+.auth-logo {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 4px;
+  color: #fff;
+}
+.auth-logo span { color: #00e676; }
+
+.auth-sub-title {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+.auth-field label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.auth-field input, .auth-field select {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 11px 14px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.auth-field input:focus, .auth-field select:focus {
+  border-color: #00e676;
+}
+.auth-field select option { background: #111827; }
+
+.auth-err {
+  color: #ff5252;
+  font-size: 12px;
+  margin-bottom: 12px;
+  min-height: 16px;
+  text-align: center;
+}
+
+.auth-btn {
+  width: 100%;
+  background: #00e676;
+  color: #000;
+  border: none;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-bottom: 14px;
+}
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-btn:hover:not(:disabled) { opacity: 0.9; }
+
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+}
+.auth-switch a {
+  color: #00e676;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── SUBSCRIBE MODAL ─────────────────────── */
+.pay-info {
+  background: rgba(0,230,118,0.08);
+  border: 1px solid rgba(0,230,118,0.2);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.pay-info-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00e676;
+  margin-bottom: 8px;
+}
+.pay-info-step {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 4px;
+  display: flex;
+  gap: 8px;
+}
+.pay-info-step span:first-child {
+  color: #00e676;
+  font-weight: 700;
+  min-width: 18px;
+}
+.pay-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.pay-plan-opt {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pay-plan-opt.selected {
+  border-color: #00e676;
+  background: rgba(0,230,118,0.1);
+}
+.pay-plan-name { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.pay-plan-price { font-size: 15px; font-weight: 700; color: #fff; margin-top: 4px; }
+.pay-plan-ugx { font-size: 9px; color: #666; }
+
+/* ── USER MENU ─────────────────────────── */
+.user-menu-box {
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 0;
+  width: 100%;
+  max-width: 320px;
+  overflow: hidden;
+}
+.um-header {
+  background: linear-gradient(135deg, #0a2a1a, #0d1117);
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.um-avatar {
+  width: 60px;
+  height: 60px;
+  background: rgba(0,230,118,0.15);
+  border: 2px solid #00e676;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 24px;
+}
+.um-name { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.um-phone { font-size: 12px; color: #666; margin-bottom: 8px; }
+.um-status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.um-status.pro { background: rgba(255,215,0,0.15); color: #FFD700; border: 1px solid rgba(255,215,0,0.3); }
+.um-status.free { background: rgba(255,255,255,0.08); color: #888; border: 1px solid rgba(255,255,255,0.15); }
+
+.um-actions { padding: 12px; }
+.um-btn {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+.um-btn:hover { background: rgba(255,255,255,0.1); }
+.um-btn.green { color: #00e676; border-color: rgba(0,230,118,0.2); }
+.um-btn.red { color: #ff5252; border-color: rgba(255,82,82,0.2); }
+
+/* ── SUB PROMPT ─────────────────────────── */
+.sub-prompt {
+  display: none;
+  background: rgba(0,230,118,0.08);
+  border: 1px solid rgba(0,230,118,0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  text-align: center;
+}
+.sub-prompt-text { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+.sub-prompt-btn {
+  background: #00e676;
+  color: #000;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+</style>
+
+<!-- ════════════════════════════════════════
+     ADD THESE BUTTONS TO YOUR NAVBAR
+     Find your top navigation bar in index.html
+     and add these two buttons
+     ════════════════════════════════════════ -->
+
+<!-- Login Button (shows when not logged in) -->
+<button id="auth-login-btn" class="auth-login-btn" onclick="openLoginModal()" style="display:flex;">
+  👤 Login
+</button>
+
+<!-- User Button (shows when logged in) -->
+<button id="auth-user-btn" class="auth-user-btn" onclick="openUserMenu()" style="display:none;">
+  👤 <span id="auth-user-name">User</span>
+  <span id="auth-sub-badge" class="auth-sub-badge free">Free</span>
+</button>
+
+<!-- ════════════════════════════════════════
+     ADD THIS SUBSCRIBE PROMPT TO DETAIL PAGE
+     Find your .det-actions div and add this below it
+     ════════════════════════════════════════ -->
+<div id="sub-prompt" class="sub-prompt">
+  <div class="sub-prompt-text">🔒 Subscribe to unlock downloads</div>
+  <button class="sub-prompt-btn" onclick="openSubscribeModal()">Subscribe Now</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODALS — Add before closing </body> tag
+     ════════════════════════════════════════ -->
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" class="auth-modal">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeLoginModal()">✕</button>
+    <div class="auth-logo">KEN<span>MOVIES</span></div>
+    <div class="auth-sub-title">Login to your account</div>
+
+    <div class="auth-field">
+      <label>Phone Number</label>
+      <input id="login-phone" type="tel" placeholder="e.g. 0701234567">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="Enter password"
+             onkeydown="if(event.key==='Enter') submitLogin()">
+    </div>
+    <div id="login-err" class="auth-err"></div>
+    <button id="login-btn" class="auth-btn" onclick="submitLogin()">Login</button>
+    <div class="auth-switch">
+      Don't have an account? <a onclick="openSignupModal()">Sign Up Free</a>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div id="signup-modal" class="auth-modal">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeSignupModal()">✕</button>
+    <div class="auth-logo">KEN<span>MOVIES</span></div>
+    <div class="auth-sub-title">Create free account</div>
+
+    <div class="auth-field">
+      <label>Your Name</label>
+      <input id="signup-name" type="text" placeholder="Enter your name">
+    </div>
+    <div class="auth-field">
+      <label>Phone Number</label>
+      <input id="signup-phone" type="tel" placeholder="e.g. 0701234567">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input id="signup-pass" type="password" placeholder="Choose a password (min 4 chars)">
+    </div>
+    <div class="auth-field">
+      <label>Confirm Password</label>
+      <input id="signup-conf" type="password" placeholder="Repeat password"
+             onkeydown="if(event.key==='Enter') submitSignup()">
+    </div>
+    <div id="signup-err" class="auth-err"></div>
+    <button id="signup-btn" class="auth-btn" onclick="submitSignup()">Create Account</button>
+    <div class="auth-switch">
+      Already have an account? <a onclick="openLoginModal()">Login</a>
+    </div>
+  </div>
+</div>
+
+<!-- SUBSCRIBE MODAL -->
+<div id="subscribe-modal" class="auth-modal">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeSubscribeModal()">✕</button>
+    <div class="auth-logo">KEN<span>MOVIES</span></div>
+    <div class="auth-sub-title">Subscribe to Download</div>
+
+    <!-- Plans -->
+    <div class="pay-plans">
+      <div class="pay-plan-opt selected" onclick="selectPlan(this,'monthly')">
+        <div class="pay-plan-name">Monthly</div>
+        <div class="pay-plan-price">2K</div>
+        <div class="pay-plan-ugx">UGX 2,000</div>
+      </div>
+      <div class="pay-plan-opt" onclick="selectPlan(this,'3months')">
+        <div class="pay-plan-name">3 Months</div>
+        <div class="pay-plan-price">5K</div>
+        <div class="pay-plan-ugx">UGX 5,000</div>
+      </div>
+      <div class="pay-plan-opt" onclick="selectPlan(this,'yearly')">
+        <div class="pay-plan-name">Yearly</div>
+        <div class="pay-plan-price">15K</div>
+        <div class="pay-plan-ugx">UGX 15,000</div>
+      </div>
+    </div>
+
+    <!-- Payment Instructions -->
+    <div class="pay-info">
+      <div class="pay-info-title">📱 How to Pay (MTN/Airtel)</div>
+      <div class="pay-info-step"><span>1.</span><span>Send money to <strong>+256 702 381 857</strong></span></div>
+      <div class="pay-info-step"><span>2.</span><span>Use your phone number as reference</span></div>
+      <div class="pay-info-step"><span>3.</span><span>Enter the transaction ID below</span></div>
+      <div class="pay-info-step"><span>4.</span><span>We activate within 24 hours ✓</span></div>
+    </div>
+
+    <input type="hidden" id="pay-plan" value="monthly">
+
+    <div class="auth-field">
+      <label>Your Name</label>
+      <input id="pay-name" type="text" placeholder="Your name">
+    </div>
+    <div class="auth-field">
+      <label>Phone Number</label>
+      <input id="pay-phone" type="tel" placeholder="Your phone number">
+    </div>
+    <div class="auth-field">
+      <label>Transaction ID</label>
+      <input id="pay-txn" type="text" placeholder="e.g. TXN1234567890">
+    </div>
+
+    <div id="pay-err" class="auth-err"></div>
+    <button id="pay-btn" class="auth-btn" onclick="submitPayment()">Submit Payment</button>
+  </div>
+</div>
+
+<!-- USER MENU MODAL -->
+<div id="user-menu-modal" class="auth-modal">
+  <div class="user-menu-box">
+    <button class="auth-close" onclick="closeUserMenu()" style="top:10px;right:10px;">✕</button>
+    <div class="um-header">
+      <div class="um-avatar">👤</div>
+      <div class="um-name" id="um-name">User</div>
+      <div class="um-phone" id="um-phone"></div>
+      <span class="um-status free" id="um-status">Free Account</span>
+    </div>
+    <div class="um-actions">
+      <button class="um-btn green" onclick="closeUserMenu();openSubscribeModal()">
+        ⭐ Upgrade to PRO — Download Movies
+      </button>
+      <button class="um-btn" onclick="closeUserMenu();showSection('downloads')">
+        📥 My Downloads
+      </button>
+      <button class="um-btn" onclick="closeUserMenu();showSection('favs')">
+        ❤️ My Favourites
+      </button>
+      <button class="um-btn red" onclick="logout()">
+        🚪 Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ADD THIS SCRIPT AT BOTTOM OF index.html
+     ════════════════════════════════════════ -->
+<script>
+function selectPlan(el, plan) {
+  document.querySelectorAll('.pay-plan-opt').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('pay-plan').value = plan;
+}
+</script>
