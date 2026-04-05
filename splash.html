@@ -1,0 +1,53 @@
+<!-- SPLASH SCREEN — paste this right after <body> in index.html -->
+<div id="splash-screen" style="
+  position:fixed;
+  inset:0;
+  background:#0a0a0f;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+  gap:24px;
+  transition:opacity 0.6s ease;
+">
+  <!-- Logo icon -->
+  <div style="position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;">
+    <!-- Spinning teal ring -->
+    <svg width="90" height="90" style="position:absolute;animation:splash-spin 1.2s linear infinite;">
+      <circle cx="45" cy="45" r="40" fill="none" stroke="#00e5c3" stroke-width="3" stroke-dasharray="180 72" stroke-linecap="round"/>
+    </svg>
+    <!-- Inner film icon -->
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#00e5c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="3"/>
+      <line x1="7" y1="2" x2="7" y2="22"/>
+      <line x1="17" y1="2" x2="17" y2="22"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <line x1="2" y1="7" x2="7" y2="7"/>
+      <line x1="17" y1="7" x2="22" y2="7"/>
+      <line x1="2" y1="17" x2="7" y2="17"/>
+      <line x1="17" y1="17" x2="22" y2="17"/>
+    </svg>
+  </div>
+  <!-- App name -->
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.18em;color:#fff;text-shadow:0 0 30px rgba(0,229,195,0.4);">KENMOVIES</div>
+</div>
+
+<style>
+@keyframes splash-spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+  // Hide splash after 2.5 seconds
+  window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      var s = document.getElementById('splash-screen');
+      if (s) {
+        s.style.opacity = '0';
+        setTimeout(function() { s.style.display = 'none'; }, 600);
+      }
+    }, 2500);
+  });
+</script>
