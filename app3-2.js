@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════
-   KENMOVIES v5.4  —  app3-2.js
-   Fixed: VJ font light+green, genre white+light,
-          shadow removed, archive in-app player
+   KENMOVIES v5.5  —  app3.js
+   Updated: All 25 VJs, Anime section,
+            Upcoming Movies, PWA fix
    ═══════════════════════════════════════ */
 'use strict';
 
@@ -17,6 +17,15 @@ let currentPlayItem = null, currentEpList = [], currentEpIdx = -1;
 let currentSeriesItem = null, currentSeriesSeason = 1;
 let deferredInstall = null;
 let secretTaps = 0, secretTimer = null;
+
+/* ── ALL 25 VJs ─────────────────────────── */
+const ALL_VJS = [
+  'VJ KEVO','VJ UNCLE T','VJ KISULE','VJ SHIELD','VJ MARK',
+  'VJ MOON','VJ KEVIN','VJ HEAVY Q','VJ KRISS SWEET','VJ SHAO KHAN',
+  'VJ MOSCO','VJ MUBA','VJ RONNIE','VJ IVO','VJ TONNY',
+  'VJ KS','VJ TOM','VJ SOUL','VJ NELLY','VJ BANKS',
+  'VJ RYAN','VJ WAZA','VJ KIMULI','VJ MOX','VJ JUNIOR'
+];
 
 /* player state */
 let kpVideo = null, kpIframe = null, kpIsVideo = false;
@@ -120,6 +129,8 @@ function showSection(sec) {
   if (sec === 'favs') renderFavs();
   if (sec === 'downloads') renderDownloads();
   if (sec === 'settings') renderStats();
+  if (sec === 'anime') renderAnime();
+  if (sec === 'upcoming') renderUpcomingPage();
 }
 
 /* ── HERO ─────────────────────────────── */
@@ -155,6 +166,28 @@ function heroClick() {
   openDetail(m);
 }
 
+/* ── VJ FILTER BAR ──────────────────────── */
+function buildVjFilterBar(containerId, items, onFilter) {
+  const container = $(containerId);
+  if (!container) return;
+  const vjsInContent = ['ALL', ...ALL_VJS];
+  container.innerHTML = vjsInContent.map((vj, i) =>
+    `<button class="vj-filter-btn${i === 0 ? ' active' : ''}" onclick="filterByVj(this,'${vj}','${containerId}',${JSON.stringify(items).replace(/"/g,'&quot;')})">${vj}</button>`
+  ).join('');
+}
+
+function filterByVj(btn, vj, containerId, items) {
+  const bar = $(containerId);
+  bar.querySelectorAll('.vj-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = vj === 'ALL' ? items : items.filter(m => (m.vj || '').toUpperCase() === vj);
+  const gridId = containerId.replace('vj-bar', 'grid');
+  const grid = $(gridId);
+  if (!grid) return;
+  grid.innerHTML = '';
+  filtered.forEach(m => grid.appendChild(posterCard(m)));
+}
+
 /* ── POSTER CARD ─────────────────────────── */
 function posterCard(m, opts = {}) {
   const div = document.createElement('div');
@@ -170,8 +203,8 @@ function posterCard(m, opts = {}) {
            <path d="M12 8v8M8 12h8"/>
          </svg>
        </div>`;
-  /* FIX: VJ label — green, thin font, small */
-  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:300;background:rgba(0,0,0,0.7);color:#00e676;padding:2px 5px;border-radius:3px;">${m.vj}</div>` : '';
+  /* VJ label — green, thin font, small — UNDER poster */
+  const vj = m.vj ? `<div class="pcard-vj" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:300;background:rgba(0,0,0,0.7);color:#00e676;padding:2px 5px;border-radius:3px;">${m.vj.toUpperCase()}</div>` : '';
   const badge = m._isSeries && m._epCount
     ? `<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,9,20,0.9);color:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;">${m._epCount} EP</div>`
     : '';
@@ -211,6 +244,7 @@ function buildRows() {
   const movies     = byNew(allContent.filter(m => m.category === 'movie'));
   const animations = byNew(allContent.filter(m => m.category === 'animation'));
   const indians    = byNew(allContent.filter(m => m.category === 'indian'));
+  const animes     = byNew(allContent.filter(m => m.category === 'anime'));
   const seriesEps  = allContent.filter(m => m.category === 'series');
 
   const seriesMap = {};
@@ -228,7 +262,7 @@ function buildRows() {
 
   const vjMapMovies = {};
   movies.forEach(m => {
-    const vj = (m.vj || 'Other').trim();
+    const vj = (m.vj || 'Other').trim().toUpperCase();
     if (!vjMapMovies[vj]) vjMapMovies[vj] = [];
     vjMapMovies[vj].push(m);
   });
@@ -237,6 +271,7 @@ function buildRows() {
   if (movies.length)       makeRow('Latest Movies',  movies,       hh);
   if (seriesSorted.length) makeRow('Latest Series',  seriesSorted, hh);
   if (animations.length)   makeRow('Animation',      animations,   hh);
+  if (animes.length)       makeRow('Anime',           animes,       hh);
   if (indians.length)      makeRow('Indian',          indians,      hh);
   Object.entries(vjMapMovies).forEach(([vj, items]) => {
     if (items.length >= 2) makeRow(vj, byNew(items), hh);
@@ -244,11 +279,29 @@ function buildRows() {
 
   const hm = $('vj-rows-movies'); hm.innerHTML = '';
   if (movies.length) {
-    const vjsM = [...new Set(movies.map(m => m.vj || 'Other'))];
-    vjsM.forEach(vj => {
-      const items = movies.filter(m => (m.vj || 'Other') === vj);
-      if (items.length) makeRow(vj, byNew(items), hm, { showEdit: true });
-    });
+    /* VJ filter bar for movies */
+    let vjBar = $('vj-bar-movies');
+    if (!vjBar) {
+      vjBar = document.createElement('div');
+      vjBar.id = 'vj-bar-movies';
+      vjBar.className = 'vj-filter-bar';
+      hm.appendChild(vjBar);
+    }
+    const vjsM = ['ALL', ...ALL_VJS];
+    vjBar.innerHTML = vjsM.map((vj, i) =>
+      `<button class="vj-filter-btn${i === 0 ? ' active' : ''}" onclick="filterMoviesByVj(this,'${vj}')">${vj}</button>`
+    ).join('');
+
+    let moviesGrid = $('grid-movies-main');
+    if (!moviesGrid) {
+      moviesGrid = document.createElement('div');
+      moviesGrid.id = 'grid-movies-main';
+      moviesGrid.className = 'pgrid';
+      hm.appendChild(moviesGrid);
+    }
+    moviesGrid.innerHTML = '';
+    movies.forEach(m => moviesGrid.appendChild(posterCard(m, { showEdit: true })));
+    window._allMovies = movies;
   } else {
     hm.innerHTML = '<div class="empty-page">No movies yet.</div>';
   }
@@ -276,15 +329,55 @@ function buildRows() {
   else ha.innerHTML = '<div class="empty-page">No animation yet.</div>';
 }
 
+/* filter movies by VJ */
+function filterMoviesByVj(btn, vj) {
+  document.querySelectorAll('#vj-bar-movies .vj-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const movies = window._allMovies || [];
+  const filtered = vj === 'ALL' ? movies : movies.filter(m => (m.vj || '').toUpperCase() === vj);
+  const grid = $('grid-movies-main');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-page">No movies for ${vj} yet.</div>`;
+    return;
+  }
+  filtered.forEach(m => grid.appendChild(posterCard(m, { showEdit: true })));
+}
+
+/* ── ANIME SECTION ──────────────────────── */
+function renderAnime() {
+  const container = $('vj-rows-anime');
+  if (!container) return;
+  container.innerHTML = '';
+  const byNew = arr => [...arr].sort((a, b) => b.createdAt - a.createdAt);
+  const animes = byNew(allContent.filter(m => m.category === 'anime'));
+  if (animes.length) {
+    makeRow('Latest Anime', animes, container, { showEdit: true });
+  } else {
+    container.innerHTML = '<div class="empty-page">No anime yet. Admin can add anime content.</div>';
+  }
+}
+
+/* ── UPCOMING PAGE ──────────────────────── */
+function renderUpcomingPage() {
+  const container = $('vj-rows-upcoming');
+  if (!container) return;
+  container.innerHTML = '<div class="empty-page" style="color:var(--muted);">Loading upcoming movies...</div>';
+  loadUpcoming(true);
+}
+
 /* ── STATS ─────────────────────────────── */
 function renderStats() {
   const movies = allContent.filter(m => m.category === 'movie').length;
   const series = [...new Set(allContent.filter(m => m.category === 'series').map(m => m.sname || m.title))].length;
   const anim = allContent.filter(m => m.category === 'animation').length;
+  const anime = allContent.filter(m => m.category === 'anime').length;
   if ($('st-total')) $('st-total').textContent = allContent.length;
   if ($('st-movies')) $('st-movies').textContent = movies;
   if ($('st-series')) $('st-series').textContent = series;
   if ($('st-anim')) $('st-anim').textContent = anim;
+  if ($('st-anime')) $('st-anime').textContent = anime;
 }
 
 /* ── FAVS ─────────────────────────────── */
@@ -372,7 +465,7 @@ function openDetail(m) {
     <div class="det-body">
       <div class="det-title">${m.title || m.sname || ''}</div>
       <div class="det-meta">
-        ${m.vj ? `<span class="det-vj" style="color:#00e676;font-weight:300;">${m.vj}</span>` : ''}
+        ${m.vj ? `<span class="det-vj" style="color:#00e676;font-weight:300;">${m.vj.toUpperCase()}</span>` : ''}
         ${m.year ? `<span class="det-tag">${m.year}</span>` : ''}
         ${m.genre ? `<span class="det-tag" style="color:#ffffff;font-weight:300;">${m.genre}</span>` : ''}
       </div>
@@ -418,7 +511,7 @@ function openSeriesDetail(sname, firstEp) {
   const sd = $('sd-back-img');
   sd.style.backgroundImage = img ? `url('${img}')` : 'none';
   $('sd-title').textContent = sname;
-  $('sd-vj').textContent = firstEp.vj || '';
+  $('sd-vj').textContent = (firstEp.vj || '').toUpperCase();
   $('sd-genres').textContent = [firstEp.genre, firstEp.year].filter(Boolean).join(' \u00b7 ');
   $('sd-desc').textContent = firstEp.description || firstEp.desc || '';
   const ico = $('sd-fav-ico');
@@ -480,7 +573,7 @@ function openPlayer(m) {
   const piEp = $('pi-ep');
   if (piEp) piEp.textContent = m.epTitle ? `S${m.season || 1} E${m.epNum || 1}: ${m.epTitle}` : '';
   const piMeta = $('pi-meta');
-  if (piMeta) piMeta.textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' \u00b7 ');
+  if (piMeta) piMeta.textContent = [m.vj ? m.vj.toUpperCase() : '', m.genre, m.year].filter(Boolean).join(' \u00b7 ');
   const kpTtl = $('kp-ttl');
   if (kpTtl) kpTtl.textContent = m.sname || m.title || '';
   const kpEp = $('kp-ep');
@@ -517,7 +610,6 @@ function closePlayer() {
 
 /* ── PLAYER CORE ─────────────────────────── */
 function kpLoad(url) {
-  console.log('[KP] kpLoad:', url);
   kpCurrentUrl = url;
   const container = $('player-video');
   if (!container) return;
@@ -825,6 +917,14 @@ function setCat(btn, cat) {
   so.style.display = cat === 'series' ? 'flex' : 'none';
   $('title-label').textContent = cat === 'series' ? 'Episode Title' : 'Movie Title';
 }
+
+/* populate VJ dropdown with all 25 VJs */
+function populateVjDropdown() {
+  const sel = $('f-vj'); if (!sel) return;
+  sel.innerHTML = '<option value="">Select VJ</option>' +
+    ALL_VJS.map(vj => `<option value="${vj}">${vj}</option>`).join('');
+}
+
 function previewThumb(url) {
   const prev = $('thumb-prev');
   if (url && url.startsWith('http')) { prev.style.display = 'block'; $('thumb-prev-img').src = url; }
@@ -1008,31 +1108,79 @@ async function updatePayment(id, status) {
 }
 
 /* ── UPCOMING ─────────────────────────────── */
-async function loadUpcoming() {
+async function loadUpcoming(renderPage = false) {
   try {
     const snap = await window._fb.getDocs(window._fb.collection(window._db, 'upcoming'));
     const items = []; snap.forEach(d => items.push({ id: d.id, ...d.data() }));
-    if (!items.length) return;
-    $('upcoming-ticker').style.display = 'block';
-    const track = $('ticker-track');
-    const dupe = [...items, ...items];
-    track.innerHTML = dupe.map(it => `<span class="ticker-item">\ud83c\udfac ${it.title || ''} ${it.releaseDate ? '(' + it.releaseDate + ')' : ''}</span>`).join('');
-    $('upcoming-row-block').style.display = 'block';
-    const row = $('upcoming-cards-row'); row.innerHTML = '';
-    items.forEach(it => {
-      const card = document.createElement('div'); card.className = 'pcard';
-      card.style.cssText = 'overflow:hidden;position:relative;cursor:default;';
-      const img = it.thumb
-        ? `<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>`
-        : `<div class="pcard-noimg" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>`;
-      const badge = it.releaseDate ? `<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>` : '';
-      const del = adminUnlocked ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">\u2715</button>` : '';
-      card.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${badge}${del}</div>`;
-      row.appendChild(card);
-    });
-    if (adminUnlocked) $('upcoming-add-btn').style.display = '';
-  } catch {}
+
+    /* ticker on home */
+    if (items.length) {
+      const ticker = $('upcoming-ticker');
+      if (ticker) { ticker.style.display = 'block'; }
+      const track = $('ticker-track');
+      if (track) {
+        const dupe = [...items, ...items];
+        track.innerHTML = dupe.map(it => `<span class="ticker-item">\ud83c\udfac ${it.title || ''} ${it.releaseDate ? '(' + it.releaseDate + ')' : ''}</span>`).join('');
+      }
+      const upBlock = $('upcoming-row-block');
+      if (upBlock) { upBlock.style.display = 'block'; }
+      const row = $('upcoming-cards-row');
+      if (row) {
+        row.innerHTML = '';
+        items.forEach(it => {
+          const card = document.createElement('div'); card.className = 'pcard';
+          card.style.cssText = 'overflow:hidden;position:relative;cursor:default;';
+          const img = it.thumb
+            ? `<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>`
+            : `<div class="pcard-noimg" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>`;
+          const badge = it.releaseDate ? `<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>` : '';
+          const del = adminUnlocked ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">\u2715</button>` : '';
+          card.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${badge}${del}</div>`;
+          row.appendChild(card);
+        });
+      }
+      if (adminUnlocked) { const ab = $('upcoming-add-btn'); if (ab) ab.style.display = ''; }
+    }
+
+    /* full upcoming page */
+    if (renderPage) {
+      const container = $('vj-rows-upcoming');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!items.length) {
+        container.innerHTML = '<div class="empty-page">No upcoming movies yet.</div>';
+        return;
+      }
+      const heading = document.createElement('div');
+      heading.className = 'row-head';
+      heading.innerHTML = `<span class="row-lbl">Coming Soon <span class="row-cnt">(${items.length})</span></span>`;
+      container.appendChild(heading);
+      const grid = document.createElement('div'); grid.className = 'pgrid';
+      items.forEach(it => {
+        const card = document.createElement('div'); card.className = 'pcard';
+        card.style.cssText = 'overflow:hidden;position:relative;cursor:default;';
+        const img = it.thumb
+          ? `<img src="${it.thumb}" alt="" onerror="this.style.display='none'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"/>`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;font-size:11px;color:#666;">No Image</div>`;
+        const badge = it.releaseDate ? `<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(229,9,20,0.9);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>` : '';
+        const titleBadge = `<div style="position:absolute;bottom:${it.releaseDate ? '22px' : '4px'};left:4px;right:4px;font-size:10px;color:#fff;font-weight:500;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${it.title || ''}</div>`;
+        const del = adminUnlocked ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="position:absolute;top:4px;right:4px;">\u2715</button>` : '';
+        card.innerHTML = `<div class="pcard-img" style="width:100%;height:100%;position:relative;">${img}${titleBadge}${badge}${del}</div>`;
+        grid.appendChild(card);
+      });
+      container.appendChild(grid);
+      if (adminUnlocked) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn-play admin-only';
+        addBtn.style.cssText = 'margin:1rem auto;display:block;';
+        addBtn.textContent = '+ Add Upcoming Movie';
+        addBtn.onclick = () => openModal('cs-modal');
+        container.appendChild(addBtn);
+      }
+    }
+  } catch (e) { console.warn('loadUpcoming error:', e); }
 }
+
 async function addCS() {
   const title = $('cs-title-inp').value.trim(), thumb = $('cs-thumb-inp').value.trim(), date = $('cs-date-inp').value.trim();
   if (!title) { showToast('Enter title', true); return; }
@@ -1060,22 +1208,51 @@ function secretTap() {
   }
 }
 
-/* ── PWA INSTALL ─────────────────────────── */
+/* ── PWA INSTALL — FIXED ─────────────────── */
 window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredInstall = e;
-  $('install-btn').style.display = '';
-  const b = $('inst-banner'); if (b && !sessionStorage.getItem('km_banner_dismissed')) b.style.display = 'flex';
+  e.preventDefault();
+  deferredInstall = e;
+  /* show install button in nav */
+  const btn = $('install-btn');
+  if (btn) btn.style.display = '';
+  /* show install banner */
+  const b = $('inst-banner');
+  if (b && !sessionStorage.getItem('km_banner_dismissed')) b.style.display = 'flex';
 });
+
 function triggerInstall() {
-  if (deferredInstall) { deferredInstall.prompt(); deferredInstall.userChoice.then(() => { deferredInstall = null; $('inst-banner').style.display = 'none'; }); }
-  else showToast('Open in browser to install', '');
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(choice => {
+      deferredInstall = null;
+      const b = $('inst-banner');
+      if (b) b.style.display = 'none';
+      if (choice.outcome === 'accepted') showToast('App installed! \u2713');
+    });
+  } else {
+    showToast('To install: tap browser menu \u2192 Add to Home Screen');
+  }
 }
-function dismissBanner() { $('inst-banner').style.display = 'none'; sessionStorage.setItem('km_banner_dismissed', '1'); }
+
+function dismissBanner() {
+  const b = $('inst-banner');
+  if (b) b.style.display = 'none';
+  sessionStorage.setItem('km_banner_dismissed', '1');
+}
+
+/* also handle appinstalled */
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  showToast('Kenmovies installed! \u2713');
+  const b = $('inst-banner');
+  if (b) b.style.display = 'none';
+});
 
 /* ── INIT ─────────────────────────────── */
 function init() {
   applyAdminUI();
   initProgDrag();
+  populateVjDropdown();
   showSection('home');
   if (window._fbReady) loadContent();
   else document.addEventListener('fb-ready', loadContent);
@@ -1092,7 +1269,9 @@ function normalizeItem(d) {
     : (data.createdAt?.toMillis?.() || Date.now());
   let category = (data.category || data.type || 'movie').toLowerCase().trim();
   if (['tvshow', 'tv', 'tvseries', 'show'].includes(category)) category = 'series';
-  if (['anim', 'cartoon', 'anime'].includes(category)) category = 'animation';
+  if (['anim', 'cartoon'].includes(category)) category = 'animation';
+  if (['anime'].includes(category)) category = 'anime';
+  if (['indian', 'bollywood', 'hindi'].includes(category)) category = 'indian';
   const title = data.title || data.epTitle || data.name || '';
   const sname = (data.sname || data.seriesName || data.seriesname || (category === 'series' ? title : '')).trim();
   const thumb = data.thumb || data.thumbnail || data.poster || data.image || '';
@@ -1133,6 +1312,7 @@ function loadContent() {
     buildRows(); buildHero(); renderStats();
     if (currentSection === 'favs') renderFavs();
     if (currentSection === 'downloads') renderDownloads();
+    if (currentSection === 'anime') renderAnime();
   }
   let unsubOrdered = null;
   try {
@@ -1164,3 +1344,6 @@ window.showSection = showSection;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.showToast = showToast;
+window.triggerInstall = triggerInstall;
+window.dismissBanner = dismissBanner;
+window.filterMoviesByVj = filterMoviesByVj;
