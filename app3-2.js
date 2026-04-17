@@ -625,7 +625,18 @@ function openPlayer(m) {
   document.body.style.overflow = 'hidden';
   // Fill info instantly
   const piCard = $('pi-card'); if (piCard) piCard.style.display = 'flex';
-  const piImg = $('pi-img'); if (piImg) piImg.src = m.thumb || '';
+  const piImg = $('pi-img');
+  if (piImg) {
+    piImg.src = '';
+    piImg.onerror = function(){ this.style.display='none'; };
+    piImg.onload = function(){ this.style.display='block'; };
+    if (m.thumb) {
+      piImg.style.display = 'block';
+      piImg.src = m.thumb;
+    } else {
+      piImg.style.display = 'none';
+    }
+  }
   const piTitle = $('pi-title'); if (piTitle) piTitle.textContent = m.sname||m.title||'';
   const piEp = $('pi-ep'); if (piEp) piEp.textContent = m.epTitle ? `S${m.season||1} E${m.epNum||1}: ${m.epTitle}` : '';
   const piMeta = $('pi-meta'); if (piMeta) piMeta.textContent = [m.vj?m.vj.toUpperCase():'', m.genre, m.year].filter(Boolean).join(' · ');
@@ -659,13 +670,30 @@ function openPlayer(m) {
   })();
   window._kpResumeAt = resumePos;
 
+  // Always show back button immediately (even before video loads)
+  const wrap = $('kp-wrap');
+  if (wrap) {
+    const oldBack = wrap.querySelector('[data-permback]');
+    if (oldBack) oldBack.remove();
+    const permBack = document.createElement('button');
+    permBack.setAttribute('data-permback','1');
+    permBack.style.cssText = 'position:absolute;top:12px;left:12px;z-index:200;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.65);border:1.5px solid rgba(255,255,255,0.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    permBack.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';
+    permBack.onclick = function(e){ e.stopPropagation(); closePlayer(); };
+    wrap.appendChild(permBack);
+  }
+
   // Start loading video IMMEDIATELY
   kpLoad(m.playLink || m.dlLink || '');
 }
 function closePlayer() {
   kpStop();
   const wrap = $('kp-wrap');
-  if (wrap) { wrap.style.aspectRatio=''; wrap.style.flex=''; wrap.style.minHeight=''; }
+  if (wrap) {
+    wrap.style.aspectRatio=''; wrap.style.flex=''; wrap.style.minHeight='';
+    const permBack = wrap.querySelector('[data-permback]');
+    if (permBack) permBack.remove();
+  }
   const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = '';
   const ov = $('player-ov'); if (ov) ov.style.display = 'none';
   document.body.style.overflow = '';
@@ -738,7 +766,7 @@ async function fetchArchiveFiles(itemId) {
   try {
     const res = await fetch(
       `https://archive.org/metadata/${itemId}/files`,
-      { signal: AbortSignal.timeout(8000) }
+      { signal: AbortSignal.timeout(5000) }  // faster timeout
     );
     if (!res.ok) throw new Error('metadata failed');
     const data = await res.json();
@@ -826,8 +854,7 @@ function kpLoadVideoFast(url, itemId) {
   vid.preload = 'auto';
   vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
 
-  // Crossorigin for archive.org
-  vid.crossOrigin = 'anonymous';
+  // Note: Do NOT set crossOrigin - archive.org doesn't support it and blocks playback
 
   const src = document.createElement('source');
   src.src = url;
@@ -1085,6 +1112,12 @@ function kpStop() {
   const pv = $('player-video'); if (pv) pv.innerHTML='';
   const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display='';
   resetProgress();
+  // Remove iframe back button if present
+  const wrap = $('kp-wrap');
+  if (wrap) {
+    const extra = wrap.querySelector('[data-extra]');
+    if (extra) extra.remove();
+  }
 }
 function kpRetry() { if (kpCurrentUrl) kpLoad(kpCurrentUrl); }
 function kpSetPlayIcon(playing) {
@@ -1565,6 +1598,35 @@ function init(){
   else document.addEventListener('fb-ready', loadContent);
   loadUpcoming();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+
+  // Push a history state so Android back button doesn't close app
+  history.pushState({km:true}, '');
+  window.addEventListener('popstate', function(e) {
+    // Android back button pressed
+    const playerOv = $('player-ov');
+    const detailOv = $('detail-ov');
+    const searchOv = $('search-ov');
+    const saOv = $('sa-ov');
+    if (playerOv && playerOv.style.display === 'flex') {
+      closePlayer();
+      history.pushState({km:true}, ''); // push again to prevent app close
+    } else if (detailOv && detailOv.classList.contains('open')) {
+      closeDetail();
+      history.pushState({km:true}, '');
+    } else if (searchOv && searchOv.classList.contains('open')) {
+      closeSearch();
+      history.pushState({km:true}, '');
+    } else if (saOv && saOv.classList.contains('open')) {
+      closeSeeAll();
+      history.pushState({km:true}, '');
+    } else if (currentSection !== 'home') {
+      showSection('home');
+      history.pushState({km:true}, '');
+    } else {
+      // At home — let Android handle it (minimize app)
+      history.back();
+    }
+  });
 }
 document.addEventListener('DOMContentLoaded', init);
 
