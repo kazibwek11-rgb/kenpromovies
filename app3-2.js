@@ -237,10 +237,17 @@ function makeRow(label, items, target, opts={}) {
   const block = document.createElement('div');
   const seeAllBtn = items.length > 6
     ? `<button class="see-all" onclick="openSeeAllDirect('${label.replace(/'/g,"\\'")}',allContent.filter(m=>m.category==='${items[0].category}'))">See all</button>` : '';
-  block.innerHTML = `<div class="row-head">
-    <span class="row-lbl">${label}${items.length>20?` <span class="row-cnt">(${items.length})</span>`:''}</span>
-    ${seeAllBtn}
-  </div>`;
+  const head = document.createElement('div');
+  head.className = 'row-head';
+  head.innerHTML = `<span class="row-lbl">${label}${items.length>20?` <span class="row-cnt">(${items.length})</span>`:''}</span>`;
+  if (items.length > 6) {
+    const saBtn = document.createElement('button');
+    saBtn.className = 'see-all';
+    saBtn.textContent = 'See all';
+    saBtn.addEventListener('click', () => openSeeAllDirect(label, items));
+    head.appendChild(saBtn);
+  }
+  block.appendChild(head);
   const row = document.createElement('div');
   row.className = 'hrow';
   items.slice(0,20).forEach(m => row.appendChild(posterCard(m, opts)));
@@ -1186,6 +1193,34 @@ async function addCS(){
 async function deleteUpcoming(id){
   if(!confirm('Delete?'))return;
   try{await window._fb.deleteDoc(window._fb.doc(window._db,'upcoming',id));loadUpcoming();}catch{}
+}
+
+/* ── NOTIFICATIONS ── */
+function enableNotifications(){
+  if(window._enableNotificationsReal){window._enableNotificationsReal();return;}
+  // Defined in Firebase module - trigger via event
+  showToast('Setting up notifications...');
+  // enableNotifications is defined in the Firebase module script in index.html
+  // It's exposed on window via the module - call it directly
+  if(typeof window.enableNotifications === 'function' && window.enableNotifications !== enableNotifications){
+    window.enableNotifications();
+  } else {
+    showToast('Notifications not available', true);
+  }
+}
+
+/* ── NOTIFICATIONS ── */
+function enableNotifications(){
+  // Try real function first (defined in Firebase module)
+  if(window._realEnableNotifications){
+    window._realEnableNotifications();
+    return;
+  }
+  showToast('Setting up notifications...');
+  setTimeout(function(){
+    if(window._realEnableNotifications) window._realEnableNotifications();
+    else showToast('Tap Allow when browser asks', false);
+  }, 300);
 }
 
 /* ── SECRET TAPS ── */

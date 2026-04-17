@@ -566,7 +566,7 @@ const cfg={apiKey:"AIzaSyDJ570DKt7ZUCvyAVW28JQ2Y1r2YATLMqo",authDomain:"kenpro-m
 const app=initializeApp(cfg);const db=getFirestore(app);const msg=getMessaging(app);
 window._db=db;window._fb={collection,addDoc,getDocs,getDoc,doc,updateDoc,deleteDoc,onSnapshot,orderBy,query};
 window._fbReady=true;document.dispatchEvent(new Event('fb-ready'));
-window.enableNotifications=async function(){
+window._realEnableNotifications=window.enableNotifications=async function(){
   try{if(!('Notification' in window)){showToast('Not supported',true);return;}
   const p=await Notification.requestPermission();if(p!=='granted'){showToast('Blocked',true);return;}
   const sw=await navigator.serviceWorker.ready;
@@ -747,7 +747,7 @@ onMessage(msg,p=>showToast((p.notification?.title||'Kenmovies')+': '+(p.notifica
     <button class="bnav active" id="bnav-home" onclick="showSection('home')"><svg width="18" height="18"><use href="#ic-play"/></svg><span class="bnav-lbl">Home</span><div class="bn-dot"></div></button>
     <button class="bnav" id="bnav-movies" onclick="showSection('movies')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span class="bnav-lbl">Movies</span><div class="bn-dot"></div></button>
     <button class="bnav" id="bnav-series" onclick="showSection('series')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg><span class="bnav-lbl">Series</span><div class="bn-dot"></div></button>
-    <button class="bnav" id="bnav-downloads" onclick="showSection('downloads')"><svg width="18" height="18"><use href="#ic-dl"/></svg><div class="bn-dot"></div></button>
+    <button class="bnav" id="bnav-anime" onclick="showSection('anime')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="bnav-lbl">Anime</span><div class="bn-dot"></div></button>
     <button class="bnav" id="bnav-settings" onclick="showSection('settings')"><svg width="18" height="18"><use href="#ic-settings"/></svg><div class="bn-dot"></div></button>
   </nav>
 </div>
@@ -893,7 +893,11 @@ function confirmDelete(){if(window._appReady)window._confirmDelete();}
 function addSubscriber(){if(window._appReady)window._addSubscriber();}
 function submitChangePass(){if(window._appReady)window._submitChangePass();}
 function addCS(){if(window._appReady)window._addCS();}
-function enableNotifications(){if(window._appReady)window._enableNotifications();}
+function enableNotifications(){
+  // Defined in Firebase module - wait for it
+  if(window._realEnableNotifications){window._realEnableNotifications();return;}
+  setTimeout(function(){if(window._realEnableNotifications)window._realEnableNotifications();else showToast&&showToast('Notifications not available',true);},500);
+}
 </script>
 
 </body>
