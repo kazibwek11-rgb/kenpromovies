@@ -53,6 +53,13 @@ function showToast(msg, err=false) {
   toastT = setTimeout(() => t.className = '', 2800);
 }
 
+/* ── RESUME TOAST ── */
+function showResumeToast(seconds) {
+  const mins = Math.floor(seconds/60);
+  const secs = Math.floor(seconds%60).toString().padStart(2,'0');
+  showToast(`▶ Resuming from ${mins}:${secs}`);
+}
+
 /* ── SHIMMER CARDS ── */
 function shimmerCard() {
   const d = document.createElement('div');
@@ -202,7 +209,7 @@ function posterCard(m, opts={}) {
   div.className = 'pcard';
   // Intersection Observer for lazy loading
   const imgHtml = m.thumb
-    ? `<img data-src="${m.thumb}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">`
+    ? `<img src="${m.thumb}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">`
     : `<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M12 8v8M8 12h8"/></svg></div>`;
   const vj = m.vj
     ? `<div class="pcard-vj">${m.vj.toUpperCase()}</div>` : '';
@@ -216,18 +223,7 @@ function posterCard(m, opts={}) {
     </div>
     <div class="pcard-name">${m.sname || m.title || ''}</div>`;
   div.onclick = () => openDetail(m);
-  // Lazy load image
-  const img = div.querySelector('img[data-src]');
-  if (img && 'IntersectionObserver' in window) {
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { img.src = img.dataset.src; obs.disconnect(); }
-      });
-    }, { rootMargin: '100px' });
-    obs.observe(img);
-  } else if (img) {
-    img.src = img.dataset.src;
-  }
+  // Native lazy loading via loading='lazy' attribute
   return div;
 }
 
@@ -648,6 +644,21 @@ function openPlayer(m) {
     }
   }
   const mr = $('more-row'); if (mr) { mr.innerHTML = ''; buildMoreRow(mr, m); }
+  // Check for resume position
+  kpLastSaved = -1;
+  const resumePos = (() => {
+    try {
+      const pos = JSON.parse(localStorage.getItem('km_resume')||'{}');
+      const entry = pos[m.id];
+      // Only resume if within last 30 days and not at end
+      if (entry && Date.now() - entry.ts < 30*24*60*60*1000 && entry.t > 10 && entry.t < entry.d - 30) {
+        return entry.t;
+      }
+    } catch(e) {}
+    return 0;
+  })();
+  window._kpResumeAt = resumePos;
+
   // Start loading video IMMEDIATELY
   kpLoad(m.playLink || m.dlLink || '');
 }
@@ -659,6 +670,271 @@ function closePlayer() {
   const ov = $('player-ov'); if (ov) ov.style.display = 'none';
   document.body.style.overflow = '';
 }
+
+/* ═══════════════════════════════════════════
+   KENMOVIES — ARCHIVE.ORG FAST PLAYER
+   Strategy:
+   1. Parse archive URL → get item ID
+   2. Fetch metadata API to find best mp4 file
+   3. Load direct mp4 URL (fastest method)
+   4. Fallback to embed if direct fails
+   5. Cache mp4 URLs in localStorage
+   ═══════════════════════════════════════════ */
+
+const ARCHIVE_CACHE_KEY = 'km_archive_cache';
+const ARCHIVE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/* Get cached direct mp4 URL */
+function getArchiveCache(itemId) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY) || '{}');
+    const entry = cache[itemId];
+    if (entry && Date.now() - entry.ts < ARCHIVE_CACHE_TTL) {
+      return entry.url;
+    }
+  } catch(e) {}
+  return null;
+}
+
+/* Save direct mp4 URL to cache */
+function setArchiveCache(itemId, url) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY) || '{}');
+    cache[itemId] = { url, ts: Date.now() };
+    // Keep cache small - max 50 items
+    const keys = Object.keys(cache);
+    if (keys.length > 50) {
+      delete cache[keys[0]];
+    }
+    localStorage.setItem(ARCHIVE_CACHE_KEY, JSON.stringify(cache));
+  } catch(e) {}
+}
+
+/* Parse archive.org URL → item ID + optional filename */
+function parseArchiveUrl(url) {
+  try {
+    const u = new URL(url);
+    // Handle ia*.us.archive.org direct links
+    if (/^ia\d+\./i.test(u.hostname)) {
+      const m = u.pathname.match(/\/items\/([^\/]+)\/(.+)/);
+      if (m) return { itemId: m[1], fileName: decodeURIComponent(m[2]) };
+    }
+    // Handle archive.org/details/ archive.org/download/ archive.org/embed/
+    const m = u.pathname.match(/\/(details|download|embed)\/([^\/\?#]+)\/?([^?#]*)?/);
+    if (m) return { itemId: m[2], fileName: decodeURIComponent(m[3] || '') };
+  } catch(e) {
+    // Try regex fallback
+    const m = url.match(/(?:details|download|embed)\/([^\/\?#&]+)\/?([^?#&]*)?/);
+    if (m) return { itemId: m[1], fileName: decodeURIComponent(m[2] || '') };
+  }
+  return null;
+}
+
+/* Fetch archive.org metadata to find best video file */
+async function fetchArchiveFiles(itemId) {
+  const cached = getArchiveCache(itemId);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(
+      `https://archive.org/metadata/${itemId}/files`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!res.ok) throw new Error('metadata failed');
+    const data = await res.json();
+    const files = data.result || [];
+
+    // Priority: mp4 > ogv > webm, prefer 512kb or h.264
+    const videoFiles = files.filter(f =>
+      /\.(mp4|ogv|webm)$/i.test(f.name) &&
+      !/(thumbnail|thumb|_256|small)/i.test(f.name)
+    );
+
+    if (!videoFiles.length) return null;
+
+    // Score files: prefer mp4, prefer 512kb size
+    const scored = videoFiles.map(f => {
+      let score = 0;
+      if (/\.mp4$/i.test(f.name)) score += 10;
+      if (/512|h\.264|h264/i.test(f.name)) score += 5;
+      if (/720|1080/i.test(f.name)) score += 3;
+      if (/480/i.test(f.name)) score += 2;
+      return { ...f, score };
+    }).sort((a, b) => b.score - a.score);
+
+    const best = scored[0];
+    // Use the fastest archive.org CDN server
+    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(best.name)}`;
+    setArchiveCache(itemId, directUrl);
+    return directUrl;
+  } catch(e) {
+    return null;
+  }
+}
+
+/* ── MAIN FAST ARCHIVE LOADER ── */
+async function kpLoadArchiveFast(url) {
+  const parsed = parseArchiveUrl(url);
+  if (!parsed) { showKpState('error'); return; }
+  const { itemId, fileName } = parsed;
+
+  // If URL already has a direct mp4 filename, load it directly
+  if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
+    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`;
+    kpLoadVideoFast(directUrl, itemId);
+    return;
+  }
+
+  // Check cache first (instant)
+  const cachedUrl = getArchiveCache(itemId);
+  if (cachedUrl) {
+    kpLoadVideoFast(cachedUrl, itemId);
+    return;
+  }
+
+  // Show loading, fetch metadata in background, then play
+  showKpState('loading');
+
+  // Race: try embed immediately while fetching metadata
+  // If metadata resolves in < 3s, use direct mp4 (faster)
+  // Otherwise fall back to embed
+  try {
+    const directUrl = await fetchArchiveFiles(itemId);
+    if (directUrl) {
+      kpLoadVideoFast(directUrl, itemId);
+    } else {
+      // No direct URL found — show error, never open archive site
+      showKpState('error');
+    }
+  } catch(e) {
+    showKpState('error');
+  }
+}
+
+/* ── FAST VIDEO LOADER ── */
+function kpLoadVideoFast(url, itemId) {
+  const container = document.getElementById('player-video');
+  if (!container) return;
+  container.innerHTML = '';
+  container.style.cssText = 'width:100%;height:100%;position:relative;background:#000;';
+
+  const vid = document.createElement('video');
+  vid.controls = false;
+  vid.playsInline = true;
+  vid.setAttribute('playsinline', '');
+  vid.setAttribute('webkit-playsinline', '');
+  vid.preload = 'auto';
+  vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
+
+  // Crossorigin for archive.org
+  vid.crossOrigin = 'anonymous';
+
+  const src = document.createElement('source');
+  src.src = url;
+  src.type = /\.webm$/i.test(url) ? 'video/webm' : /\.ogv$/i.test(url) ? 'video/ogg' : 'video/mp4';
+  vid.appendChild(src);
+  container.appendChild(vid);
+
+  kpVideo = vid;
+  kpIsVideo = true;
+
+  let hasStarted = false;
+  let fallbackTimer = null;
+
+  const onCanPlay = () => {
+    showKpState('');
+    if (!hasStarted) {
+      hasStarted = true;
+      clearTimeout(fallbackTimer);
+      // Apply resume position
+      if (window._kpResumeAt > 0 && vid.duration > window._kpResumeAt) {
+        vid.currentTime = window._kpResumeAt;
+        showResumeToast(window._kpResumeAt);
+        window._kpResumeAt = 0;
+      }
+      vid.play().catch(() => {});
+    }
+  };
+
+  vid.addEventListener('loadedmetadata', () => {
+    showKpState('');
+    // Update duration immediately
+    const time = document.getElementById('kp-time');
+    if (time) time.textContent = '0:00 / ' + fmt(vid.duration);
+  });
+
+  vid.addEventListener('canplay', onCanPlay, { once: true });
+  vid.addEventListener('canplaythrough', onCanPlay, { once: true });
+
+  vid.addEventListener('playing', () => {
+    showKpState('');
+    kpSetPlayIcon(true);
+    hasStarted = true;
+    clearTimeout(fallbackTimer);
+    setTimeout(preloadNext, 4000);
+  });
+
+  vid.addEventListener('pause', () => kpSetPlayIcon(false));
+  vid.addEventListener('waiting', () => {
+    if (hasStarted) showKpState('loading');
+  });
+  vid.addEventListener('timeupdate', kpTimeUpdate);
+  vid.addEventListener('progress', kpBufferUpdate);
+  vid.addEventListener('ended', () => {
+    kpSetPlayIcon(false);
+    if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
+  });
+
+  vid.addEventListener('error', () => {
+    if (hasStarted) return;
+    clearTimeout(fallbackTimer);
+    // Never open archive site — show error instead
+    showKpState('error');
+  });
+
+  vid.load();
+
+  // If nothing happens in 8 seconds, show error (never open archive site)
+  fallbackTimer = setTimeout(() => {
+    if (!hasStarted) {
+      showKpState('error');
+    }
+  }, 8000);
+
+  // Try playing immediately
+  vid.play().catch(() => {
+    // Autoplay blocked - show play button, user will tap
+    showKpState('');
+    kpSetPlayIcon(false);
+  });
+}
+
+/* ── PRELOAD NEXT EPISODE ── */
+function preloadNext() {
+  if (currentEpIdx < 0 || currentEpIdx >= currentEpList.length - 1) return;
+  const next = currentEpList[currentEpIdx + 1];
+  if (!next || !next.playLink) return;
+  const url = next.playLink;
+  if (!/archive\.org/i.test(url)) return;
+  const parsed = parseArchiveUrl(url);
+  if (!parsed) return;
+  const { itemId, fileName } = parsed;
+  if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
+    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`;
+    setArchiveCache(itemId, directUrl);
+    // Preload with link tag
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'video';
+    link.href = directUrl;
+    document.head.appendChild(link);
+    setTimeout(() => link.remove(), 30000);
+    return;
+  }
+  // Prefetch metadata for next episode
+  fetchArchiveFiles(itemId).catch(() => {});
+}
+
 
 /* ── PLAYER CORE — OPTIMIZED FOR SPEED ── */
 function kpLoad(url) {
@@ -679,10 +955,10 @@ function kpLoad(url) {
   const isArchive  = /archive\.org/i.test(url);
   const isDirect   = !isArchive && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
 
-  if (isYT)          kpLoadIframe(ytEmbedUrl(url));
-  else if (isArchive) kpLoadArchive(url);
+  if (isYT)           kpLoadIframe(ytEmbedUrl(url));
+  else if (isArchive) kpLoadArchiveFast(url);  // Always use fast archive loader
   else if (isDirect)  kpLoadVideo(url);
-  else               kpLoadIframe(url);
+  else                kpLoadIframe(url);
 }
 
 function kpLoadArchive(url) {
@@ -700,8 +976,12 @@ function kpLoadArchive(url) {
     kpLoadVideoWithFallback(`https://archive.org/download/${itemId}/${fileName}`, itemId);
     return;
   }
-  // Try embed first (faster than fetching metadata)
-  kpLoadIframe(`https://archive.org/embed/${itemId}?autoplay=1`);
+  // Fetch metadata to get direct mp4
+  showKpState('loading');
+  fetchArchiveFiles(itemId).then(url => {
+    if (url) kpLoadVideoFast(url, itemId);
+    else showKpState('error');
+  }).catch(() => showKpState('error'));
 }
 
 function kpLoadVideoWithFallback(directUrl, itemId) {
@@ -727,7 +1007,7 @@ function kpLoadVideoWithFallback(directUrl, itemId) {
   vid.addEventListener('ended', () => { kpSetPlayIcon(false); if (currentEpIdx>=0 && currentEpList.length>1) playAdjacentEp(1); });
   vid.addEventListener('error', () => {
     if (errFired) return; errFired = true;
-    kpStop(); kpLoadIframe(`https://archive.org/embed/${itemId}?autoplay=1`);
+    showKpState('error');
   });
   vid.load();
   // Auto-play faster: try immediately
@@ -827,7 +1107,23 @@ function kpTimeUpdate() {
   const fill=$('kp-fill'); if(fill) fill.style.width=pct+'%';
   const thumb=$('kp-thumb'); if(thumb) thumb.style.left=pct+'%';
   const time=$('kp-time'); if(time) time.textContent=fmt(cur)+' / '+fmt(dur);
+  // Save resume position every 5 seconds
+  if (currentPlayItem && dur > 30 && cur > 5) {
+    const saveInterval = Math.floor(cur / 5);
+    if (saveInterval !== kpLastSaved) {
+      kpLastSaved = saveInterval;
+      try {
+        const pos = JSON.parse(localStorage.getItem('km_resume')||'{}');
+        pos[currentPlayItem.id] = { t: Math.floor(cur), d: Math.floor(dur), ts: Date.now() };
+        // Keep max 100 resume positions
+        const keys = Object.keys(pos);
+        if (keys.length > 100) delete pos[keys[0]];
+        localStorage.setItem('km_resume', JSON.stringify(pos));
+      } catch(e) {}
+    }
+  }
 }
+let kpLastSaved = -1;
 function kpBufferUpdate() {
   if (!kpVideo) return;
   try { const buf=kpVideo.buffered, dur=kpVideo.duration||1; if(buf.length) { const b=$('kp-buf'); if(b) b.style.width=(buf.end(buf.length-1)/dur*100)+'%'; } } catch {}
