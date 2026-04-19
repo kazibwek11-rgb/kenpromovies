@@ -1407,9 +1407,9 @@ function editItem(id){
   $('f-play').value=m.playLink||'';
   $('f-dl').value=m.dlLink||'';
   previewThumb(m.thumb||'');
-  $('form-mode-lbl').textContent='Editing: '+(m.title||m.sname||'');
-  $('submit-lbl').textContent='Save Changes';
-  $('cancel-edit-btn').style.display='';
+  const fml=$('form-mode-lbl'); if(fml) fml.textContent='Editing: '+(m.title||m.sname||'');
+  const sl=$('submit-lbl'); if(sl) sl.textContent='Save Changes';
+  const ceb=$('cancel-edit-btn'); if(ceb) ceb.style.display='';
   const uploadTab=document.querySelector('.atab');
   if(uploadTab)setATab(uploadTab,'upload');
   showSection('admin');
