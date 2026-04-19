@@ -1355,17 +1355,18 @@ async function submitContent(){
     obj.epTitle=title;
   }
   try{
-    if(editId){
-      await window._fb.updateDoc(window._fb.doc(window._db,'content',editId),obj);
-      showToast('Updated ✓');
-    }else{
-      await window._fb.addDoc(window._fb.collection(window._db,'content'),obj);
-      showToast('Added ✓');
-    }
-    cancelEdit();clearForm();
+ if(editId){
+    await window._fb.updateDoc(window._fb.doc(window._db,'content',editId),obj);
+    showToast('Updated ✓');
+  }else{
+    await window._fb.addDoc(window._fb.collection(window._db,'content'),obj);
+    showToast('Added ✓');
+  }
+  const wasEditing = !!editId;
+  cancelEdit();clearForm();
   }catch(e){showToast('Error: '+e.message,true);}
   btn.disabled=false;
-  btn.innerHTML='<svg width="14" height="14"><use href="#ic-plus"/></svg><span id="submit-lbl">'+(editId?'Save Changes':'Add to Library')+'</span>';
+  btn.innerHTML='<svg width="14" height="14"><use href="#ic-plus"/></svg><span id="submit-lbl">'+(wasEditing?'Save Changes':'Add to Library')+'</span>';   
 }
 
 /* ── LIBRARY ── */
