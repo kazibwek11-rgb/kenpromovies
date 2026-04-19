@@ -1694,3 +1694,45 @@ style.textContent=`
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 `;
 document.head.appendChild(style);
+/* ── EXPOSE FUNCTIONS FOR HTML STUBS ── */
+document.addEventListener('DOMContentLoaded', function() {
+  window._appReady = true;
+  window._openSearch = openSearch;
+  window._showSection = showSection;
+  window._goAdmin = goAdmin;
+  window._triggerInstall = triggerInstall;
+  window._heroClick = heroClick;
+  window._setHero = setHero;
+  window._doSearch = doSearch;
+  window._setSF = setSF;
+  window._checkPin = checkPin;
+  window._kpTap = kpTap;
+  window._kpTogglePlay = kpTogglePlay;
+  window._kpSeek = kpSeek;
+  window._kpVol = kpVol;
+  window._kpRotate = kpRotate;
+  window._kpZoom = kpZoom;
+  window._kpFullscreen = kpFullscreen;
+  window._kpCycleSpeed = kpCycleSpeed;
+  window._kpDownload = kpDownload;
+  window._kpRetry = kpRetry;
+  window._kpProgClick = kpProgClick;
+  window._toggleFav = toggleFav;
+  window._toggleDetailFav = toggleDetailFav;
+  window._toggleSeriesFav = toggleSeriesFav;
+  window._playAdjacentEp = playAdjacentEp;
+  window._toggleSeasonMenu = toggleSeasonMenu;
+  window._secretTap = secretTap;
+  window._setCat = setCat;
+  window._setATab = setATab;
+  window._setLibFilter = setLibFilter;
+  window._filterMoviesByVj = filterMoviesByVj;
+  window._previewThumb = previewThumb;
+  window._previewDlLink = previewDlLink;
+  window._submitContent = submitContent;
+  window._cancelEdit = cancelEdit;
+  window._confirmDelete = confirmDelete;
+  window._addSubscriber = addSubscriber;
+  window._submitChangePass = submitChangePass;
+  window._addCS = addCS;
+});
