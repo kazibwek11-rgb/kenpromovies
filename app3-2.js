@@ -1,8 +1,5 @@
 /* ═══════════════════════════════════════
-   KENMOVIES v5.6 — app3-2.js
-   Improvements: faster player, pagination,
-   better error handling, mobile fixes,
-   shimmer loading, admin security
+   KENMOVIES v5.7 — app3-2.js — FIXED
    ═══════════════════════════════════════ */
 'use strict';
 
@@ -21,7 +18,6 @@ let secretTaps = 0, secretTimer = null;
 let contentPage = 0;
 const PAGE_SIZE = 30;
 
-/* ── ALL VJs ── */
 const ALL_VJS = [
   'VJ JUNIOR','VJ EMMY','VJ ICE P','VJ SAMMY','VJ LITTLE T','VJ JINGO',
   'VJ ULIO','VJ HD','VJ SMK','VJ KEVO','VJ UNCLE T','VJ KISULE',
@@ -31,7 +27,6 @@ const ALL_VJS = [
   'VJ WAZA','VJ KIMULI','VJ MOX'
 ];
 
-/* ── PLAYER STATE ── */
 let kpVideo = null, kpIframe = null, kpIsVideo = false;
 let kpPlaying = false, kpDragging = false;
 let kpCtrlTimer = null, kpRotateDeg = 0, kpZoomed = false;
@@ -39,28 +34,24 @@ let kpCurrentUrl = null, kpCurrentDl = null;
 let kpSpeedIdx = 2;
 const KP_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-/* ── UTILS ── */
 const $ = id => document.getElementById(id);
 const fmt = s => isNaN(s)||!isFinite(s) ? '0:00' : `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 
 let toastT = null;
 function showToast(msg, err=false) {
-  const t = $('toast');
-  if (!t) return;
+  const t = $('toast'); if (!t) return;
   t.textContent = msg;
   t.className = 'show' + (err ? ' err' : '');
   clearTimeout(toastT);
   toastT = setTimeout(() => t.className = '', 2800);
 }
 
-/* ── RESUME TOAST ── */
 function showResumeToast(seconds) {
   const mins = Math.floor(seconds/60);
   const secs = Math.floor(seconds%60).toString().padStart(2,'0');
   showToast(`▶ Resuming from ${mins}:${secs}`);
 }
 
-/* ── SHIMMER CARDS ── */
 function shimmerCard() {
   const d = document.createElement('div');
   d.className = 'pcard';
@@ -69,31 +60,21 @@ function shimmerCard() {
   return d;
 }
 function showShimmers(containerId, count=8) {
-  const c = $(containerId);
-  if (!c) return;
+  const c = $(containerId); if (!c) return;
   c.innerHTML = '';
   for (let i=0;i<count;i++) c.appendChild(shimmerCard());
 }
 
-/* ── ADMIN ── */
-function getPass() {
-  // Hash stored password for basic security
-  return localStorage.getItem('kp_admin_pass') || 'kenpro123';
-}
+function getPass() { return localStorage.getItem('kp_admin_pass') || 'kenpro123'; }
 function applyAdminUI() {
   const on = adminUnlocked;
-  ['admin-btn','snav-admin'].forEach(id => {
-    const el = $(id); if (el) el.style.display = on ? '' : 'none';
-  });
-  document.querySelectorAll('.admin-only').forEach(el => el.style.display = on ? '' : 'none');
+  ['admin-btn','snav-admin'].forEach(id => { const el=$(id); if(el) el.style.display=on?'':'none'; });
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display=on?'':'none');
 }
 function openPinModal() {
   if (adminUnlocked) {
     if (confirm('Hide admin panel?')) {
-      adminUnlocked = false;
-      localStorage.removeItem('km_admin');
-      applyAdminUI();
-      showToast('Admin hidden');
+      adminUnlocked = false; localStorage.removeItem('km_admin'); applyAdminUI(); showToast('Admin hidden');
     }
     return;
   }
@@ -104,1086 +85,517 @@ function openPinModal() {
 function checkPin() {
   const v = $('pin-inp').value.trim();
   if (v === getPass()) {
-    adminUnlocked = true;
-    // Session-based: clear on tab close
-    localStorage.setItem('km_admin', '1');
-    closeModal('pin-modal');
-    applyAdminUI();
-    showToast('Admin unlocked ✓');
-    showSection('admin');
+    adminUnlocked = true; localStorage.setItem('km_admin','1');
+    closeModal('pin-modal'); applyAdminUI(); showToast('Admin unlocked ✓'); showSection('admin');
   } else {
-    $('pin-err').textContent = 'Wrong password';
-    $('pin-inp').value = '';
-    // Shake animation
-    const inp = $('pin-inp');
-    inp.style.animation = 'shake 0.3s ease';
-    setTimeout(() => inp.style.animation = '', 300);
+    $('pin-err').textContent = 'Wrong password'; $('pin-inp').value = '';
+    const inp = $('pin-inp'); inp.style.animation='shake 0.3s ease';
+    setTimeout(() => inp.style.animation='', 300);
   }
 }
-function goAdmin() {
-  if (!adminUnlocked) { openPinModal(); return; }
-  showSection('admin');
-}
-function togglePwEye() {
-  const inp = $('pin-inp');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
+function goAdmin() { if (!adminUnlocked) { openPinModal(); return; } showSection('admin'); }
+function togglePwEye() { const inp=$('pin-inp'); inp.type=inp.type==='password'?'text':'password'; }
 function submitChangePass() {
-  const cur = $('cp-cur').value, nw = $('cp-new').value, conf = $('cp-conf').value;
-  const err = $('cp-err');
-  if (cur !== getPass()) { err.textContent = 'Wrong current password'; return; }
-  if (nw.length < 4) { err.textContent = 'Min 4 characters'; return; }
-  if (nw !== conf) { err.textContent = 'Passwords do not match'; return; }
-  localStorage.setItem('kp_admin_pass', nw);
-  closeModal('change-pass-modal');
-  showToast('Password changed ✓');
+  const cur=$('cp-cur').value, nw=$('cp-new').value, conf=$('cp-conf').value;
+  const err=$('cp-err');
+  if(cur!==getPass()){err.textContent='Wrong current password';return;}
+  if(nw.length<4){err.textContent='Min 4 characters';return;}
+  if(nw!==conf){err.textContent='Passwords do not match';return;}
+  localStorage.setItem('kp_admin_pass',nw); closeModal('change-pass-modal'); showToast('Password changed ✓');
 }
 function setATab(btn, tab) {
-  document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.admin-sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.admin-sec').forEach(s=>s.classList.remove('active'));
   btn.classList.add('active');
-  const sec = $('admin-' + tab);
-  if (sec) sec.classList.add('active');
-  if (tab === 'library') renderLibrary();
-  if (tab === 'subscribers') renderSubscribers();
-  if (tab === 'payments') renderPayments();
+  const sec=$('admin-'+tab); if(sec) sec.classList.add('active');
+  if(tab==='library') renderLibrary();
+  if(tab==='subscribers') renderSubscribers();
+  if(tab==='payments') renderPayments();
 }
 
-/* ── MODALS ── */
 function openModal(id) { const el=$(id); if(el) el.classList.add('open'); }
 function closeModal(id) { const el=$(id); if(el) el.classList.remove('open'); }
 
-/* ── NAVIGATION ── */
 function showSection(sec) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const pg = $('page-' + sec);
-  if (pg) { pg.classList.add('active'); $('content').scrollTop = 0; }
-  currentSection = sec;
-  document.querySelectorAll('.snav').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.bnav').forEach(b => b.classList.remove('active'));
-  const sn = $('snav-' + sec); if (sn) sn.classList.add('active');
-  const bn = $('bnav-' + sec); if (bn) bn.classList.add('active');
-  if (sec === 'favs') renderFavs();
-  if (sec === 'downloads') renderDownloads();
-  if (sec === 'settings') renderStats();
-  if (sec === 'anime') renderAnime();
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=$('page-'+sec);
+  if(pg){pg.classList.add('active');$('content').scrollTop=0;}
+  currentSection=sec;
+  document.querySelectorAll('.snav').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.bnav').forEach(b=>b.classList.remove('active'));
+  const sn=$('snav-'+sec); if(sn) sn.classList.add('active');
+  const bn=$('bnav-'+sec); if(bn) bn.classList.add('active');
+  if(sec==='favs') renderFavs();
+  if(sec==='downloads') renderDownloads();
+  if(sec==='settings') renderStats();
+  if(sec==='anime') renderAnime();
 }
 
-/* ── HERO ── */
 function buildHero() {
-  heroItems = allContent.filter(m => m.thumb).sort((a,b) => b.createdAt - a.createdAt).slice(0,15);
-  if (!heroItems.length) return;
-  const dots = $('hero-dots');
-  if (dots) dots.innerHTML = heroItems.map((_,i) =>
-    `<div class="hdot${i===0?' on':''}" onclick="event.stopPropagation();setHero(${i})"></div>`
-  ).join('');
+  heroItems = allContent.filter(m=>m.thumb).sort((a,b)=>b.createdAt-a.createdAt).slice(0,15);
+  if(!heroItems.length) return;
+  const dots=$('hero-dots');
+  if(dots) dots.innerHTML=heroItems.map((_,i)=>`<div class="hdot${i===0?' on':''}" onclick="event.stopPropagation();setHero(${i})"></div>`).join('');
   setHero(0);
   clearInterval(heroTimer);
-  heroTimer = setInterval(() => setHero((heroIdx+1) % heroItems.length), 5000);
+  heroTimer=setInterval(()=>setHero((heroIdx+1)%heroItems.length),5000);
 }
 function setHero(i) {
-  heroIdx = i;
-  const m = heroItems[i];
-  if (!m) return;
-  const img = $('hero-img');
-  if (img) {
-    img.style.opacity = '0';
-    // Preload image before showing
-    const preload = new Image();
-    preload.onload = () => { img.src = preload.src; img.style.opacity = '1'; };
-    preload.src = m.thumb || '';
-  }
-  const ht = $('hero-title'); if (ht) ht.textContent = m.sname || m.title || '';
-  const hm = $('hero-meta'); if (hm) hm.textContent = [m.vj, m.genre, m.year].filter(Boolean).join(' · ');
-  const hc = $('hero-cat'); if (hc) hc.textContent = (m.category||'movie').toUpperCase();
-  document.querySelectorAll('.hdot').forEach((d,idx) => d.classList.toggle('on', idx===i));
+  heroIdx=i; const m=heroItems[i]; if(!m) return;
+  const img=$('hero-img');
+  if(img){img.style.opacity='0';const p=new Image();p.onload=()=>{img.src=p.src;img.style.opacity='1';};p.src=m.thumb||'';}
+  const ht=$('hero-title'); if(ht) ht.textContent=m.sname||m.title||'';
+  const hm=$('hero-meta'); if(hm) hm.textContent=[m.vj,m.genre,m.year].filter(Boolean).join(' · ');
+  const hc=$('hero-cat'); if(hc) hc.textContent=(m.category||'movie').toUpperCase();
+  document.querySelectorAll('.hdot').forEach((d,idx)=>d.classList.toggle('on',idx===i));
 }
-function heroClick() {
-  const m = heroItems[heroIdx];
-  if (m) openDetail(m);
-}
+function heroClick() { const m=heroItems[heroIdx]; if(m) openDetail(m); }
 
-/* ── POSTER CARD ── */
 function posterCard(m, opts={}) {
-  const div = document.createElement('div');
-  div.className = 'pcard';
-  // Intersection Observer for lazy loading
-  const imgHtml = m.thumb
-    ? `<img src="${m.thumb}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">`
-    : `<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M12 8v8M8 12h8"/></svg></div>`;
-  const vj = m.vj
-    ? `<div class="pcard-vj">${m.vj.toUpperCase()}</div>` : '';
-  const badge = m._isSeries && m._epCount
-    ? `<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,21,45,0.9);color:#fff;padding:2px 5px;border-radius:3px;">${m._epCount} EP</div>` : '';
-  const editBtn = adminUnlocked && opts.showEdit
-    ? `<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')">✎</button>` : '';
-  div.innerHTML = `
-    <div class="pcard-img">
-      ${imgHtml}${vj}${badge}${editBtn}
-    </div>
-    <div class="pcard-name">${m.sname || m.title || ''}</div>`;
-  div.onclick = () => openDetail(m);
-  // Native lazy loading via loading='lazy' attribute
+  const div=document.createElement('div'); div.className='pcard';
+  const imgHtml=m.thumb
+    ?`<img src="${m.thumb}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">`
+    :`<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M12 8v8M8 12h8"/></svg></div>`;
+  const vj=m.vj?`<div class="pcard-vj">${m.vj.toUpperCase()}</div>`:'';
+  const badge=m._isSeries&&m._epCount?`<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,21,45,0.9);color:#fff;padding:2px 5px;border-radius:3px;">${m._epCount} EP</div>`:'';
+  const editBtn=adminUnlocked&&opts.showEdit?`<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')">✎</button>`:'';
+  div.innerHTML=`<div class="pcard-img">${imgHtml}${vj}${badge}${editBtn}</div><div class="pcard-name">${m.sname||m.title||''}</div>`;
+  div.onclick=()=>openDetail(m);
   return div;
 }
 
-/* ── ROWS ── */
 function makeRow(label, items, target, opts={}) {
-  if (!items.length) return null;
-  const block = document.createElement('div');
-  const seeAllBtn = items.length > 6
-    ? `<button class="see-all" onclick="openSeeAllDirect('${label.replace(/'/g,"\\'")}',allContent.filter(m=>m.category==='${items[0].category}'))">See all</button>` : '';
-  const head = document.createElement('div');
-  head.className = 'row-head';
-  head.innerHTML = `<span class="row-lbl">${label}${items.length>20?` <span class="row-cnt">(${items.length})</span>`:''}</span>`;
-  if (items.length > 6) {
-    const saBtn = document.createElement('button');
-    saBtn.className = 'see-all';
-    saBtn.textContent = 'See all';
-    saBtn.addEventListener('click', () => openSeeAllDirect(label, items));
-    head.appendChild(saBtn);
+  if(!items.length) return null;
+  const block=document.createElement('div');
+  const head=document.createElement('div'); head.className='row-head';
+  head.innerHTML=`<span class="row-lbl">${label}${items.length>20?` <span class="row-cnt">(${items.length})</span>`:''}</span>`;
+  if(items.length>6){
+    const saBtn=document.createElement('button'); saBtn.className='see-all'; saBtn.textContent='See all';
+    saBtn.addEventListener('click',()=>openSeeAllDirect(label,items)); head.appendChild(saBtn);
   }
   block.appendChild(head);
-  const row = document.createElement('div');
-  row.className = 'hrow';
-  items.slice(0,20).forEach(m => row.appendChild(posterCard(m, opts)));
-  block.appendChild(row);
-  target.appendChild(block);
+  const row=document.createElement('div'); row.className='hrow';
+  items.slice(0,20).forEach(m=>row.appendChild(posterCard(m,opts)));
+  block.appendChild(row); target.appendChild(block);
   return block;
 }
 function openSeeAllDirect(label, items) {
-  $('sa-title').textContent = label;
-  $('sa-cnt').textContent = items.length + ' titles';
-  const grid = $('sa-grid');
-  grid.innerHTML = '';
-  // Paginate see-all
-  const render = (page=0) => {
-    const slice = items.slice(page*40, (page+1)*40);
-    slice.forEach(m => grid.appendChild(posterCard(m)));
-    if ((page+1)*40 < items.length) {
-      const more = document.createElement('button');
-      more.className = 'load-more-btn';
-      more.textContent = 'Load More';
-      more.onclick = () => { more.remove(); render(page+1); };
-      grid.appendChild(more);
+  $('sa-title').textContent=label; $('sa-cnt').textContent=items.length+' titles';
+  const grid=$('sa-grid'); grid.innerHTML='';
+  const render=(page=0)=>{
+    items.slice(page*40,(page+1)*40).forEach(m=>grid.appendChild(posterCard(m)));
+    if((page+1)*40<items.length){
+      const more=document.createElement('button'); more.className='load-more-btn'; more.textContent='Load More';
+      more.onclick=()=>{more.remove();render(page+1);}; grid.appendChild(more);
     }
   };
-  render(0);
-  $('sa-ov').classList.add('open');
+  render(0); $('sa-ov').classList.add('open');
 }
 
-/* ── BUILD ROWS ── */
 function buildRows() {
-  const byNew = arr => [...arr].sort((a,b) => b.createdAt - a.createdAt);
-  const movies     = byNew(allContent.filter(m => m.category === 'movie'));
-  const animations = byNew(allContent.filter(m => m.category === 'animation'));
-  const indians    = byNew(allContent.filter(m => m.category === 'indian'));
-  const animes     = byNew(allContent.filter(m => m.category === 'anime'));
-  const seriesEps  = allContent.filter(m => m.category === 'series');
-
-  // Build series cards
-  const seriesMap = {};
-  seriesEps.forEach(m => {
-    const key = (m.sname || m.title || '').trim();
-    if (!key) return;
-    if (!seriesMap[key]) seriesMap[key] = [];
-    seriesMap[key].push(m);
-  });
-  const seriesCards = Object.entries(seriesMap).map(([sname, eps]) => {
-    const rep = byNew(eps)[0];
-    return { ...rep, sname, _isSeries:true, _epCount:eps.length };
-  });
-  const seriesSorted = byNew(seriesCards);
-
-  // HOME
-  const hh = $('vj-rows-home'); hh.innerHTML = '';
-  if (movies.length)       makeRow('Latest Movies',  movies.slice(0,20),       hh);
-  if (seriesSorted.length) makeRow('Latest Series',  seriesSorted.slice(0,20), hh);
-  if (animations.length)   makeRow('Animation',      animations.slice(0,20),   hh);
-  if (animes.length)       makeRow('Anime',           animes.slice(0,20),       hh);
-  if (indians.length)      makeRow('Indian',          indians.slice(0,20),      hh);
-
-  // MOVIES with VJ filter
-  const hm = $('vj-rows-movies'); hm.innerHTML = '';
-  if (movies.length) {
-    // VJ filter bar
-    const vjBar = document.createElement('div');
-    vjBar.id = 'vj-bar-movies';
-    vjBar.className = 'vj-filter-bar';
-    const vjsInMovies = ['ALL', ...ALL_VJS.filter(vj => movies.some(m => (m.vj||'').toUpperCase() === vj))];
-    vjBar.innerHTML = vjsInMovies.map((vj,i) =>
-      `<button class="vj-filter-btn${i===0?' active':''}" onclick="filterMoviesByVj(this,'${vj}')">${vj}</button>`
-    ).join('');
+  const byNew=arr=>[...arr].sort((a,b)=>b.createdAt-a.createdAt);
+  const movies=byNew(allContent.filter(m=>m.category==='movie'));
+  const animations=byNew(allContent.filter(m=>m.category==='animation'));
+  const indians=byNew(allContent.filter(m=>m.category==='indian'));
+  const animes=byNew(allContent.filter(m=>m.category==='anime'));
+  const seriesEps=allContent.filter(m=>m.category==='series');
+  const seriesMap={};
+  seriesEps.forEach(m=>{const key=(m.sname||m.title||'').trim();if(!key)return;if(!seriesMap[key])seriesMap[key]=[];seriesMap[key].push(m);});
+  const seriesCards=Object.entries(seriesMap).map(([sname,eps])=>{const rep=byNew(eps)[0];return{...rep,sname,_isSeries:true,_epCount:eps.length};});
+  const seriesSorted=byNew(seriesCards);
+  const hh=$('vj-rows-home'); hh.innerHTML='';
+  if(movies.length) makeRow('Latest Movies',movies.slice(0,20),hh);
+  if(seriesSorted.length) makeRow('Latest Series',seriesSorted.slice(0,20),hh);
+  if(animations.length) makeRow('Animation',animations.slice(0,20),hh);
+  if(animes.length) makeRow('Anime',animes.slice(0,20),hh);
+  if(indians.length) makeRow('Indian',indians.slice(0,20),hh);
+  const hm=$('vj-rows-movies'); hm.innerHTML='';
+  if(movies.length){
+    const vjBar=document.createElement('div'); vjBar.id='vj-bar-movies'; vjBar.className='vj-filter-bar';
+    const vjsInMovies=['ALL',...ALL_VJS.filter(vj=>movies.some(m=>(m.vj||'').toUpperCase()===vj))];
+    vjBar.innerHTML=vjsInMovies.map((vj,i)=>`<button class="vj-filter-btn${i===0?' active':''}" onclick="filterMoviesByVj(this,'${vj}')">${vj}</button>`).join('');
     hm.appendChild(vjBar);
-    const moviesGrid = document.createElement('div');
-    moviesGrid.id = 'grid-movies-main';
-    moviesGrid.className = 'pgrid';
-    movies.forEach(m => moviesGrid.appendChild(posterCard(m, {showEdit:true})));
-    hm.appendChild(moviesGrid);
-    window._allMovies = movies;
-  } else {
-    hm.innerHTML = emptyState('No movies yet', 'Upload movies in Admin');
-  }
-
-  // SERIES
-  const hs = $('vj-rows-series'); hs.innerHTML = '';
-  if (seriesSorted.length) {
-    makeRow('All Series', seriesSorted, hs);
-    Object.entries(seriesMap).slice(0,10).forEach(([sname, eps]) => {
-      const sorted = eps.sort((a,b) => {
-        if ((a.season||1) !== (b.season||1)) return (a.season||1)-(b.season||1);
-        return (a.epNum||1)-(b.epNum||1);
-      });
-      makeRow(sname, sorted, hs);
+    const moviesGrid=document.createElement('div'); moviesGrid.id='grid-movies-main'; moviesGrid.className='pgrid';
+    movies.forEach(m=>moviesGrid.appendChild(posterCard(m,{showEdit:true}))); hm.appendChild(moviesGrid);
+    window._allMovies=movies;
+  } else { hm.innerHTML=emptyState('No movies yet','Upload movies in Admin'); }
+  const hs=$('vj-rows-series'); hs.innerHTML='';
+  if(seriesSorted.length){
+    makeRow('All Series',seriesSorted,hs);
+    Object.entries(seriesMap).slice(0,10).forEach(([sname,eps])=>{
+      const sorted=eps.sort((a,b)=>{if((a.season||1)!==(b.season||1))return(a.season||1)-(b.season||1);return(a.epNum||1)-(b.epNum||1);});
+      makeRow(sname,sorted,hs);
     });
-  } else {
-    hs.innerHTML = emptyState('No series yet', 'Upload series in Admin');
-  }
-
-  // INDIAN
-  const hi = $('vj-rows-indian'); hi.innerHTML = '';
-  if (indians.length) makeRow('Indian', indians, hi, {showEdit:true});
-  else hi.innerHTML = emptyState('No Indian content yet', 'Upload in Admin');
-
-  // ANIMATION
-  const ha = $('vj-rows-animation'); ha.innerHTML = '';
-  if (animations.length) makeRow('Animation', animations, ha, {showEdit:true});
-  else ha.innerHTML = emptyState('No animation yet', 'Upload in Admin');
+  } else { hs.innerHTML=emptyState('No series yet','Upload series in Admin'); }
+  const hi=$('vj-rows-indian'); hi.innerHTML='';
+  if(indians.length) makeRow('Indian',indians,hi,{showEdit:true});
+  else hi.innerHTML=emptyState('No Indian content yet','Upload in Admin');
+  const ha=$('vj-rows-animation'); ha.innerHTML='';
+  if(animations.length) makeRow('Animation',animations,ha,{showEdit:true});
+  else ha.innerHTML=emptyState('No animation yet','Upload in Admin');
 }
 
-function emptyState(title, sub='') {
-  return `<div class="empty-page">
-    <div style="font-size:40px;margin-bottom:12px;">🎬</div>
-    <div style="font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px;">${title}</div>
-    ${sub ? `<div style="font-size:12px;color:var(--txt3);">${sub}</div>` : ''}
-  </div>`;
+function emptyState(title,sub=''){
+  return `<div class="empty-page"><div style="font-size:40px;margin-bottom:12px;">🎬</div><div style="font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px;">${title}</div>${sub?`<div style="font-size:12px;color:var(--txt3);">${sub}</div>`:''}</div>`;
 }
 
-function filterMoviesByVj(btn, vj) {
-  document.querySelectorAll('#vj-bar-movies .vj-filter-btn').forEach(b => b.classList.remove('active'));
+function filterMoviesByVj(btn,vj){
+  document.querySelectorAll('#vj-bar-movies .vj-filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const movies = window._allMovies || [];
-  const filtered = vj === 'ALL' ? movies : movies.filter(m => (m.vj||'').toUpperCase() === vj);
-  const grid = $('grid-movies-main');
-  if (!grid) return;
-  grid.innerHTML = '';
-  if (!filtered.length) {
-    grid.innerHTML = emptyState(`No movies for ${vj} yet`);
-    return;
-  }
-  filtered.forEach(m => grid.appendChild(posterCard(m, {showEdit:true})));
+  const movies=window._allMovies||[];
+  const filtered=vj==='ALL'?movies:movies.filter(m=>(m.vj||'').toUpperCase()===vj);
+  const grid=$('grid-movies-main'); if(!grid) return;
+  grid.innerHTML='';
+  if(!filtered.length){grid.innerHTML=emptyState(`No movies for ${vj} yet`);return;}
+  filtered.forEach(m=>grid.appendChild(posterCard(m,{showEdit:true})));
 }
 
-/* ── ANIME ── */
-function renderAnime() {
-  const container = $('vj-rows-anime');
-  if (!container) return;
-  container.innerHTML = '';
-  const byNew = arr => [...arr].sort((a,b) => b.createdAt - a.createdAt);
-  const animes = byNew(allContent.filter(m => m.category === 'anime'));
-  if (animes.length) makeRow('Latest Anime', animes, container, {showEdit:true});
-  else container.innerHTML = emptyState('No anime yet', 'Upload anime in Admin');
+function renderAnime(){
+  const container=$('vj-rows-anime'); if(!container) return;
+  container.innerHTML='';
+  const byNew=arr=>[...arr].sort((a,b)=>b.createdAt-a.createdAt);
+  const animes=byNew(allContent.filter(m=>m.category==='anime'));
+  if(animes.length) makeRow('Latest Anime',animes,container,{showEdit:true});
+  else container.innerHTML=emptyState('No anime yet','Upload anime in Admin');
 }
 
-/* ── STATS ── */
-function renderStats() {
-  const movies = allContent.filter(m => m.category === 'movie').length;
-  const series = [...new Set(allContent.filter(m => m.category === 'series').map(m => m.sname||m.title))].length;
-  const anim = allContent.filter(m => m.category === 'animation').length;
-  const anime = allContent.filter(m => m.category === 'anime').length;
-  if ($('st-total')) $('st-total').textContent = allContent.length;
-  if ($('st-movies')) $('st-movies').textContent = movies;
-  if ($('st-series')) $('st-series').textContent = series;
-  if ($('st-anim')) $('st-anim').textContent = anim;
-  if ($('st-anime')) $('st-anime').textContent = anime;
+function renderStats(){
+  const movies=allContent.filter(m=>m.category==='movie').length;
+  const series=[...new Set(allContent.filter(m=>m.category==='series').map(m=>m.sname||m.title))].length;
+  const anim=allContent.filter(m=>m.category==='animation').length;
+  const anime=allContent.filter(m=>m.category==='anime').length;
+  if($('st-total')) $('st-total').textContent=allContent.length;
+  if($('st-movies')) $('st-movies').textContent=movies;
+  if($('st-series')) $('st-series').textContent=series;
+  if($('st-anim')) $('st-anim').textContent=anim;
+  if($('st-anime')) $('st-anime').textContent=anime;
 }
 
-/* ── FAVS ── */
-function renderFavs() {
-  const grid = $('grid-favs'); grid.innerHTML = '';
-  const items = allContent.filter(m => favs.includes(m.id));
-  if (!items.length) { grid.innerHTML = emptyState('No favourites yet', 'Tap ♥ on any movie to save it here'); return; }
-  items.forEach(m => grid.appendChild(posterCard(m)));
+function renderFavs(){
+  const grid=$('grid-favs'); grid.innerHTML='';
+  const items=allContent.filter(m=>favs.includes(m.id));
+  if(!items.length){grid.innerHTML=emptyState('No favourites yet','Tap ♥ on any movie to save it here');return;}
+  items.forEach(m=>grid.appendChild(posterCard(m)));
 }
-function isFav(id) { return favs.includes(id); }
-function toggleFav() {
-  if (!currentPlayItem) return;
-  const id = currentPlayItem.id;
-  if (isFav(id)) favs = favs.filter(f => f !== id);
-  else favs.push(id);
-  localStorage.setItem('km_favs', JSON.stringify(favs));
-  updateFavUI();
+function isFav(id){return favs.includes(id);}
+function toggleFav(){
+  if(!currentPlayItem) return;
+  const id=currentPlayItem.id;
+  if(isFav(id)) favs=favs.filter(f=>f!==id); else favs.push(id);
+  localStorage.setItem('km_favs',JSON.stringify(favs)); updateFavUI();
 }
-function updateFavUI() {
-  if (!currentPlayItem) return;
-  const on = isFav(currentPlayItem.id);
-  const ico = $('pi-fav-ico');
-  if (ico) ico.innerHTML = on ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
-  const btn = $('pi-fav-btn');
-  if (btn) btn.classList.toggle('fav-on', on);
-  const txt = $('pi-fav-txt');
-  if (txt) txt.textContent = on ? 'Saved' : 'Save';
+function updateFavUI(){
+  if(!currentPlayItem) return;
+  const on=isFav(currentPlayItem.id);
+  const ico=$('pi-fav-ico'); if(ico) ico.innerHTML=on?'<use href="#ic-heart-f"/>':'<use href="#ic-heart"/>';
+  const btn=$('pi-fav-btn'); if(btn) btn.classList.toggle('fav-on',on);
+  const txt=$('pi-fav-txt'); if(txt) txt.textContent=on?'Saved':'Save';
 }
-function toggleDetailFav() {
-  if (!currentPlayItem) return;
-  toggleFav();
-  const btn = document.querySelector('.btn-fav');
-  if (btn) {
-    const on = isFav(currentPlayItem.id);
-    btn.classList.toggle('on', on);
-    const sp = btn.querySelector('span');
-    if (sp) sp.textContent = on ? 'Saved' : 'Save';
-  }
+function toggleDetailFav(){
+  if(!currentPlayItem) return; toggleFav();
+  const btn=document.querySelector('.btn-fav');
+  if(btn){const on=isFav(currentPlayItem.id);btn.classList.toggle('on',on);const sp=btn.querySelector('span');if(sp)sp.textContent=on?'Saved':'Save';}
 }
-function toggleSeriesFav() {
-  if (!currentSeriesItem) return;
-  currentPlayItem = currentSeriesItem;
-  toggleFav();
-  const ico = $('sd-fav-ico');
-  if (ico) ico.innerHTML = isFav(currentSeriesItem.id) ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
+function toggleSeriesFav(){
+  if(!currentSeriesItem) return; currentPlayItem=currentSeriesItem; toggleFav();
+  const ico=$('sd-fav-ico'); if(ico) ico.innerHTML=isFav(currentSeriesItem.id)?'<use href="#ic-heart-f"/>':'<use href="#ic-heart"/>';
 }
 
-/* ── SEARCH ── */
-function openSearch() {
-  $('search-ov').classList.add('open');
-  setTimeout(() => $('search-inp') && $('search-inp').focus(), 200);
+function openSearch(){$('search-ov').classList.add('open');setTimeout(()=>$('search-inp')&&$('search-inp').focus(),200);}
+function closeSearch(){$('search-ov').classList.remove('open');}
+function clearSearch(){$('search-inp').value='';doSearch('');}
+function setSF(btn,f){
+  searchFilter=f;
+  document.querySelectorAll('.sf').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); doSearch($('search-inp').value);
 }
-function closeSearch() { $('search-ov').classList.remove('open'); }
-function clearSearch() { $('search-inp').value = ''; doSearch(''); }
-function setSF(btn, f) {
-  searchFilter = f;
-  document.querySelectorAll('.sf').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  doSearch($('search-inp').value);
-}
-function doSearch(q) {
-  const res = $('search-results');
-  q = q.trim().toLowerCase();
-  if (!q) { res.innerHTML = '<div class="search-empty">Start typing to search...</div>'; return; }
-  let items = allContent;
-  if (searchFilter !== 'all') items = items.filter(m => m.category === searchFilter);
-  const found = items.filter(m =>
-    (m.title||'').toLowerCase().includes(q) ||
-    (m.sname||'').toLowerCase().includes(q) ||
-    (m.vj||'').toLowerCase().includes(q) ||
-    (m.genre||'').toLowerCase().includes(q)
-  );
-  if (!found.length) { res.innerHTML = `<div class="search-empty">Nothing found for "<strong>${q}</strong>"</div>`; return; }
-  res.innerHTML = `<div class="search-count">${found.length} result${found.length>1?'s':''}</div>`;
-  const grid = document.createElement('div'); grid.className = 'pgrid';
-  found.slice(0,40).forEach(m => grid.appendChild(posterCard(m)));
-  res.appendChild(grid);
+function doSearch(q){
+  const res=$('search-results'); q=q.trim().toLowerCase();
+  if(!q){res.innerHTML='<div class="search-empty">Start typing to search...</div>';return;}
+  let items=allContent;
+  if(searchFilter!=='all') items=items.filter(m=>m.category===searchFilter);
+  const found=items.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.sname||'').toLowerCase().includes(q)||(m.vj||'').toLowerCase().includes(q)||(m.genre||'').toLowerCase().includes(q));
+  if(!found.length){res.innerHTML=`<div class="search-empty">Nothing found for "<strong>${q}</strong>"</div>`;return;}
+  res.innerHTML=`<div class="search-count">${found.length} result${found.length>1?'s':''}</div>`;
+  const grid=document.createElement('div'); grid.className='pgrid';
+  found.slice(0,40).forEach(m=>grid.appendChild(posterCard(m))); res.appendChild(grid);
 }
 
-/* ── DETAIL OVERLAY ── */
-function openDetail(m) {
-  currentPlayItem = m;
-  if (m.category === 'series' || m._isSeries) {
-    openSeriesDetail((m.sname||m.title||'').trim(), m);
-    return;
-  }
-  const isF = isFav(m.id);
-  const db = $('detail-body');
-  db.innerHTML = `
-    <div class="det-hero">
-      <img src="${m.thumb||''}" alt="" onerror="this.src=''" loading="lazy"/>
-      <div class="det-hero-grad"></div>
-      <div class="det-topbar">
-        <button class="det-back" onclick="closeDetail()"><svg width="20" height="20"><use href="#ic-back"/></svg></button>
-        <button class="det-back" onclick="toggleDetailFav()"><svg width="18" height="18" id="detail-fav-ico"><use href="${isF?'#ic-heart-f':'#ic-heart'}"/></svg></button>
-      </div>
-    </div>
-    <div class="det-body">
-      <div class="det-title">${m.title||m.sname||''}</div>
-      <div class="det-meta">
-        ${m.vj?`<span class="det-vj">${m.vj.toUpperCase()}</span>`:''}
-        ${m.year?`<span class="det-tag">${m.year}</span>`:''}
-        ${m.genre?`<span class="det-tag">${m.genre}</span>`:''}
-      </div>
-      <p class="det-desc">${m.description||m.desc||'No description available.'}</p>
-      <div class="det-actions">
-        <button class="btn-play" onclick="playItem(currentPlayItem)">
-          <svg width="16" height="16"><use href="#ic-play"/></svg> Play Now
-        </button>
-        ${m.dlLink?`<button class="btn-dl" onclick="startDownload(currentPlayItem)"><svg width="14" height="14"><use href="#ic-dl"/></svg> Download</button>`:''}
-        <button class="btn-fav${isF?' on':''}" onclick="toggleDetailFav()">
-          <svg width="14" height="14"><use href="${isF?'#ic-heart-f':'#ic-heart'}"/></svg>
-          <span>${isF?'Saved':'Save'}</span>
-        </button>
-      </div>
-      <div class="more-title">More like these</div>
-      <div class="more-row" id="det-more-row"></div>
-    </div>`;
-  $('detail-ov').classList.add('open');
-  buildMoreRow($('det-more-row'), m);
+function openDetail(m){
+  currentPlayItem=m;
+  if(m.category==='series'||m._isSeries){openSeriesDetail((m.sname||m.title||'').trim(),m);return;}
+  const isF=isFav(m.id);
+  const db=$('detail-body');
+  db.innerHTML=`<div class="det-hero"><img src="${m.thumb||''}" alt="" onerror="this.src=''" loading="lazy"/><div class="det-hero-grad"></div><div class="det-topbar"><button class="det-back" onclick="closeDetail()"><svg width="20" height="20"><use href="#ic-back"/></svg></button><button class="det-back" onclick="toggleDetailFav()"><svg width="18" height="18" id="detail-fav-ico"><use href="${isF?'#ic-heart-f':'#ic-heart'}"/></svg></button></div></div><div class="det-body"><div class="det-title">${m.title||m.sname||''}</div><div class="det-meta">${m.vj?`<span class="det-vj">${m.vj.toUpperCase()}</span>`:''}${m.year?`<span class="det-tag">${m.year}</span>`:''}${m.genre?`<span class="det-tag">${m.genre}</span>`:''}</div><p class="det-desc">${m.description||m.desc||'No description available.'}</p><div class="det-actions"><button class="btn-play" onclick="playItem(currentPlayItem)"><svg width="16" height="16"><use href="#ic-play"/></svg> Play Now</button>${m.dlLink?`<button class="btn-dl" onclick="startDownload(currentPlayItem)"><svg width="14" height="14"><use href="#ic-dl"/></svg> Download</button>`:''}<button class="btn-fav${isF?' on':''}" onclick="toggleDetailFav()"><svg width="14" height="14"><use href="${isF?'#ic-heart-f':'#ic-heart'}"/></svg><span>${isF?'Saved':'Save'}</span></button></div><div class="more-title">More like these</div><div class="more-row" id="det-more-row"></div></div>`;
+  $('detail-ov').classList.add('open'); buildMoreRow($('det-more-row'),m);
 }
-function closeDetail() { $('detail-ov').classList.remove('open'); }
-function buildMoreRow(container, m) {
-  if (!container) return;
-  const more = allContent.filter(x => x.id !== m.id && (x.category === m.category || (m.vj && x.vj === m.vj))).slice(0,10);
-  more.forEach(x => {
-    const card = document.createElement('div');
-    card.className = 'more-card';
-    card.onclick = () => openDetail(x);
-    card.innerHTML = `
-      <div class="more-poster">
-        <img src="${x.thumb||''}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block;"/>
-      </div>
-      <div class="more-name">${x.title||x.sname||''}</div>
-      <div class="more-vj">${x.vj||''}</div>`;
+function closeDetail(){$('detail-ov').classList.remove('open');}
+function buildMoreRow(container,m){
+  if(!container) return;
+  const more=allContent.filter(x=>x.id!==m.id&&(x.category===m.category||(m.vj&&x.vj===m.vj))).slice(0,10);
+  more.forEach(x=>{
+    const card=document.createElement('div'); card.className='more-card'; card.onclick=()=>openDetail(x);
+    card.innerHTML=`<div class="more-poster"><img src="${x.thumb||''}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div><div class="more-name">${x.title||x.sname||''}</div><div class="more-vj">${x.vj||''}</div>`;
     container.appendChild(card);
   });
 }
 
-/* ── SERIES DETAIL ── */
-function openSeriesDetail(sname, firstEp) {
-  currentSeriesItem = firstEp;
-  const allEps = allContent.filter(m => (m.sname||m.title) === sname).sort((a,b) => {
-    if (a.season !== b.season) return (a.season||1)-(b.season||1);
-    return (a.epNum||1)-(b.epNum||1);
-  });
-  const seasons = [...new Set(allEps.map(e => e.season||1))].sort((a,b) => a-b);
-  currentSeriesSeason = seasons[0] || 1;
-  const img = firstEp.thumb || '';
-  const sd = $('sd-back-img');
-  if (sd) sd.style.backgroundImage = img ? `url('${img}')` : 'none';
-  const st = $('sd-title'); if (st) st.textContent = sname;
-  const sv = $('sd-vj'); if (sv) sv.textContent = (firstEp.vj||'').toUpperCase();
-  const sg = $('sd-genres'); if (sg) sg.textContent = [firstEp.genre, firstEp.year].filter(Boolean).join(' · ');
-  const sdsc = $('sd-desc'); if (sdsc) sdsc.textContent = firstEp.description||firstEp.desc||'';
-  const ico = $('sd-fav-ico');
-  if (ico) ico.innerHTML = isFav(firstEp.id) ? '<use href="#ic-heart-f"/>' : '<use href="#ic-heart"/>';
-  const menu = $('sd-season-menu');
-  if (menu) {
-    menu.innerHTML = '';
-    seasons.forEach(s => {
-      const opt = document.createElement('div');
-      opt.className = 'sd-sopt';
-      opt.textContent = 'Season ' + s;
-      opt.onclick = () => { currentSeriesSeason = s; renderSeriesEps(allEps); toggleSeasonMenu(); const sl=$('sd-season-label'); if(sl)sl.textContent='Season '+s; };
-      menu.appendChild(opt);
-    });
-  }
-  const sl = $('sd-season-label'); if (sl) sl.textContent = 'Season ' + currentSeriesSeason;
-  renderSeriesEps(allEps);
-  showSection('detail');
+function openSeriesDetail(sname,firstEp){
+  currentSeriesItem=firstEp;
+  const allEps=allContent.filter(m=>(m.sname||m.title)===sname).sort((a,b)=>{if(a.season!==b.season)return(a.season||1)-(b.season||1);return(a.epNum||1)-(b.epNum||1);});
+  const seasons=[...new Set(allEps.map(e=>e.season||1))].sort((a,b)=>a-b);
+  currentSeriesSeason=seasons[0]||1;
+  const img=firstEp.thumb||'';
+  const sd=$('sd-back-img'); if(sd) sd.style.backgroundImage=img?`url('${img}')`:'none';
+  const st=$('sd-title'); if(st) st.textContent=sname;
+  const sv=$('sd-vj'); if(sv) sv.textContent=(firstEp.vj||'').toUpperCase();
+  const sg=$('sd-genres'); if(sg) sg.textContent=[firstEp.genre,firstEp.year].filter(Boolean).join(' · ');
+  const sdsc=$('sd-desc'); if(sdsc) sdsc.textContent=firstEp.description||firstEp.desc||'';
+  const ico=$('sd-fav-ico'); if(ico) ico.innerHTML=isFav(firstEp.id)?'<use href="#ic-heart-f"/>':'<use href="#ic-heart"/>';
+  const menu=$('sd-season-menu');
+  if(menu){menu.innerHTML='';seasons.forEach(s=>{const opt=document.createElement('div');opt.className='sd-sopt';opt.textContent='Season '+s;opt.onclick=()=>{currentSeriesSeason=s;renderSeriesEps(allEps);toggleSeasonMenu();const sl=$('sd-season-label');if(sl)sl.textContent='Season '+s;};menu.appendChild(opt);});}
+  const sl=$('sd-season-label'); if(sl) sl.textContent='Season '+currentSeriesSeason;
+  renderSeriesEps(allEps); showSection('detail');
 }
-function toggleSeasonMenu() {
-  const m = $('sd-season-menu'); if(m) m.classList.toggle('open');
-  const ch = $('sd-chevron'); if(ch) ch.style.transform = m&&m.classList.contains('open') ? 'rotate(90deg)' : '';
+function toggleSeasonMenu(){
+  const m=$('sd-season-menu'); if(m) m.classList.toggle('open');
+  const ch=$('sd-chevron'); if(ch) ch.style.transform=m&&m.classList.contains('open')?'rotate(90deg)':'';
 }
-function renderSeriesEps(allEps) {
-  const eps = allEps.filter(e => (e.season||1) === currentSeriesSeason).sort((a,b) => (a.epNum||1)-(b.epNum||1));
-  const cont = $('sd-eps'); if (!cont) return;
-  cont.innerHTML = '';
-  eps.forEach((ep, i) => {
-    const card = document.createElement('div');
-    card.className = 'sd-ep';
-    const epData = JSON.stringify({id:ep.id,title:ep.title,sname:ep.sname,thumb:ep.thumb,playLink:ep.playLink,dlLink:ep.dlLink,vj:ep.vj,season:ep.season,epNum:ep.epNum,epTitle:ep.epTitle,category:ep.category}).replace(/"/g,'&quot;');
-    card.innerHTML = `
-      <div class="sd-ep-thumb"><img src="${ep.thumb||''}" alt="" loading="lazy" onerror="this.style.display='none'"/></div>
-      <div class="sd-ep-body">
-        <div class="sd-ep-code">S${ep.season||1} E${ep.epNum||i+1}</div>
-        <div class="sd-ep-name">${ep.epTitle||ep.title||''}</div>
-      </div>
-      <div class="sd-ep-btns">
-        <button class="sd-play-btn" onclick="event.stopPropagation();playEpById('${ep.id}',${i})"><svg width="14" height="14"><use href="#ic-play"/></svg></button>
-        ${ep.dlLink?`<button class="sd-dl-btn" onclick="event.stopPropagation();startDownloadByUrl('${ep.dlLink}','${(ep.epTitle||ep.title||'Episode').replace(/'/g,"\\'")}')"><svg width="14" height="14"><use href="#ic-dl"/></svg></button>`:''}
-      </div>`;
-    card.onclick = () => playEpById(ep.id, i);
-    cont.appendChild(card);
+function renderSeriesEps(allEps){
+  const eps=allEps.filter(e=>(e.season||1)===currentSeriesSeason).sort((a,b)=>(a.epNum||1)-(b.epNum||1));
+  const cont=$('sd-eps'); if(!cont) return;
+  cont.innerHTML='';
+  eps.forEach((ep,i)=>{
+    const card=document.createElement('div'); card.className='sd-ep';
+    card.innerHTML=`<div class="sd-ep-thumb"><img src="${ep.thumb||''}" alt="" loading="lazy" onerror="this.style.display='none'"/></div><div class="sd-ep-body"><div class="sd-ep-code">S${ep.season||1} E${ep.epNum||i+1}</div><div class="sd-ep-name">${ep.epTitle||ep.title||''}</div></div><div class="sd-ep-btns"><button class="sd-play-btn" onclick="event.stopPropagation();playEpById('${ep.id}',${i})"><svg width="14" height="14"><use href="#ic-play"/></svg></button>${ep.dlLink?`<button class="sd-dl-btn" onclick="event.stopPropagation();startDownloadByUrl('${ep.dlLink}','${(ep.epTitle||ep.title||'Episode').replace(/'/g,"\\'")}')"><svg width="14" height="14"><use href="#ic-dl"/></svg></button>`:''}</div>`;
+    card.onclick=()=>playEpById(ep.id,i); cont.appendChild(card);
   });
 }
-function playEpById(id, idx) {
-  const ep = allContent.find(m => m.id === id);
-  if (!ep) return;
-  const sname = ep.sname || ep.title;
-  currentEpList = allContent.filter(m => (m.sname||m.title) === sname && (m.season||1) === currentSeriesSeason).sort((a,b) => (a.epNum||1)-(b.epNum||1));
-  currentEpIdx = currentEpList.findIndex(m => m.id === id);
-  if (currentEpIdx < 0) currentEpIdx = idx;
+function playEpById(id,idx){
+  const ep=allContent.find(m=>m.id===id); if(!ep) return;
+  const sname=ep.sname||ep.title;
+  currentEpList=allContent.filter(m=>(m.sname||m.title)===sname&&(m.season||1)===currentSeriesSeason).sort((a,b)=>(a.epNum||1)-(b.epNum||1));
+  currentEpIdx=currentEpList.findIndex(m=>m.id===id);
+  if(currentEpIdx<0) currentEpIdx=idx;
   playItem(ep);
 }
-function playAdjacentEp(dir) {
-  const newIdx = currentEpIdx + dir;
-  if (newIdx < 0 || newIdx >= currentEpList.length) { showToast(dir<0?'First episode':'Last episode'); return; }
-  currentEpIdx = newIdx;
-  playItem(currentEpList[newIdx]);
+function playAdjacentEp(dir){
+  const newIdx=currentEpIdx+dir;
+  if(newIdx<0||newIdx>=currentEpList.length){showToast(dir<0?'First episode':'Last episode');return;}
+  currentEpIdx=newIdx; playItem(currentEpList[newIdx]);
 }
 
-/* ── PLAY ── */
-function playItem(m) {
-  if (!m) return;
-  currentPlayItem = m;
-  kpCurrentDl = m.dlLink || m.playLink || '';
-  openPlayer(m);
-}
+function playItem(m){if(!m)return;currentPlayItem=m;kpCurrentDl=m.dlLink||m.playLink||'';openPlayer(m);}
 
-/* ── PLAYER — FAST LOAD ── */
-function openPlayer(m) {
-  const ov = $('player-ov');
-  ov.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  // Fill info instantly
-  const piCard = $('pi-card'); if (piCard) piCard.style.display = 'flex';
-  const piImg = $('pi-img');
-  if (piImg) {
-    piImg.src = '';
-    piImg.onerror = function(){ this.style.display='none'; };
-    piImg.onload = function(){ this.style.display='block'; };
-    if (m.thumb) {
-      piImg.style.display = 'block';
-      piImg.src = m.thumb;
-    } else {
-      piImg.style.display = 'none';
-    }
-  }
-  const piTitle = $('pi-title'); if (piTitle) piTitle.textContent = m.sname||m.title||'';
-  const piEp = $('pi-ep'); if (piEp) piEp.textContent = m.epTitle ? `S${m.season||1} E${m.epNum||1}: ${m.epTitle}` : '';
-  const piMeta = $('pi-meta'); if (piMeta) piMeta.textContent = [m.vj?m.vj.toUpperCase():'', m.genre, m.year].filter(Boolean).join(' · ');
-  const kpTtl = $('kp-ttl'); if (kpTtl) kpTtl.textContent = m.sname||m.title||'';
-  const kpEp = $('kp-ep'); if (kpEp) kpEp.textContent = m.epTitle ? `S${m.season||1} E${m.epNum||1}: ${m.epTitle}` : '';
+function openPlayer(m){
+  const ov=$('player-ov'); ov.style.display='flex'; document.body.style.overflow='hidden';
+  const piCard=$('pi-card'); if(piCard) piCard.style.display='flex';
+  const piImg=$('pi-img');
+  if(piImg){piImg.src='';piImg.onerror=function(){this.style.display='none';};piImg.onload=function(){this.style.display='block';};if(m.thumb){piImg.style.display='block';piImg.src=m.thumb;}else{piImg.style.display='none';}}
+  const piTitle=$('pi-title'); if(piTitle) piTitle.textContent=m.sname||m.title||'';
+  const piEp=$('pi-ep'); if(piEp) piEp.textContent=m.epTitle?`S${m.season||1} E${m.epNum||1}: ${m.epTitle}`:'';
+  const piMeta=$('pi-meta'); if(piMeta) piMeta.textContent=[m.vj?m.vj.toUpperCase():'',m.genre,m.year].filter(Boolean).join(' · ');
+  const kpTtl=$('kp-ttl'); if(kpTtl) kpTtl.textContent=m.sname||m.title||'';
+  const kpEp=$('kp-ep'); if(kpEp) kpEp.textContent=m.epTitle?`S${m.season||1} E${m.epNum||1}: ${m.epTitle}`:'';
   updateFavUI();
-  const epNav = $('ep-nav');
-  if (epNav) {
-    if (currentEpList.length > 1) {
-      epNav.style.display = 'flex';
-      const epNl = $('ep-nl'); if (epNl) epNl.textContent = `Ep ${currentEpIdx+1} of ${currentEpList.length}`;
-      const epPrev = $('ep-prev'); if (epPrev) epPrev.disabled = currentEpIdx <= 0;
-      const epNext = $('ep-next'); if (epNext) epNext.disabled = currentEpIdx >= currentEpList.length-1;
-    } else {
-      epNav.style.display = 'none';
-    }
-  }
-  const mr = $('more-row'); if (mr) { mr.innerHTML = ''; buildMoreRow(mr, m); }
-  // Check for resume position
-  kpLastSaved = -1;
-  const resumePos = (() => {
-    try {
-      const pos = JSON.parse(localStorage.getItem('km_resume')||'{}');
-      const entry = pos[m.id];
-      // Only resume if within last 30 days and not at end
-      if (entry && Date.now() - entry.ts < 30*24*60*60*1000 && entry.t > 10 && entry.t < entry.d - 30) {
-        return entry.t;
-      }
-    } catch(e) {}
-    return 0;
-  })();
-  window._kpResumeAt = resumePos;
-
-  // Always show back button immediately (even before video loads)
-  const wrap = $('kp-wrap');
-  if (wrap) {
-    const oldBack = wrap.querySelector('[data-permback]');
-    if (oldBack) oldBack.remove();
-    const permBack = document.createElement('button');
-    permBack.setAttribute('data-permback','1');
-    permBack.style.cssText = 'position:absolute;top:12px;left:12px;z-index:200;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.65);border:1.5px solid rgba(255,255,255,0.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-    permBack.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';
-    permBack.onclick = function(e){ e.stopPropagation(); closePlayer(); };
-    wrap.appendChild(permBack);
-  }
-
-  // Start loading video IMMEDIATELY
-  kpLoad(m.playLink || m.dlLink || '');
+  const epNav=$('ep-nav');
+  if(epNav){if(currentEpList.length>1){epNav.style.display='flex';const epNl=$('ep-nl');if(epNl)epNl.textContent=`Ep ${currentEpIdx+1} of ${currentEpList.length}`;const epPrev=$('ep-prev');if(epPrev)epPrev.disabled=currentEpIdx<=0;const epNext=$('ep-next');if(epNext)epNext.disabled=currentEpIdx>=currentEpList.length-1;}else{epNav.style.display='none';}}
+  const mr=$('more-row'); if(mr){mr.innerHTML='';buildMoreRow(mr,m);}
+  kpLastSaved=-1;
+  const resumePos=(()=>{try{const pos=JSON.parse(localStorage.getItem('km_resume')||'{}');const entry=pos[m.id];if(entry&&Date.now()-entry.ts<30*24*60*60*1000&&entry.t>10&&entry.t<entry.d-30)return entry.t;}catch(e){}return 0;})();
+  window._kpResumeAt=resumePos;
+  const wrap=$('kp-wrap');
+  if(wrap){const oldBack=wrap.querySelector('[data-permback]');if(oldBack)oldBack.remove();const permBack=document.createElement('button');permBack.setAttribute('data-permback','1');permBack.style.cssText='position:absolute;top:12px;left:12px;z-index:200;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.65);border:1.5px solid rgba(255,255,255,0.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';permBack.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';permBack.onclick=function(e){e.stopPropagation();closePlayer();};wrap.appendChild(permBack);}
+  kpLoad(m.playLink||m.dlLink||'');
 }
-function closePlayer() {
+function closePlayer(){
   kpStop();
-  const wrap = $('kp-wrap');
-  if (wrap) {
-    wrap.style.aspectRatio=''; wrap.style.flex=''; wrap.style.minHeight='';
-    const permBack = wrap.querySelector('[data-permback]');
-    if (permBack) permBack.remove();
-  }
-  const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = '';
-  const ov = $('player-ov'); if (ov) ov.style.display = 'none';
-  document.body.style.overflow = '';
+  const wrap=$('kp-wrap');
+  if(wrap){wrap.style.aspectRatio='';wrap.style.flex='';wrap.style.minHeight='';const permBack=wrap.querySelector('[data-permback]');if(permBack)permBack.remove();}
+  const ctrl=$('kp-ctrl'); if(ctrl) ctrl.style.display='';
+  const ov=$('player-ov'); if(ov) ov.style.display='none';
+  document.body.style.overflow='';
 }
 
-/* ═══════════════════════════════════════════
-   KENMOVIES — ARCHIVE.ORG FAST PLAYER
-   Strategy:
-   1. Parse archive URL → get item ID
-   2. Fetch metadata API to find best mp4 file
-   3. Load direct mp4 URL (fastest method)
-   4. Fallback to embed if direct fails
-   5. Cache mp4 URLs in localStorage
-   ═══════════════════════════════════════════ */
-
-const ARCHIVE_CACHE_KEY = 'km_archive_cache';
-const ARCHIVE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-/* Get cached direct mp4 URL */
-function getArchiveCache(itemId) {
-  try {
-    const cache = JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY) || '{}');
-    const entry = cache[itemId];
-    if (entry && Date.now() - entry.ts < ARCHIVE_CACHE_TTL) {
-      return entry.url;
-    }
-  } catch(e) {}
-  return null;
+const ARCHIVE_CACHE_KEY='km_archive_cache';
+const ARCHIVE_CACHE_TTL=7*24*60*60*1000;
+function getArchiveCache(itemId){try{const cache=JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY)||'{}');const entry=cache[itemId];if(entry&&Date.now()-entry.ts<ARCHIVE_CACHE_TTL)return entry.url;}catch(e){}return null;}
+function setArchiveCache(itemId,url){try{const cache=JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY)||'{}');cache[itemId]={url,ts:Date.now()};const keys=Object.keys(cache);if(keys.length>50)delete cache[keys[0]];localStorage.setItem(ARCHIVE_CACHE_KEY,JSON.stringify(cache));}catch(e){}}
+function parseArchiveUrl(url){try{const u=new URL(url);if(/^ia\d+\./i.test(u.hostname)){const m=u.pathname.match(/\/items\/([^\/]+)\/(.+)/);if(m)return{itemId:m[1],fileName:decodeURIComponent(m[2])};}const m=u.pathname.match(/\/(details|download|embed)\/([^\/\?#]+)\/?([^?#]*)?/);if(m)return{itemId:m[2],fileName:decodeURIComponent(m[3]||'')};}catch(e){const m=url.match(/(?:details|download|embed)\/([^\/\?#&]+)\/?([^?#&]*)?/);if(m)return{itemId:m[1],fileName:decodeURIComponent(m[2]||'')};}return null;}
+async function fetchArchiveFiles(itemId){
+  const cached=getArchiveCache(itemId); if(cached) return cached;
+  try{
+    const res=await fetch(`https://archive.org/metadata/${itemId}/files`,{signal:AbortSignal.timeout(5000)});
+    if(!res.ok) throw new Error('metadata failed');
+    const data=await res.json(); const files=data.result||[];
+    const videoFiles=files.filter(f=>/\.(mp4|ogv|webm)$/i.test(f.name)&&!/(thumbnail|thumb|_256|small)/i.test(f.name));
+    if(!videoFiles.length) return null;
+    const scored=videoFiles.map(f=>{let score=0;if(/\.mp4$/i.test(f.name))score+=10;if(/512|h\.264|h264/i.test(f.name))score+=5;if(/720|1080/i.test(f.name))score+=3;if(/480/i.test(f.name))score+=2;return{...f,score};}).sort((a,b)=>b.score-a.score);
+    const directUrl=`https://archive.org/download/${itemId}/${encodeURIComponent(scored[0].name)}`;
+    setArchiveCache(itemId,directUrl); return directUrl;
+  }catch(e){return null;}
 }
-
-/* Save direct mp4 URL to cache */
-function setArchiveCache(itemId, url) {
-  try {
-    const cache = JSON.parse(localStorage.getItem(ARCHIVE_CACHE_KEY) || '{}');
-    cache[itemId] = { url, ts: Date.now() };
-    // Keep cache small - max 50 items
-    const keys = Object.keys(cache);
-    if (keys.length > 50) {
-      delete cache[keys[0]];
-    }
-    localStorage.setItem(ARCHIVE_CACHE_KEY, JSON.stringify(cache));
-  } catch(e) {}
-}
-
-/* Parse archive.org URL → item ID + optional filename */
-function parseArchiveUrl(url) {
-  try {
-    const u = new URL(url);
-    // Handle ia*.us.archive.org direct links
-    if (/^ia\d+\./i.test(u.hostname)) {
-      const m = u.pathname.match(/\/items\/([^\/]+)\/(.+)/);
-      if (m) return { itemId: m[1], fileName: decodeURIComponent(m[2]) };
-    }
-    // Handle archive.org/details/ archive.org/download/ archive.org/embed/
-    const m = u.pathname.match(/\/(details|download|embed)\/([^\/\?#]+)\/?([^?#]*)?/);
-    if (m) return { itemId: m[2], fileName: decodeURIComponent(m[3] || '') };
-  } catch(e) {
-    // Try regex fallback
-    const m = url.match(/(?:details|download|embed)\/([^\/\?#&]+)\/?([^?#&]*)?/);
-    if (m) return { itemId: m[1], fileName: decodeURIComponent(m[2] || '') };
-  }
-  return null;
-}
-
-/* Fetch archive.org metadata to find best video file */
-async function fetchArchiveFiles(itemId) {
-  const cached = getArchiveCache(itemId);
-  if (cached) return cached;
-
-  try {
-    const res = await fetch(
-      `https://archive.org/metadata/${itemId}/files`,
-      { signal: AbortSignal.timeout(5000) }  // faster timeout
-    );
-    if (!res.ok) throw new Error('metadata failed');
-    const data = await res.json();
-    const files = data.result || [];
-
-    // Priority: mp4 > ogv > webm, prefer 512kb or h.264
-    const videoFiles = files.filter(f =>
-      /\.(mp4|ogv|webm)$/i.test(f.name) &&
-      !/(thumbnail|thumb|_256|small)/i.test(f.name)
-    );
-
-    if (!videoFiles.length) return null;
-
-    // Score files: prefer mp4, prefer 512kb size
-    const scored = videoFiles.map(f => {
-      let score = 0;
-      if (/\.mp4$/i.test(f.name)) score += 10;
-      if (/512|h\.264|h264/i.test(f.name)) score += 5;
-      if (/720|1080/i.test(f.name)) score += 3;
-      if (/480/i.test(f.name)) score += 2;
-      return { ...f, score };
-    }).sort((a, b) => b.score - a.score);
-
-    const best = scored[0];
-    // Use the fastest archive.org CDN server
-    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(best.name)}`;
-    setArchiveCache(itemId, directUrl);
-    return directUrl;
-  } catch(e) {
-    return null;
-  }
-}
-
-/* ── MAIN FAST ARCHIVE LOADER ── */
-async function kpLoadArchiveFast(url) {
-  const parsed = parseArchiveUrl(url);
-  if (!parsed) { showKpState('error'); return; }
-  const { itemId, fileName } = parsed;
-
-  // If URL already has a direct mp4 filename, load it directly
-  if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
-    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`;
-    kpLoadVideoFast(directUrl, itemId);
-    return;
-  }
-
-  // Check cache first (instant)
-  const cachedUrl = getArchiveCache(itemId);
-  if (cachedUrl) {
-    kpLoadVideoFast(cachedUrl, itemId);
-    return;
-  }
-
-  // Show loading, fetch metadata in background, then play
+async function kpLoadArchiveFast(url){
+  const parsed=parseArchiveUrl(url); if(!parsed){showKpState('error');return;}
+  const{itemId,fileName}=parsed;
+  if(fileName&&/\.(mp4|webm|ogv)$/i.test(fileName)){kpLoadVideoFast(`https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`,itemId);return;}
+  const cachedUrl=getArchiveCache(itemId); if(cachedUrl){kpLoadVideoFast(cachedUrl,itemId);return;}
   showKpState('loading');
-
-  // Race: try embed immediately while fetching metadata
-  // If metadata resolves in < 3s, use direct mp4 (faster)
-  // Otherwise fall back to embed
-  try {
-    const directUrl = await fetchArchiveFiles(itemId);
-    if (directUrl) {
-      kpLoadVideoFast(directUrl, itemId);
-    } else {
-      // No direct URL found — show error, never open archive site
-      showKpState('error');
-    }
-  } catch(e) {
-    showKpState('error');
-  }
+  try{const directUrl=await fetchArchiveFiles(itemId);if(directUrl)kpLoadVideoFast(directUrl,itemId);else showKpState('error');}catch(e){showKpState('error');}
 }
-
-/* ── FAST VIDEO LOADER ── */
-function kpLoadVideoFast(url, itemId) {
-  const container = document.getElementById('player-video');
-  if (!container) return;
-  container.innerHTML = '';
-  container.style.cssText = 'width:100%;height:100%;position:relative;background:#000;';
-
-  const vid = document.createElement('video');
-  vid.controls = false;
-  vid.playsInline = true;
-  vid.setAttribute('playsinline', '');
-  vid.setAttribute('webkit-playsinline', '');
-  vid.preload = 'auto';
-  vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
-
-  // Note: Do NOT set crossOrigin - archive.org doesn't support it and blocks playback
-
-  const src = document.createElement('source');
-  src.src = url;
-  src.type = /\.webm$/i.test(url) ? 'video/webm' : /\.ogv$/i.test(url) ? 'video/ogg' : 'video/mp4';
-  vid.appendChild(src);
-  container.appendChild(vid);
-
-  kpVideo = vid;
-  kpIsVideo = true;
-
-  let hasStarted = false;
-  let fallbackTimer = null;
-
-  const onCanPlay = () => {
-    showKpState('');
-    if (!hasStarted) {
-      hasStarted = true;
-      clearTimeout(fallbackTimer);
-      // Apply resume position
-      if (window._kpResumeAt > 0 && vid.duration > window._kpResumeAt) {
-        vid.currentTime = window._kpResumeAt;
-        showResumeToast(window._kpResumeAt);
-        window._kpResumeAt = 0;
-      }
-      vid.play().catch(() => {});
-    }
-  };
-
-  vid.addEventListener('loadedmetadata', () => {
-    showKpState('');
-    // Update duration immediately
-    const time = document.getElementById('kp-time');
-    if (time) time.textContent = '0:00 / ' + fmt(vid.duration);
-  });
-
-  vid.addEventListener('canplay', onCanPlay, { once: true });
-  vid.addEventListener('canplaythrough', onCanPlay, { once: true });
-
-  vid.addEventListener('playing', () => {
-    showKpState('');
-    kpSetPlayIcon(true);
-    hasStarted = true;
-    clearTimeout(fallbackTimer);
-    setTimeout(preloadNext, 4000);
-  });
-
-  vid.addEventListener('pause', () => kpSetPlayIcon(false));
-  vid.addEventListener('waiting', () => {
-    if (hasStarted) showKpState('loading');
-  });
-  vid.addEventListener('timeupdate', kpTimeUpdate);
-  vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => {
-    kpSetPlayIcon(false);
-    if (currentEpIdx >= 0 && currentEpList.length > 1) playAdjacentEp(1);
-  });
-
-  vid.addEventListener('error', () => {
-    if (hasStarted) return;
-    clearTimeout(fallbackTimer);
-    // Never open archive site — show error instead
-    showKpState('error');
-  });
-
+function kpLoadVideoFast(url,itemId){
+  const container=document.getElementById('player-video'); if(!container) return;
+  container.innerHTML=''; container.style.cssText='width:100%;height:100%;position:relative;background:#000;';
+  const vid=document.createElement('video');
+  vid.controls=false;vid.playsInline=true;vid.setAttribute('playsinline','');vid.setAttribute('webkit-playsinline','');vid.preload='auto';
+  vid.style.cssText='width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
+  const src=document.createElement('source');src.src=url;src.type=/\.webm$/i.test(url)?'video/webm':/\.ogv$/i.test(url)?'video/ogg':'video/mp4';
+  vid.appendChild(src);container.appendChild(vid);kpVideo=vid;kpIsVideo=true;
+  let hasStarted=false,fallbackTimer=null;
+  const onCanPlay=()=>{showKpState('');if(!hasStarted){hasStarted=true;clearTimeout(fallbackTimer);if(window._kpResumeAt>0&&vid.duration>window._kpResumeAt){vid.currentTime=window._kpResumeAt;showResumeToast(window._kpResumeAt);window._kpResumeAt=0;}vid.play().catch(()=>{});}};
+  vid.addEventListener('loadedmetadata',()=>{showKpState('');const time=document.getElementById('kp-time');if(time)time.textContent='0:00 / '+fmt(vid.duration);});
+  vid.addEventListener('canplay',onCanPlay,{once:true});vid.addEventListener('canplaythrough',onCanPlay,{once:true});
+  vid.addEventListener('playing',()=>{showKpState('');kpSetPlayIcon(true);hasStarted=true;clearTimeout(fallbackTimer);setTimeout(preloadNext,4000);});
+  vid.addEventListener('pause',()=>kpSetPlayIcon(false));
+  vid.addEventListener('waiting',()=>{if(hasStarted)showKpState('loading');});
+  vid.addEventListener('timeupdate',kpTimeUpdate);vid.addEventListener('progress',kpBufferUpdate);
+  vid.addEventListener('ended',()=>{kpSetPlayIcon(false);if(currentEpIdx>=0&&currentEpList.length>1)playAdjacentEp(1);});
+  vid.addEventListener('error',()=>{if(hasStarted)return;clearTimeout(fallbackTimer);showKpState('error');});
   vid.load();
-
-  // If nothing happens in 8 seconds, show error (never open archive site)
-  fallbackTimer = setTimeout(() => {
-    if (!hasStarted) {
-      showKpState('error');
-    }
-  }, 8000);
-
-  // Try playing immediately
-  vid.play().catch(() => {
-    // Autoplay blocked - show play button, user will tap
-    showKpState('');
-    kpSetPlayIcon(false);
-  });
+  fallbackTimer=setTimeout(()=>{if(!hasStarted)showKpState('error');},8000);
+  vid.play().catch(()=>{showKpState('');kpSetPlayIcon(false);});
 }
-
-/* ── PRELOAD NEXT EPISODE ── */
-function preloadNext() {
-  if (currentEpIdx < 0 || currentEpIdx >= currentEpList.length - 1) return;
-  const next = currentEpList[currentEpIdx + 1];
-  if (!next || !next.playLink) return;
-  const url = next.playLink;
-  if (!/archive\.org/i.test(url)) return;
-  const parsed = parseArchiveUrl(url);
-  if (!parsed) return;
-  const { itemId, fileName } = parsed;
-  if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
-    const directUrl = `https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`;
-    setArchiveCache(itemId, directUrl);
-    // Preload with link tag
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'video';
-    link.href = directUrl;
-    document.head.appendChild(link);
-    setTimeout(() => link.remove(), 30000);
+function preloadNext(){
+  if(currentEpIdx<0||currentEpIdx>=currentEpList.length-1) return;
+  const next=currentEpList[currentEpIdx+1]; if(!next||!next.playLink) return;
+  if(!/archive\.org/i.test(next.playLink)) return;
+  const parsed=parseArchiveUrl(next.playLink); if(!parsed) return;
+  const{itemId,fileName}=parsed;
+  if(fileName&&/\.(mp4|webm|ogv)$/i.test(fileName)){
+    const directUrl=`https://archive.org/download/${itemId}/${encodeURIComponent(fileName)}`;
+    setArchiveCache(itemId,directUrl);
+    const link=document.createElement('link');link.rel='preload';link.as='video';link.href=directUrl;document.head.appendChild(link);setTimeout(()=>link.remove(),30000);
     return;
   }
-  // Prefetch metadata for next episode
-  fetchArchiveFiles(itemId).catch(() => {});
+  fetchArchiveFiles(itemId).catch(()=>{});
 }
 
-
-/* ── PLAYER CORE — OPTIMIZED FOR SPEED ── */
-function kpLoad(url) {
-  kpCurrentUrl = url;
-  const container = $('player-video');
-  if (!container) return;
-  container.innerHTML = '';
-  container.style.cssText = 'width:100%;height:100%;position:relative;';
-  const wrap = $('kp-wrap');
-  if (wrap) { const ob = wrap.querySelector('[data-extra]'); if (ob) ob.remove(); }
-  const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = '';
-  kpVideo = null; kpIframe = null; kpIsVideo = false;
-
-  if (!url || !url.trim()) { showKpState('error'); return; }
+function kpLoad(url){
+  kpCurrentUrl=url;
+  const container=$('player-video'); if(!container) return;
+  container.innerHTML='';container.style.cssText='width:100%;height:100%;position:relative;';
+  const wrap=$('kp-wrap'); if(wrap){const ob=wrap.querySelector('[data-extra]');if(ob)ob.remove();}
+  const ctrl=$('kp-ctrl'); if(ctrl) ctrl.style.display='';
+  kpVideo=null;kpIframe=null;kpIsVideo=false;
+  if(!url||!url.trim()){showKpState('error');return;}
   showKpState('loading');
-
-  const isYT       = /youtu\.?be|youtube\.com/i.test(url);
-  const isArchive  = /archive\.org/i.test(url);
-  const isDirect   = !isArchive && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
-
-  if (isYT)           kpLoadIframe(ytEmbedUrl(url));
-  else if (isArchive) kpLoadArchiveFast(url);  // Always use fast archive loader
-  else if (isDirect)  kpLoadVideo(url);
-  else                kpLoadIframe(url);
+  const isYT=/youtu\.?be|youtube\.com/i.test(url);
+  const isArchive=/archive\.org/i.test(url);
+  const isDirect=!isArchive&&/\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+  if(isYT) kpLoadIframe(ytEmbedUrl(url));
+  else if(isArchive) kpLoadArchiveFast(url);
+  else if(isDirect) kpLoadVideo(url);
+  else kpLoadIframe(url);
+}
+function kpLoadVideoWithFallback(directUrl,itemId){
+  const container=$('player-video');
+  const vid=document.createElement('video');
+  vid.controls=false;vid.playsInline=true;vid.setAttribute('playsinline','');vid.setAttribute('webkit-playsinline','');vid.preload='auto';
+  vid.style.cssText='width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
+  const src=document.createElement('source');src.src=directUrl;src.type=/\.webm$/i.test(directUrl)?'video/webm':'video/mp4';
+  vid.appendChild(src);container.appendChild(vid);kpVideo=vid;kpIsVideo=true;
+  let errFired=false;
+  vid.addEventListener('loadedmetadata',()=>showKpState(''));
+  vid.addEventListener('canplay',()=>{showKpState('');kpPlay();});
+  vid.addEventListener('playing',()=>{showKpState('');kpSetPlayIcon(true);});
+  vid.addEventListener('pause',()=>kpSetPlayIcon(false));
+  vid.addEventListener('waiting',()=>showKpState('loading'));
+  vid.addEventListener('timeupdate',kpTimeUpdate);vid.addEventListener('progress',kpBufferUpdate);
+  vid.addEventListener('ended',()=>{kpSetPlayIcon(false);if(currentEpIdx>=0&&currentEpList.length>1)playAdjacentEp(1);});
+  vid.addEventListener('error',()=>{if(errFired)return;errFired=true;showKpState('error');});
+  vid.load();vid.play().catch(()=>{});
+}
+function ytEmbedUrl(url){let id='';try{const u=new URL(url);id=u.searchParams.get('v')||u.pathname.split('/').pop();}catch{id=url.split('/').pop().split('?')[0];}return`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;}
+function kpLoadVideo(url){
+  const container=$('player-video');
+  const vid=document.createElement('video');
+  vid.controls=false;vid.playsInline=true;vid.setAttribute('playsinline','');vid.setAttribute('webkit-playsinline','');vid.preload='auto';
+  vid.style.cssText='width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
+  const src=document.createElement('source');src.src=url;src.type=/\.webm/i.test(url)?'video/webm':/\.m3u8/i.test(url)?'application/x-mpegURL':'video/mp4';
+  vid.appendChild(src);container.appendChild(vid);kpVideo=vid;kpIsVideo=true;
+  vid.addEventListener('loadedmetadata',()=>showKpState(''));
+  vid.addEventListener('canplay',()=>{showKpState('');kpPlay();});
+  vid.addEventListener('playing',()=>{showKpState('');kpSetPlayIcon(true);});
+  vid.addEventListener('pause',()=>kpSetPlayIcon(false));
+  vid.addEventListener('waiting',()=>showKpState('loading'));
+  vid.addEventListener('timeupdate',kpTimeUpdate);vid.addEventListener('progress',kpBufferUpdate);
+  vid.addEventListener('ended',()=>{kpSetPlayIcon(false);if(currentEpIdx>=0&&currentEpList.length>1)playAdjacentEp(1);});
+  vid.addEventListener('error',()=>showKpState('error'));
+  vid.load();vid.play().catch(()=>{});
+}
+function kpLoadIframe(url){
+  const container=$('player-video');
+  container.style.cssText='position:relative;width:100%;height:100%;min-height:200px;background:#000;';
+  const fr=document.createElement('iframe');fr.src=url;fr.allowFullscreen=true;
+  fr.setAttribute('allowfullscreen','');fr.setAttribute('allow','autoplay; fullscreen; picture-in-picture; encrypted-media');fr.setAttribute('referrerpolicy','no-referrer-when-downgrade');
+  fr.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000;display:block;';
+  container.appendChild(fr);kpIframe=fr;kpIsVideo=false;
+  const ctrl=$('kp-ctrl'); if(ctrl) ctrl.style.display='none';
+  const wrap=$('kp-wrap'); if(wrap){wrap.style.aspectRatio='unset';wrap.style.flex='1';wrap.style.minHeight='56vw';}
+  const oldExtra=wrap&&wrap.querySelector('[data-extra]'); if(oldExtra) oldExtra.remove();
+  if(wrap){const backBtn=document.createElement('button');backBtn.setAttribute('data-extra','1');backBtn.style.cssText='position:absolute;top:12px;left:12px;z-index:100;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';backBtn.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';backBtn.onclick=closePlayer;wrap.appendChild(backBtn);}
+  fr.onload=()=>showKpState('');setTimeout(()=>showKpState(''),2000);
 }
 
-function kpLoadArchive(url) {
-  let itemId = '', fileName = '';
-  try {
-    const u = new URL(url);
-    const m = u.pathname.match(/\/(details|embed|download)\/([^\/\?#]+)\/?([^?#]*)?/);
-    if (m) { itemId = m[2]; fileName = (m[3]||'').replace(/\/$/,''); }
-  } catch {
-    const m = url.match(/(?:details|embed|download)\/([^\/\?#&]+)\/?([^?#&]*)?/);
-    if (m) { itemId = m[1]; fileName = m[2]||''; }
-  }
-  if (!itemId) { kpLoadIframe(url); return; }
-  if (fileName && /\.(mp4|webm|ogv)$/i.test(fileName)) {
-    kpLoadVideoWithFallback(`https://archive.org/download/${itemId}/${fileName}`, itemId);
-    return;
-  }
-  // Fetch metadata to get direct mp4
-  showKpState('loading');
-  fetchArchiveFiles(itemId).then(url => {
-    if (url) kpLoadVideoFast(url, itemId);
-    else showKpState('error');
-  }).catch(() => showKpState('error'));
-}
-
-function kpLoadVideoWithFallback(directUrl, itemId) {
-  const container = $('player-video');
-  const vid = document.createElement('video');
-  vid.controls = false; vid.playsInline = true;
-  vid.setAttribute('playsinline',''); vid.setAttribute('webkit-playsinline','');
-  vid.preload = 'auto'; // 'auto' is faster than 'metadata'
-  vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
-  const src = document.createElement('source');
-  src.src = directUrl;
-  src.type = /\.webm$/i.test(directUrl) ? 'video/webm' : 'video/mp4';
-  vid.appendChild(src); container.appendChild(vid);
-  kpVideo = vid; kpIsVideo = true;
-  let errFired = false;
-  vid.addEventListener('loadedmetadata', () => showKpState(''));
-  vid.addEventListener('canplay', () => { showKpState(''); kpPlay(); });
-  vid.addEventListener('playing', () => { showKpState(''); kpSetPlayIcon(true); });
-  vid.addEventListener('pause', () => kpSetPlayIcon(false));
-  vid.addEventListener('waiting', () => showKpState('loading'));
-  vid.addEventListener('timeupdate', kpTimeUpdate);
-  vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => { kpSetPlayIcon(false); if (currentEpIdx>=0 && currentEpList.length>1) playAdjacentEp(1); });
-  vid.addEventListener('error', () => {
-    if (errFired) return; errFired = true;
-    showKpState('error');
-  });
-  vid.load();
-  // Auto-play faster: try immediately
-  vid.play().catch(() => {});
-}
-
-function ytEmbedUrl(url) {
-  let id = '';
-  try { const u = new URL(url); id = u.searchParams.get('v') || u.pathname.split('/').pop(); }
-  catch { id = url.split('/').pop().split('?')[0]; }
-  return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
-}
-
-function kpLoadVideo(url) {
-  const container = $('player-video');
-  const vid = document.createElement('video');
-  vid.controls = false; vid.playsInline = true;
-  vid.setAttribute('playsinline',''); vid.setAttribute('webkit-playsinline','');
-  vid.preload = 'auto';
-  vid.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;position:absolute;top:0;left:0;';
-  const src = document.createElement('source');
-  src.src = url;
-  src.type = /\.webm/i.test(url)?'video/webm':/\.m3u8/i.test(url)?'application/x-mpegURL':'video/mp4';
-  vid.appendChild(src); container.appendChild(vid);
-  kpVideo = vid; kpIsVideo = true;
-  vid.addEventListener('loadedmetadata', () => showKpState(''));
-  vid.addEventListener('canplay', () => { showKpState(''); kpPlay(); });
-  vid.addEventListener('playing', () => { showKpState(''); kpSetPlayIcon(true); });
-  vid.addEventListener('pause', () => kpSetPlayIcon(false));
-  vid.addEventListener('waiting', () => showKpState('loading'));
-  vid.addEventListener('timeupdate', kpTimeUpdate);
-  vid.addEventListener('progress', kpBufferUpdate);
-  vid.addEventListener('ended', () => { kpSetPlayIcon(false); if (currentEpIdx>=0&&currentEpList.length>1) playAdjacentEp(1); });
-  vid.addEventListener('error', () => showKpState('error'));
-  vid.load();
-  vid.play().catch(() => {});
-}
-
-function kpLoadIframe(url) {
-  const container = $('player-video');
-  container.style.cssText = 'position:relative;width:100%;height:100%;min-height:200px;background:#000;';
-  const fr = document.createElement('iframe');
-  fr.src = url; fr.allowFullscreen = true;
-  fr.setAttribute('allowfullscreen','');
-  fr.setAttribute('allow','autoplay; fullscreen; picture-in-picture; encrypted-media');
-  // Allow same-origin for faster loading
-  fr.setAttribute('referrerpolicy','no-referrer-when-downgrade');
-  fr.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;background:#000;display:block;';
-  container.appendChild(fr);
-  kpIframe = fr; kpIsVideo = false;
-  const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display = 'none';
-  const wrap = $('kp-wrap');
-  if (wrap) { wrap.style.aspectRatio='unset'; wrap.style.flex='1'; wrap.style.minHeight='56vw'; }
-  // Back button overlay
-  const oldExtra = wrap&&wrap.querySelector('[data-extra]');
-  if (oldExtra) oldExtra.remove();
-  if (wrap) {
-    const backBtn = document.createElement('button');
-    backBtn.setAttribute('data-extra','1');
-    backBtn.style.cssText = 'position:absolute;top:12px;left:12px;z-index:100;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,0.7);border:2px solid rgba(255,255,255,0.3);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-    backBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>';
-    backBtn.onclick = closePlayer;
-    wrap.appendChild(backBtn);
-  }
-  fr.onload = () => showKpState('');
-  setTimeout(() => showKpState(''), 2000);
-}
-
-function kpPlay() { if (!kpVideo) return; kpVideo.play().then(() => { kpPlaying=true; kpSetPlayIcon(true); }).catch(() => {}); }
-function kpPause() { if (!kpVideo) return; kpVideo.pause(); kpPlaying=false; kpSetPlayIcon(false); }
-function kpTogglePlay() { if (!kpVideo) return; if (kpVideo.paused) kpPlay(); else kpPause(); }
-function kpStop() {
-  if (kpVideo) { try { kpVideo.pause(); kpVideo.src=''; } catch{} kpVideo=null; }
-  kpIframe=null; kpIsVideo=false; kpPlaying=false;
-  const pv = $('player-video'); if (pv) pv.innerHTML='';
-  const ctrl = $('kp-ctrl'); if (ctrl) ctrl.style.display='';
+function kpPlay(){if(!kpVideo)return;kpVideo.play().then(()=>{kpPlaying=true;kpSetPlayIcon(true);}).catch(()=>{});}
+function kpPause(){if(!kpVideo)return;kpVideo.pause();kpPlaying=false;kpSetPlayIcon(false);}
+function kpTogglePlay(){if(!kpVideo)return;if(kpVideo.paused)kpPlay();else kpPause();}
+function kpStop(){
+  if(kpVideo){try{kpVideo.pause();kpVideo.src='';}catch{}kpVideo=null;}
+  kpIframe=null;kpIsVideo=false;kpPlaying=false;
+  const pv=$('player-video'); if(pv) pv.innerHTML='';
+  const ctrl=$('kp-ctrl'); if(ctrl) ctrl.style.display='';
   resetProgress();
-  // Remove iframe back button if present
-  const wrap = $('kp-wrap');
-  if (wrap) {
-    const extra = wrap.querySelector('[data-extra]');
-    if (extra) extra.remove();
-  }
+  const wrap=$('kp-wrap'); if(wrap){const extra=wrap.querySelector('[data-extra]');if(extra)extra.remove();}
 }
-function kpRetry() { if (kpCurrentUrl) kpLoad(kpCurrentUrl); }
-function kpSetPlayIcon(playing) {
-  kpPlaying = playing;
-  const ico = $('kp-pico'); if (!ico) return;
-  ico.innerHTML = playing
-    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
-    : '<polygon points="5,3 19,12 5,21"/>';
+function kpRetry(){if(kpCurrentUrl)kpLoad(kpCurrentUrl);}
+function kpSetPlayIcon(playing){
+  kpPlaying=playing; const ico=$('kp-pico'); if(!ico) return;
+  ico.innerHTML=playing?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<polygon points="5,3 19,12 5,21"/>';
 }
-function showKpState(state) {
-  const kl = $('kp-load'); if (kl) kl.style.display = state==='loading'?'flex':'none';
-  const ke = $('kp-err');  if (ke) ke.style.display  = state==='error'?'flex':'none';
+function showKpState(state){
+  const kl=$('kp-load'); if(kl) kl.style.display=state==='loading'?'flex':'none';
+  const ke=$('kp-err'); if(ke) ke.style.display=state==='error'?'flex':'none';
 }
 
-/* PROGRESS */
-function kpTimeUpdate() {
-  if (!kpVideo || kpDragging) return;
-  const dur=kpVideo.duration||0, cur=kpVideo.currentTime||0;
-  const pct = dur ? (cur/dur*100) : 0;
+let kpLastSaved=-1;
+function kpTimeUpdate(){
+  if(!kpVideo||kpDragging) return;
+  const dur=kpVideo.duration||0,cur=kpVideo.currentTime||0;
+  const pct=dur?(cur/dur*100):0;
   const fill=$('kp-fill'); if(fill) fill.style.width=pct+'%';
   const thumb=$('kp-thumb'); if(thumb) thumb.style.left=pct+'%';
   const time=$('kp-time'); if(time) time.textContent=fmt(cur)+' / '+fmt(dur);
-  // Save resume position every 5 seconds
-  if (currentPlayItem && dur > 30 && cur > 5) {
-    const saveInterval = Math.floor(cur / 5);
-    if (saveInterval !== kpLastSaved) {
-      kpLastSaved = saveInterval;
-      try {
-        const pos = JSON.parse(localStorage.getItem('km_resume')||'{}');
-        pos[currentPlayItem.id] = { t: Math.floor(cur), d: Math.floor(dur), ts: Date.now() };
-        // Keep max 100 resume positions
-        const keys = Object.keys(pos);
-        if (keys.length > 100) delete pos[keys[0]];
-        localStorage.setItem('km_resume', JSON.stringify(pos));
-      } catch(e) {}
-    }
+  if(currentPlayItem&&dur>30&&cur>5){
+    const saveInterval=Math.floor(cur/5);
+    if(saveInterval!==kpLastSaved){kpLastSaved=saveInterval;try{const pos=JSON.parse(localStorage.getItem('km_resume')||'{}');pos[currentPlayItem.id]={t:Math.floor(cur),d:Math.floor(dur),ts:Date.now()};const keys=Object.keys(pos);if(keys.length>100)delete pos[keys[0]];localStorage.setItem('km_resume',JSON.stringify(pos));}catch(e){}}
   }
 }
-let kpLastSaved = -1;
-function kpBufferUpdate() {
-  if (!kpVideo) return;
-  try { const buf=kpVideo.buffered, dur=kpVideo.duration||1; if(buf.length) { const b=$('kp-buf'); if(b) b.style.width=(buf.end(buf.length-1)/dur*100)+'%'; } } catch {}
-}
-function resetProgress() {
+function kpBufferUpdate(){if(!kpVideo)return;try{const buf=kpVideo.buffered,dur=kpVideo.duration||1;if(buf.length){const b=$('kp-buf');if(b)b.style.width=(buf.end(buf.length-1)/dur*100)+'%';}}catch{}}
+function resetProgress(){
   const fill=$('kp-fill'); if(fill) fill.style.width='0%';
   const thumb=$('kp-thumb'); if(thumb) thumb.style.left='0%';
   const time=$('kp-time'); if(time) time.textContent='0:00 / 0:00';
 }
-function kpProgClick(e) {
-  if (!kpVideo) return;
-  const prog=$('kp-prog'); if(!prog) return;
+function kpProgClick(e){
+  if(!kpVideo) return; const prog=$('kp-prog'); if(!prog) return;
   const rect=prog.getBoundingClientRect();
   const pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
   kpVideo.currentTime=pct*(kpVideo.duration||0);
 }
-function initProgDrag() {
+function initProgDrag(){
   const prog=$('kp-prog'); if(!prog) return;
-  const seek=e=>{
-    if(!kpVideo)return;
-    const t=e.touches?e.touches[0]:e;
-    const rect=prog.getBoundingClientRect();
-    const pct=Math.max(0,Math.min(1,(t.clientX-rect.left)/rect.width));
-    kpVideo.currentTime=pct*(kpVideo.duration||0);
-    const fill=$('kp-fill');if(fill)fill.style.width=pct*100+'%';
-    const thumb=$('kp-thumb');if(thumb)thumb.style.left=pct*100+'%';
-  };
+  const seek=e=>{if(!kpVideo)return;const t=e.touches?e.touches[0]:e;const rect=prog.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(t.clientX-rect.left)/rect.width));kpVideo.currentTime=pct*(kpVideo.duration||0);const fill=$('kp-fill');if(fill)fill.style.width=pct*100+'%';const thumb=$('kp-thumb');if(thumb)thumb.style.left=pct*100+'%';};
   prog.addEventListener('mousedown',e=>{kpDragging=true;prog.classList.add('drag');seek(e);});
   prog.addEventListener('touchstart',e=>{kpDragging=true;prog.classList.add('drag');seek(e);},{passive:true});
   document.addEventListener('mousemove',e=>{if(kpDragging)seek(e);});
@@ -1192,128 +604,52 @@ function initProgDrag() {
   document.addEventListener('touchend',()=>{kpDragging=false;const p=$('kp-prog');if(p)p.classList.remove('drag');});
 }
 
-/* CONTROLS */
-function kpTap() {
-  const ctrl=$('kp-ctrl'); if(!ctrl)return;
-  if(ctrl.classList.contains('hide')){ctrl.classList.remove('hide');kpResetCtrlTimer();}
-  else ctrl.classList.add('hide');
-}
-function kpResetCtrlTimer() {
-  clearTimeout(kpCtrlTimer);
-  if(kpPlaying) kpCtrlTimer=setTimeout(()=>{const c=$('kp-ctrl');if(c)c.classList.add('hide');},3500);
-}
-function kpSeek(sec) {
-  if(!kpVideo)return;
-  kpVideo.currentTime=Math.max(0,Math.min(kpVideo.currentTime+sec,kpVideo.duration||0));
-  const fl=sec<0?$('kp-fl-l'):$('kp-fl-r');
-  if(fl){fl.style.opacity='1';setTimeout(()=>fl.style.opacity='0',600);}
-  kpResetCtrlTimer();
-}
+function kpTap(){const ctrl=$('kp-ctrl');if(!ctrl)return;if(ctrl.classList.contains('hide')){ctrl.classList.remove('hide');kpResetCtrlTimer();}else ctrl.classList.add('hide');}
+function kpResetCtrlTimer(){clearTimeout(kpCtrlTimer);if(kpPlaying)kpCtrlTimer=setTimeout(()=>{const c=$('kp-ctrl');if(c)c.classList.add('hide');},3500);}
+function kpSeek(sec){if(!kpVideo)return;kpVideo.currentTime=Math.max(0,Math.min(kpVideo.currentTime+sec,kpVideo.duration||0));const fl=sec<0?$('kp-fl-l'):$('kp-fl-r');if(fl){fl.style.opacity='1';setTimeout(()=>fl.style.opacity='0',600);}kpResetCtrlTimer();}
 function kpVol(v){if(kpVideo)kpVideo.volume=v;}
-function kpRotate(){
-  kpRotateDeg=(kpRotateDeg+90)%360;
-  const v=$('player-video');
-  if(v){v.style.transform=`rotate(${kpRotateDeg}deg)`;v.style.width=kpRotateDeg%180?'56vw':'100%';}
-}
-function kpZoom(){
-  kpZoomed=!kpZoomed;
-  const v=$('player-video');
-  if(v)v.style.transform=kpZoomed?`scale(1.4) rotate(${kpRotateDeg}deg)`:`rotate(${kpRotateDeg}deg)`;
-  const btn=$('kp-zoom-btn');if(btn)btn.classList.toggle('on',kpZoomed);
-}
-function kpFullscreen(){
-  const wrap=$('kp-wrap');
-  if(!wrap)return;
-  if(!document.fullscreenElement){(wrap.requestFullscreen||wrap.webkitRequestFullscreen||function(){}).call(wrap);}
-  else{(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);}
-}
-document.addEventListener('fullscreenchange',()=>{
-  const ico=$('kp-fs-ico');if(!ico)return;
-  ico.innerHTML=document.fullscreenElement?'<use href="#ic-fs-exit"/>':'<use href="#ic-fs"/>';
-});
-function kpCycleSpeed(){
-  kpSpeedIdx=(kpSpeedIdx+1)%KP_SPEEDS.length;
-  const s=KP_SPEEDS[kpSpeedIdx];
-  if(kpVideo)kpVideo.playbackRate=s;
-  const btn=$('kp-spd');if(btn)btn.textContent=s+'×';
-}
-function kpDownload(){
-  const url=kpCurrentDl||kpCurrentUrl;
-  if(!url){showToast('No download link',true);return;}
-  startDownloadByUrl(url,currentPlayItem?.title||'Video');
-}
+function kpRotate(){kpRotateDeg=(kpRotateDeg+90)%360;const v=$('player-video');if(v){v.style.transform=`rotate(${kpRotateDeg}deg)`;v.style.width=kpRotateDeg%180?'56vw':'100%';}}
+function kpZoom(){kpZoomed=!kpZoomed;const v=$('player-video');if(v)v.style.transform=kpZoomed?`scale(1.4) rotate(${kpRotateDeg}deg)`:`rotate(${kpRotateDeg}deg)`;const btn=$('kp-zoom-btn');if(btn)btn.classList.toggle('on',kpZoomed);}
+function kpFullscreen(){const wrap=$('kp-wrap');if(!wrap)return;if(!document.fullscreenElement)(wrap.requestFullscreen||wrap.webkitRequestFullscreen||function(){}).call(wrap);else(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);}
+document.addEventListener('fullscreenchange',()=>{const ico=$('kp-fs-ico');if(!ico)return;ico.innerHTML=document.fullscreenElement?'<use href="#ic-fs-exit"/>':'<use href="#ic-fs"/>';});
+function kpCycleSpeed(){kpSpeedIdx=(kpSpeedIdx+1)%KP_SPEEDS.length;const s=KP_SPEEDS[kpSpeedIdx];if(kpVideo)kpVideo.playbackRate=s;const btn=$('kp-spd');if(btn)btn.textContent=s+'×';}
+function kpDownload(){const url=kpCurrentDl||kpCurrentUrl;if(!url){showToast('No download link',true);return;}startDownloadByUrl(url,currentPlayItem?.title||'Video');}
 
-/* ── DOWNLOADS ── */
-function startDownload(m) {
-  if(!m.dlLink){showToast('No download link',true);return;}
-  startDownloadByUrl(m.dlLink,m.title||m.sname||'Video');
-  showSection('downloads');
-}
+function startDownload(m){if(!m.dlLink){showToast('No download link',true);return;}startDownloadByUrl(m.dlLink,m.title||m.sname||'Video');showSection('downloads');}
 function startDownloadByUrl(url,title){
-  const a=document.createElement('a');
-  a.href=url;a.download=title+'.mp4';a.target='_blank';
+  const a=document.createElement('a');a.href=url;a.download=title+'.mp4';a.target='_blank';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   showToast('Download started!');
   const dls=JSON.parse(localStorage.getItem('km_dls')||'[]');
-  if(!dls.find(d=>d.url===url)){
-    dls.unshift({id:Date.now(),url,title,thumb:currentPlayItem?.thumb||'',vj:currentPlayItem?.vj||'',savedAt:new Date().toISOString()});
-    if(dls.length>50)dls.pop();
-    localStorage.setItem('km_dls',JSON.stringify(dls));
-  }
+  if(!dls.find(d=>d.url===url)){dls.unshift({id:Date.now(),url,title,thumb:currentPlayItem?.thumb||'',vj:currentPlayItem?.vj||'',savedAt:new Date().toISOString()});if(dls.length>50)dls.pop();localStorage.setItem('km_dls',JSON.stringify(dls));}
   renderDownloads();
 }
 function renderDownloads(){
-  const body=$('dl-body');if(!body)return;
+  const body=$('dl-body'); if(!body) return;
   const dls=JSON.parse(localStorage.getItem('km_dls')||'[]');
   if(!dls.length){body.innerHTML='<div class="dl-empty">'+emptyState('No downloads yet','Play a movie and tap Download')+'</div>';return;}
   body.innerHTML='';
-  dls.forEach(dl=>{
-    const item=document.createElement('div');item.className='dl-item';
-    item.innerHTML=`<div class="dl-thumb"><img src="${dl.thumb||''}" alt="" onerror="this.style.display='none'"/></div><div class="dl-info"><div class="dl-title">${dl.title||'Video'}</div><div class="dl-vj">${dl.vj||''}</div><div class="dl-fn" style="font-size:9px;color:var(--txt3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${dl.url||''}</div></div><div class="dl-acts"><button class="dl-open" onclick="window.open('${dl.url}','_blank')">Open</button><button class="dl-remove" onclick="removeDownload(${dl.id})">Remove</button></div>`;
-    body.appendChild(item);
-  });
+  dls.forEach(dl=>{const item=document.createElement('div');item.className='dl-item';item.innerHTML=`<div class="dl-thumb"><img src="${dl.thumb||''}" alt="" onerror="this.style.display='none'"/></div><div class="dl-info"><div class="dl-title">${dl.title||'Video'}</div><div class="dl-vj">${dl.vj||''}</div><div class="dl-fn" style="font-size:9px;color:var(--txt3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${dl.url||''}</div></div><div class="dl-acts"><button class="dl-open" onclick="window.open('${dl.url}','_blank')">Open</button><button class="dl-remove" onclick="removeDownload(${dl.id})">Remove</button></div>`;body.appendChild(item);});
 }
-function removeDownload(id){
-  let dls=JSON.parse(localStorage.getItem('km_dls')||'[]');
-  dls=dls.filter(d=>d.id!==id);
-  localStorage.setItem('km_dls',JSON.stringify(dls));
-  renderDownloads();
-}
+function removeDownload(id){let dls=JSON.parse(localStorage.getItem('km_dls')||'[]');dls=dls.filter(d=>d.id!==id);localStorage.setItem('km_dls',JSON.stringify(dls));renderDownloads();}
 
-/* ── SEE ALL ── */
 function closeSeeAll(){const o=$('sa-ov');if(o)o.classList.remove('open');}
 
-/* ── ADMIN UPLOAD ── */
 function setCat(btn,cat){
   document.querySelectorAll('.cat-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  $('f-cat').value=cat;
-  const so=$('series-only-fields');
-  if(so)so.style.display=cat==='series'?'flex':'none';
-  const tl=$('title-label');
-  if(tl)tl.textContent=cat==='series'?'Episode Title':'Movie Title';
+  btn.classList.add('active'); $('f-cat').value=cat;
+  const so=$('series-only-fields'); if(so) so.style.display=cat==='series'?'flex':'none';
+  const tl=$('title-label'); if(tl) tl.textContent=cat==='series'?'Episode Title':'Movie Title';
 }
-function populateVjDropdown(){
-  const sel=$('f-vj');if(!sel)return;
-  sel.innerHTML='<option value="">Select VJ</option>'+ALL_VJS.map(vj=>`<option value="${vj}">${vj}</option>`).join('');
-}
-function previewThumb(url){
-  const prev=$('thumb-prev');
-  if(url&&url.startsWith('http')){prev.style.display='block';$('thumb-prev-img').src=url;}
-  else prev.style.display='none';
-}
-function previewDlLink(url){
-  const hint=$('dl-hint');if(!hint)return;
-  if(!url){hint.textContent='Paste direct .mp4 URL';hint.className='fhint';return;}
-  const ok=/\.(mp4|webm)(\?|$)/i.test(url)||/archive\.org/i.test(url);
-  hint.textContent=ok?'✓ Looks like a direct link!':'⚠ Should be a direct .mp4 or archive.org link';
-  hint.className='fhint '+(ok?'ok':'warn');
-}
+function populateVjDropdown(){const sel=$('f-vj');if(!sel)return;sel.innerHTML='<option value="">Select VJ</option>'+ALL_VJS.map(vj=>`<option value="${vj}">${vj}</option>`).join('');}
+function previewThumb(url){const prev=$('thumb-prev');if(url&&url.startsWith('http')){prev.style.display='block';$('thumb-prev-img').src=url;}else prev.style.display='none';}
+function previewDlLink(url){const hint=$('dl-hint');if(!hint)return;if(!url){hint.textContent='Paste direct .mp4 URL';hint.className='fhint';return;}const ok=/\.(mp4|webm)(\?|$)/i.test(url)||/archive\.org/i.test(url);hint.textContent=ok?'✓ Looks like a direct link!':'⚠ Should be a direct .mp4 or archive.org link';hint.className='fhint '+(ok?'ok':'warn');}
+
 function cancelEdit(){
-  editId=null;$('edit-id').value='';clearForm();
-  $('form-mode-lbl').textContent='Add Content';
-  $('submit-lbl').textContent='Add to Library';
-  $('cancel-edit-btn').style.display='none';
+  editId=null; $('edit-id').value=''; clearForm();
+  const fml=$('form-mode-lbl'); if(fml) fml.textContent='Add Content';
+  const sl=$('submit-lbl'); if(sl) sl.textContent='Add to Library';
+  const ceb=$('cancel-edit-btn'); if(ceb) ceb.style.display='none';
 }
 function clearForm(){
   ['f-title','f-desc','f-genre','f-year','f-thumb','f-play','f-dl','f-series-name'].forEach(id=>{const el=$(id);if(el)el.value='';});
@@ -1322,13 +658,8 @@ function clearForm(){
   const fe=$('f-epnum');if(fe)fe.value='1';
   const tp=$('thumb-prev');if(tp)tp.style.display='none';
 }
-function fixUrl(url){
-  if(!url)return'';url=url.trim();
-  if(/^https?:\/\//i.test(url))return url;
-  if(/^(download|details|embed)\//.test(url))return'https://archive.org/'+url;
-  if(/^archive\.org/i.test(url))return'https://'+url;
-  return url;
-}
+function fixUrl(url){if(!url)return'';url=url.trim();if(/^https?:\/\//i.test(url))return url;if(/^(download|details|embed)\//.test(url))return'https://archive.org/'+url;if(/^archive\.org/i.test(url))return'https://'+url;return url;}
+
 async function submitContent(){
   const cat=$('f-cat').value;
   const title=$('f-title').value.trim();
@@ -1364,14 +695,15 @@ async function submitContent(){
       showToast('Added ✓');
     }
     cancelEdit();clearForm();
- 
-  if(cat==='series'){
-    obj.season=parseInt($('f-season').value)||1;
-    obj.epNum=parseInt($('f-epnum').value)||1;
- 
+  }catch(e){showToast('Error: '+e.message,true);}
+  btn.disabled=false;
+  btn.innerHTML='<svg width="14" height="14"><use href="#ic-plus"/></svg><span id="submit-lbl">'+(wasEditing?'Save Changes':'Add to Library')+'</span>';
+}
+
+function setLibFilter(btn,f){
+  libFilter=f;
   document.querySelectorAll('.lib-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderLibrary();
+  btn.classList.add('active'); renderLibrary();
 }
 function renderLibrary(){
   const list=$('lib-list');const cnt=$('lib-count');if(!list)return;
@@ -1412,223 +744,101 @@ function editItem(id){
   if(uploadTab)setATab(uploadTab,'upload');
   showSection('admin');
 }
-function askDelete(id,name){
-  deleteId=id;
-  const sub=$('del-modal-sub');if(sub)sub.textContent=`Delete "${name}"? This cannot be undone.`;
-  openModal('del-modal');
-}
+function askDelete(id,name){deleteId=id;const sub=$('del-modal-sub');if(sub)sub.textContent=`Delete "${name}"? This cannot be undone.`;openModal('del-modal');}
 async function confirmDelete(){
   if(!deleteId)return;
-  try{
-    await window._fb.deleteDoc(window._fb.doc(window._db,'content',deleteId));
-    showToast('Deleted ✓');closeModal('del-modal');deleteId=null;renderLibrary();
-  }catch(e){showToast('Error: '+e.message,true);}
+  try{await window._fb.deleteDoc(window._fb.doc(window._db,'content',deleteId));showToast('Deleted ✓');closeModal('del-modal');deleteId=null;renderLibrary();}
+  catch(e){showToast('Error: '+e.message,true);}
 }
 
-/* ── SUBSCRIBERS ── */
 async function addSubscriber(){
   const name=$('sub-name').value.trim(),phone=$('sub-phone').value.trim(),plan=$('sub-plan').value;
   if(!name||!phone){showToast('Name and phone required',true);return;}
-  try{
-    await window._fb.addDoc(window._fb.collection(window._db,'subscribers'),{name,phone,plan,createdAt:new Date().toISOString(),active:true});
-    $('sub-name').value='';$('sub-phone').value='';
-    showToast('Subscriber added ✓');renderSubscribers();
-  }catch(e){showToast('Error: '+e.message,true);}
+  try{await window._fb.addDoc(window._fb.collection(window._db,'subscribers'),{name,phone,plan,createdAt:new Date().toISOString(),active:true});$('sub-name').value='';$('sub-phone').value='';showToast('Subscriber added ✓');renderSubscribers();}
+  catch(e){showToast('Error: '+e.message,true);}
 }
 async function renderSubscribers(){
   const list=$('sub-list');if(!list)return;
   list.innerHTML='<div class="empty-msg">Loading...</div>';
-  try{
-    const snap=await window._fb.getDocs(window._fb.collection(window._db,'subscribers'));
-    const subs=[];snap.forEach(d=>subs.push({id:d.id,...d.data()}));
-    if(!subs.length){list.innerHTML='<div class="empty-msg">No subscribers yet.</div>';return;}
-    list.innerHTML='';
-    subs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(s=>{
-      const div=document.createElement('div');div.className='sub-item';
-      div.innerHTML=`<div class="sub-ifo"><div class="sub-name">${s.name||''}</div><div class="sub-phone">${s.phone||''}</div><div class="sub-date">${s.plan||''} · ${s.createdAt?new Date(s.createdAt).toLocaleDateString():''}</div></div><span class="sub-badge ${s.active?'active':'expired'}">${s.active?'Active':'Expired'}</span><button class="sub-wa" onclick="window.open('https://wa.me/${(s.phone||'').replace(/\D/g,'')}','_blank')"><svg width="14" height="14"><use href="#ic-wa"/></svg></button><button class="sub-del" onclick="deleteSub('${s.id}')"><svg width="12" height="12"><use href="#ic-trash"/></svg></button>`;
-      list.appendChild(div);
-    });
-  }catch(e){list.innerHTML='<div class="empty-msg">Error loading.</div>';}
+  try{const snap=await window._fb.getDocs(window._fb.collection(window._db,'subscribers'));const subs=[];snap.forEach(d=>subs.push({id:d.id,...d.data()}));if(!subs.length){list.innerHTML='<div class="empty-msg">No subscribers yet.</div>';return;}list.innerHTML='';subs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(s=>{const div=document.createElement('div');div.className='sub-item';div.innerHTML=`<div class="sub-ifo"><div class="sub-name">${s.name||''}</div><div class="sub-phone">${s.phone||''}</div><div class="sub-date">${s.plan||''} · ${s.createdAt?new Date(s.createdAt).toLocaleDateString():''}</div></div><span class="sub-badge ${s.active?'active':'expired'}">${s.active?'Active':'Expired'}</span><button class="sub-wa" onclick="window.open('https://wa.me/${(s.phone||'').replace(/\D/g,'')}','_blank')"><svg width="14" height="14"><use href="#ic-wa"/></svg></button><button class="sub-del" onclick="deleteSub('${s.id}')"><svg width="12" height="12"><use href="#ic-trash"/></svg></button>`;list.appendChild(div);});}
+  catch(e){list.innerHTML='<div class="empty-msg">Error loading.</div>';}
 }
-async function deleteSub(id){
-  if(!confirm('Remove subscriber?'))return;
-  try{await window._fb.deleteDoc(window._fb.doc(window._db,'subscribers',id));renderSubscribers();showToast('Removed');}
-  catch(e){showToast('Error',true);}
-}
+async function deleteSub(id){if(!confirm('Remove subscriber?'))return;try{await window._fb.deleteDoc(window._fb.doc(window._db,'subscribers',id));renderSubscribers();showToast('Removed');}catch(e){showToast('Error',true);}}
 
-/* ── PAYMENTS ── */
 async function renderPayments(){
   const list=$('pay-list');if(!list)return;
   list.innerHTML='<div class="empty-msg">Loading...</div>';
-  try{
-    const snap=await window._fb.getDocs(window._fb.collection(window._db,'payments'));
-    const pays=[];snap.forEach(d=>pays.push({id:d.id,...d.data()}));
-    if(!pays.length){list.innerHTML='<div class="empty-msg">No payment requests yet.</div>';return;}
-    list.innerHTML='';
-    pays.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(p=>{
-      const div=document.createElement('div');div.className='pay-item';
-      const btns=p.status?`<span class="pay-badge ${p.status}">${p.status}</span>`:`<button class="pay-approve" onclick="updatePayment('${p.id}','approved')">Approve</button><button class="pay-reject" onclick="updatePayment('${p.id}','rejected')">Reject</button>`;
-      div.innerHTML=`<div class="pay-name">${p.name||''}</div><div class="pay-phone">${p.phone||''}</div>${p.txnId?`<div class="pay-txn">TXN: ${p.txnId}</div>`:''}<div class="pay-time">${p.createdAt?new Date(p.createdAt).toLocaleDateString():''}</div>${btns}`;
-      list.appendChild(div);
-    });
-  }catch(e){list.innerHTML='<div class="empty-msg">Error loading.</div>';}
+  try{const snap=await window._fb.getDocs(window._fb.collection(window._db,'payments'));const pays=[];snap.forEach(d=>pays.push({id:d.id,...d.data()}));if(!pays.length){list.innerHTML='<div class="empty-msg">No payment requests yet.</div>';return;}list.innerHTML='';pays.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(p=>{const div=document.createElement('div');div.className='pay-item';const btns=p.status?`<span class="pay-badge ${p.status}">${p.status}</span>`:`<button class="pay-approve" onclick="updatePayment('${p.id}','approved')">Approve</button><button class="pay-reject" onclick="updatePayment('${p.id}','rejected')">Reject</button>`;div.innerHTML=`<div class="pay-name">${p.name||''}</div><div class="pay-phone">${p.phone||''}</div>${p.txnId?`<div class="pay-txn">TXN: ${p.txnId}</div>`:''}<div class="pay-time">${p.createdAt?new Date(p.createdAt).toLocaleDateString():''}</div>${btns}`;list.appendChild(div);});}
+  catch(e){list.innerHTML='<div class="empty-msg">Error loading.</div>';}
 }
-async function updatePayment(id,status){
-  try{await window._fb.updateDoc(window._fb.doc(window._db,'payments',id),{status});renderPayments();}
-  catch(e){showToast('Error',true);}
-}
+async function updatePayment(id,status){try{await window._fb.updateDoc(window._fb.doc(window._db,'payments',id),{status});renderPayments();}catch(e){showToast('Error',true);}}
 
-/* ── UPCOMING ── */
-async function loadUpcoming(renderPage=false){
-  try{
-    const snap=await window._fb.getDocs(window._fb.collection(window._db,'upcoming'));
-    const items=[];snap.forEach(d=>items.push({id:d.id,...d.data()}));
-    if(items.length){
-      const ticker=$('upcoming-ticker');if(ticker)ticker.style.display='block';
-      const track=$('ticker-track');
-      if(track){
-        const dupe=[...items,...items];
-        track.innerHTML=dupe.map(it=>`<span class="ticker-item">🎬 ${it.title||''} ${it.releaseDate?'('+it.releaseDate+')':''}</span>`).join('');
-      }
-      const upBlock=$('upcoming-row-block');if(upBlock)upBlock.style.display='block';
-      const row=$('upcoming-cards-row');
-      if(row){
-        row.innerHTML='';
-        items.forEach(it=>{
-          const card=document.createElement('div');card.className='pcard';card.style.cursor='default';
-          const img=it.thumb?`<img src="${it.thumb}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block;"/>`:`<div class="pcard-noimg">🎬</div>`;
-          const badge=it.releaseDate?`<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>`:'';
-          const del=adminUnlocked?`<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="background:var(--red);">✕</button>`:'';
-          card.innerHTML=`<div class="pcard-img" style="position:relative;">${img}${badge}${del}</div>`;
-          row.appendChild(card);
-        });
-      }
-      if(adminUnlocked){const ab=$('upcoming-add-btn');if(ab)ab.style.display='';}
-    }
-  }catch(e){console.warn('loadUpcoming error:',e);}
+async function loadUpcoming(){
+  try{const snap=await window._fb.getDocs(window._fb.collection(window._db,'upcoming'));const items=[];snap.forEach(d=>items.push({id:d.id,...d.data()}));if(items.length){const ticker=$('upcoming-ticker');if(ticker)ticker.style.display='block';const track=$('ticker-track');if(track){const dupe=[...items,...items];track.innerHTML=dupe.map(it=>`<span class="ticker-item">🎬 ${it.title||''} ${it.releaseDate?'('+it.releaseDate+')':''}</span>`).join('');}const upBlock=$('upcoming-row-block');if(upBlock)upBlock.style.display='block';const row=$('upcoming-cards-row');if(row){row.innerHTML='';items.forEach(it=>{const card=document.createElement('div');card.className='pcard';card.style.cursor='default';const img=it.thumb?`<img src="${it.thumb}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block;"/>`:`<div class="pcard-noimg">🎬</div>`;const badge=it.releaseDate?`<div style="position:absolute;bottom:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.7);color:#fff;padding:2px 5px;border-radius:3px;">${it.releaseDate}</div>`:'';const del=adminUnlocked?`<button class="pcard-edit-btn" onclick="event.stopPropagation();deleteUpcoming('${it.id}')" style="background:var(--red);">✕</button>`:'';card.innerHTML=`<div class="pcard-img" style="position:relative;">${img}${badge}${del}</div>`;row.appendChild(card);});}if(adminUnlocked){const ab=$('upcoming-add-btn');if(ab)ab.style.display='';}}}
+  catch(e){console.warn('loadUpcoming error:',e);}
 }
 async function addCS(){
   const title=$('cs-title-inp').value.trim(),thumb=$('cs-thumb-inp').value.trim(),date=$('cs-date-inp').value.trim();
   if(!title){showToast('Enter title',true);return;}
-  try{
-    await window._fb.addDoc(window._fb.collection(window._db,'upcoming'),{title,thumb,releaseDate:date,createdAt:Date.now()});
-    closeModal('cs-modal');
-    $('cs-title-inp').value='';$('cs-thumb-inp').value='';$('cs-date-inp').value='';
-    showToast('Added!');loadUpcoming();
-  }catch(e){showToast('Error: '+e.message,true);}
+  try{await window._fb.addDoc(window._fb.collection(window._db,'upcoming'),{title,thumb,releaseDate:date,createdAt:Date.now()});closeModal('cs-modal');$('cs-title-inp').value='';$('cs-thumb-inp').value='';$('cs-date-inp').value='';showToast('Added!');loadUpcoming();}
+  catch(e){showToast('Error: '+e.message,true);}
 }
-async function deleteUpcoming(id){
-  if(!confirm('Delete?'))return;
-  try{await window._fb.deleteDoc(window._fb.doc(window._db,'upcoming',id));loadUpcoming();}catch{}
-}
+async function deleteUpcoming(id){if(!confirm('Delete?'))return;try{await window._fb.deleteDoc(window._fb.doc(window._db,'upcoming',id));loadUpcoming();}catch{}}
 
-/* ── NOTIFICATIONS ── */
 function enableNotifications(){
-  if(window._enableNotificationsReal){window._enableNotificationsReal();return;}
-  // Defined in Firebase module - trigger via event
+  if(window._realEnableNotifications){window._realEnableNotifications();return;}
   showToast('Setting up notifications...');
-  // enableNotifications is defined in the Firebase module script in index.html
-  // It's exposed on window via the module - call it directly
-  if(typeof window.enableNotifications === 'function' && window.enableNotifications !== enableNotifications){
-    window.enableNotifications();
-  } else {
-    showToast('Notifications not available', true);
-  }
+  setTimeout(function(){if(window._realEnableNotifications)window._realEnableNotifications();else showToast('Tap Allow when browser asks',false);},300);
 }
 
-/* ── NOTIFICATIONS ── */
-function enableNotifications(){
-  // Try real function first (defined in Firebase module)
-  if(window._realEnableNotifications){
-    window._realEnableNotifications();
-    return;
-  }
-  showToast('Setting up notifications...');
-  setTimeout(function(){
-    if(window._realEnableNotifications) window._realEnableNotifications();
-    else showToast('Tap Allow when browser asks', false);
-  }, 300);
-}
-
-/* ── SECRET TAPS ── */
 function secretTap(){
-  secretTaps++;
-  clearTimeout(secretTimer);
+  secretTaps++;clearTimeout(secretTimer);
   const sc=$('secret-count');
-  if(secretTaps<7){
-    if(sc){sc.style.color='var(--txt3)';sc.textContent=secretTaps;}
-    secretTimer=setTimeout(()=>{secretTaps=0;if(sc){sc.style.color='transparent';sc.textContent='0';}},2000);
-  }else{
-    if(sc){sc.style.color='transparent';sc.textContent='0';}secretTaps=0;openPinModal();
-  }
+  if(secretTaps<7){if(sc){sc.style.color='var(--txt3)';sc.textContent=secretTaps;}secretTimer=setTimeout(()=>{secretTaps=0;if(sc){sc.style.color='transparent';sc.textContent='0';}},2000);}
+  else{if(sc){sc.style.color='transparent';sc.textContent='0';}secretTaps=0;openPinModal();}
 }
 
-/* ── PWA INSTALL ── */
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();deferredInstall=e;
-  const btn=$('install-btn');if(btn)btn.style.display='';
-  const b=$('inst-banner');if(b&&!sessionStorage.getItem('km_banner_dismissed'))b.style.display='flex';
-});
-function triggerInstall(){
-  if(deferredInstall){
-    deferredInstall.prompt();
-    deferredInstall.userChoice.then(choice=>{
-      deferredInstall=null;
-      const b=$('inst-banner');if(b)b.style.display='none';
-      if(choice.outcome==='accepted')showToast('App installed! ✓');
-    });
-  }else{
-    showToast('Tap browser menu → Add to Home Screen');
-  }
-}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const btn=$('install-btn');if(btn)btn.style.display='';const b=$('inst-banner');if(b&&!sessionStorage.getItem('km_banner_dismissed'))b.style.display='flex';});
+function triggerInstall(){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(choice=>{deferredInstall=null;const b=$('inst-banner');if(b)b.style.display='none';if(choice.outcome==='accepted')showToast('App installed! ✓');});}else{showToast('Tap browser menu → Add to Home Screen');}}
 function dismissBanner(){const b=$('inst-banner');if(b)b.style.display='none';sessionStorage.setItem('km_banner_dismissed','1');}
 window.addEventListener('appinstalled',()=>{deferredInstall=null;showToast('Kenmovies installed! ✓');const b=$('inst-banner');if(b)b.style.display='none';});
 
-/* ── INIT ── */
 function init(){
-  applyAdminUI();
-  initProgDrag();
-  populateVjDropdown();
-  // Show loading shimmers
-  showShimmers('vj-rows-home', 8);
-  showSection('home');
+  applyAdminUI();initProgDrag();populateVjDropdown();
+  showShimmers('vj-rows-home',8);showSection('home');
   if(window._fbReady) loadContent();
-  else document.addEventListener('fb-ready', loadContent);
+  else document.addEventListener('fb-ready',loadContent);
   loadUpcoming();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-
-  // Push a history state so Android back button doesn't close app
-  history.pushState({km:true}, '');
-  window.addEventListener('popstate', function(e) {
-    // Android back button pressed
-    const playerOv = $('player-ov');
-    const detailOv = $('detail-ov');
-    const searchOv = $('search-ov');
-    const saOv = $('sa-ov');
-    if (playerOv && playerOv.style.display === 'flex') {
-      closePlayer();
-      history.pushState({km:true}, ''); // push again to prevent app close
-    } else if (detailOv && detailOv.classList.contains('open')) {
-      closeDetail();
-      history.pushState({km:true}, '');
-    } else if (searchOv && searchOv.classList.contains('open')) {
-      closeSearch();
-      history.pushState({km:true}, '');
-    } else if (saOv && saOv.classList.contains('open')) {
-      closeSeeAll();
-      history.pushState({km:true}, '');
-    } else if (currentSection !== 'home') {
-      showSection('home');
-      history.pushState({km:true}, '');
-    } else {
-      // At home — let Android handle it (minimize app)
-      history.back();
-    }
+  history.pushState({km:true},'');
+  window.addEventListener('popstate',function(e){
+    const playerOv=$('player-ov');const detailOv=$('detail-ov');const searchOv=$('search-ov');const saOv=$('sa-ov');
+    if(playerOv&&playerOv.style.display==='flex'){closePlayer();history.pushState({km:true},'');}
+    else if(detailOv&&detailOv.classList.contains('open')){closeDetail();history.pushState({km:true},'');}
+    else if(searchOv&&searchOv.classList.contains('open')){closeSearch();history.pushState({km:true},'');}
+    else if(saOv&&saOv.classList.contains('open')){closeSeeAll();history.pushState({km:true},'');}
+    else if(currentSection!=='home'){showSection('home');history.pushState({km:true},'');}
+    else history.back();
   });
+  window._appReady=true;
+  window._openSearch=openSearch;window._showSection=showSection;window._goAdmin=goAdmin;
+  window._triggerInstall=triggerInstall;window._heroClick=heroClick;window._setHero=setHero;
+  window._doSearch=doSearch;window._setSF=setSF;window._checkPin=checkPin;
+  window._kpTap=kpTap;window._kpTogglePlay=kpTogglePlay;window._kpSeek=kpSeek;
+  window._kpVol=kpVol;window._kpRotate=kpRotate;window._kpZoom=kpZoom;
+  window._kpFullscreen=kpFullscreen;window._kpCycleSpeed=kpCycleSpeed;window._kpDownload=kpDownload;
+  window._kpRetry=kpRetry;window._kpProgClick=kpProgClick;window._toggleFav=toggleFav;
+  window._toggleDetailFav=toggleDetailFav;window._toggleSeriesFav=toggleSeriesFav;
+  window._playAdjacentEp=playAdjacentEp;window._toggleSeasonMenu=toggleSeasonMenu;
+  window._secretTap=secretTap;window._setCat=setCat;window._setATab=setATab;
+  window._setLibFilter=setLibFilter;window._filterMoviesByVj=filterMoviesByVj;
+  window._previewThumb=previewThumb;window._previewDlLink=previewDlLink;
+  window._submitContent=submitContent;window._cancelEdit=cancelEdit;
+  window._confirmDelete=confirmDelete;window._addSubscriber=addSubscriber;
+  window._submitChangePass=submitChangePass;window._addCS=addCS;
 }
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded',init);
 
-/* ── NORMALIZE ── */
 function normalizeItem(d){
   const data=d.data?d.data():d;
   const createdAt=typeof data.createdAt==='number'?data.createdAt:(data.createdAt?.toMillis?.()||Date.now());
@@ -1646,90 +856,16 @@ function normalizeItem(d){
   return{...data,id,category,title,sname,thumb,playLink,dlLink,createdAt};
 }
 
-/* ── LOAD CONTENT ── */
 function loadContent(){
   const{onSnapshot,getDocs,getDoc,collection,doc,query,orderBy}=window._fb;
   function processSnap(snap){const items=[];snap.forEach(d=>items.push(normalizeItem(d)));return items;}
-
-  // Show Firebase error state
-  function showFirebaseError(){
-    const hh=$('vj-rows-home');
-    if(hh)hh.innerHTML=`<div class="empty-page">
-      <div style="font-size:36px;margin-bottom:12px;">📡</div>
-      <div style="font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px;">Could not load movies</div>
-      <div style="font-size:12px;color:var(--txt3);">Check your internet connection</div>
-      <button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;border-radius:99px;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:12px;">Retry</button>
-    </div>`;
-  }
-
+  function showFirebaseError(){const hh=$('vj-rows-home');if(hh)hh.innerHTML=`<div class="empty-page"><div style="font-size:36px;margin-bottom:12px;">📡</div><div style="font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:6px;">Could not load movies</div><div style="font-size:12px;color:var(--txt3);">Check your internet connection</div><button onclick="location.reload()" style="margin-top:16px;padding:8px 20px;border-radius:99px;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:12px;">Retry</button></div>`;}
   try{
     const qOrdered=query(collection(window._db,'content'),orderBy('createdAt','desc'));
-    onSnapshot(qOrdered, snap=>{
-      allContent=processSnap(snap);
-      buildRows();buildHero();renderStats();
-      if(currentSection==='favs')renderFavs();
-      if(currentSection==='downloads')renderDownloads();
-      if(currentSection==='anime')renderAnime();
-    }, err=>{
-      console.warn('Ordered query failed, falling back:', err.message);
-      onSnapshot(collection(window._db,'content'), snap=>{
-        allContent=processSnap(snap);
-        buildRows();buildHero();renderStats();
-      }, err2=>{
-        console.error('Firebase failed:', err2.message);
-        showFirebaseError();
-      });
-    });
+    onSnapshot(qOrdered,snap=>{allContent=processSnap(snap);buildRows();buildHero();renderStats();if(currentSection==='favs')renderFavs();if(currentSection==='downloads')renderDownloads();if(currentSection==='anime')renderAnime();},err=>{console.warn('Ordered query failed:',err.message);onSnapshot(collection(window._db,'content'),snap=>{allContent=processSnap(snap);buildRows();buildHero();renderStats();},err2=>{console.error('Firebase failed:',err2.message);showFirebaseError();});});
   }catch(e){showFirebaseError();}
 }
 
-/* ── ADD LOAD-MORE BUTTON CSS ── */
 const style=document.createElement('style');
-style.textContent=`
-.load-more-btn{display:block;width:100%;padding:12px;margin-top:10px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--brd2);color:var(--txt2);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;grid-column:1/-1;}
-.load-more-btn:hover{background:var(--bg4);border-color:var(--brd-red);color:var(--txt);}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-`;
+style.textContent=`.load-more-btn{display:block;width:100%;padding:12px;margin-top:10px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--brd2);color:var(--txt2);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;grid-column:1/-1;}.load-more-btn:hover{background:var(--bg4);border-color:var(--brd-red);color:var(--txt);}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}`;
 document.head.appendChild(style);
-/* ── EXPOSE FUNCTIONS FOR HTML STUBS ── */
-document.addEventListener('DOMContentLoaded', function() {
-  window._appReady = true;
-  window._openSearch = openSearch;
-  window._showSection = showSection;
-  window._goAdmin = goAdmin;
-  window._triggerInstall = triggerInstall;
-  window._heroClick = heroClick;
-  window._setHero = setHero;
-  window._doSearch = doSearch;
-  window._setSF = setSF;
-  window._checkPin = checkPin;
-  window._kpTap = kpTap;
-  window._kpTogglePlay = kpTogglePlay;
-  window._kpSeek = kpSeek;
-  window._kpVol = kpVol;
-  window._kpRotate = kpRotate;
-  window._kpZoom = kpZoom;
-  window._kpFullscreen = kpFullscreen;
-  window._kpCycleSpeed = kpCycleSpeed;
-  window._kpDownload = kpDownload;
-  window._kpRetry = kpRetry;
-  window._kpProgClick = kpProgClick;
-  window._toggleFav = toggleFav;
-  window._toggleDetailFav = toggleDetailFav;
-  window._toggleSeriesFav = toggleSeriesFav;
-  window._playAdjacentEp = playAdjacentEp;
-  window._toggleSeasonMenu = toggleSeasonMenu;
-  window._secretTap = secretTap;
-  window._setCat = setCat;
-  window._setATab = setATab;
-  window._setLibFilter = setLibFilter;
-  window._filterMoviesByVj = filterMoviesByVj;
-  window._previewThumb = previewThumb;
-  window._previewDlLink = previewDlLink;
-  window._submitContent = submitContent;
-  window._cancelEdit = cancelEdit;
-  window._confirmDelete = confirmDelete;
-  window._addSubscriber = addSubscriber;
-  window._submitChangePass = submitChangePass;
-  window._addCS = addCS;
-});
