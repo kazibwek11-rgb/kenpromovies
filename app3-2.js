@@ -6,7 +6,7 @@
 /* ── STATE ── */
 let allContent = [];
 let favs = JSON.parse(localStorage.getItem('km_favs') || '[]');
-let adminUnlocked = localStorage.getItem('km_admin') === '1';
+let adminUnlocked = sessionStorage.getItem('km_admin') === '1';
 let currentSection = 'home';
 let heroItems = [], heroIdx = 0, heroTimer = null;
 let libFilter = 'all', searchFilter = 'all';
@@ -74,7 +74,7 @@ function applyAdminUI() {
 function openPinModal() {
   if (adminUnlocked) {
     if (confirm('Hide admin panel?')) {
-      adminUnlocked = false; localStorage.removeItem('km_admin'); applyAdminUI(); showToast('Admin hidden');
+      adminUnlocked = false; sessionStorage.removeItem('km_admin'); applyAdminUI(); showToast('Admin hidden');
     }
     return;
   }
@@ -85,7 +85,7 @@ function openPinModal() {
 function checkPin() {
   const v = $('pin-inp').value.trim();
   if (v === getPass()) {
-    adminUnlocked = true; localStorage.setItem('km_admin','1');
+    adminUnlocked = true; sessionStorage.setItem('km_admin','1');
     closeModal('pin-modal'); applyAdminUI(); showToast('Admin unlocked ✓'); showSection('admin');
   } else {
     $('pin-err').textContent = 'Wrong password'; $('pin-inp').value = '';
