@@ -156,10 +156,12 @@ function posterCard(m, opts={}) {
   const imgHtml=m.thumb
     ?`<img src="${m.thumb}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'">`
     :`<div class="pcard-noimg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M12 8v8M8 12h8"/></svg></div>`;
-  const vj=m.vj?`<div class="pcard-vj">${m.vj.toUpperCase()}</div>`:'';
-  const badge=m._isSeries&&m._epCount?`<div style="position:absolute;top:4px;right:4px;font-size:9px;background:rgba(229,21,45,0.9);color:#fff;padding:2px 5px;border-radius:3px;">${m._epCount} EP</div>`:'';
+  const vj=m.vj?`<div class="pcard-vj" style="background:#00C853;color:#000;font-weight:800;padding:2px 6px;border-radius:3px;font-size:8px;position:absolute;bottom:5px;left:5px;">${m.vj.toUpperCase()}</div>`:'';
+  const badge=m._isSeries&&m._epCount?`<div style="position:absolute;top:4px;right:4px;font-size:9px;background:#00C853;color:#000;font-weight:800;padding:2px 5px;border-radius:3px;">${m._epCount} EP</div>`:'';
+  const isNew=(Date.now()-m.createdAt)<7*24*60*60*1000;
+  const newBadge=(!m._isSeries&&isNew)?`<div style="position:absolute;top:4px;left:4px;font-size:8px;background:#00C853;color:#000;font-weight:800;padding:1px 5px;border-radius:3px;">NEW</div>`:''
   const editBtn=adminUnlocked&&opts.showEdit?`<button class="pcard-edit-btn" onclick="event.stopPropagation();editItem('${m.id}')">✎</button>`:'';
-  div.innerHTML=`<div class="pcard-img">${imgHtml}${vj}${badge}${editBtn}</div><div class="pcard-name">${m.sname||m.title||''}</div>`;
+  div.innerHTML=`<div class="pcard-img">${imgHtml}${vj}${badge}${newBadge||''}${editBtn}</div><div class="pcard-name">${m.sname||m.title||''}</div>`;
   div.onclick=()=>openDetail(m);
   return div;
 }
@@ -207,7 +209,7 @@ function buildRows() {
   if(movies.length) makeRow('Latest Movies',movies.slice(0,20),hh);
   if(seriesSorted.length) makeRow('Latest Series',seriesSorted.slice(0,20),hh);
   if(animations.length) makeRow('Animation',animations.slice(0,20),hh);
-  if(animes.length) makeRow('Anime',animes.slice(0,20),hh);
+  // Anime rendered in dedicated page only
   if(indians.length) makeRow('Indian',indians.slice(0,20),hh);
   const hm=$('vj-rows-movies'); hm.innerHTML='';
   if(movies.length){
